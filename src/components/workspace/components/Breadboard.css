@@ -1,0 +1,104 @@
+/* ============================================================
+   CANVAS BREADBOARD - PURE VECTOR SVG (TINKERCAD GRADE)
+============================================================ */
+
+.canvas-breadboard {
+    position: absolute;
+    top: 0;
+    left: 0;
+    user-select: none;
+    cursor: default;
+    z-index: 5; /* STAY BENEATH COMPONENTS (20) AND WIRES (40) */
+    /* immediate hardware transform without lag */
+}
+
+.canvas-breadboard:active {
+    cursor: default;
+}
+
+.canvas-breadboard.selected {
+    z-index: 8; /* STILL BENEATH MOUNTED COMPONENTS */
+}
+
+.canvas-breadboard.selected .breadboard-svg {
+    cursor: default;
+    filter: drop-shadow(0 0 0 2px var(--project-accent, #FF8A00)) drop-shadow(0 16px 40px rgba(0, 0, 0, 0.6));
+}
+
+.breadboard-svg {
+    display: block;
+    overflow: visible;
+    transition: filter 0.2s ease;
+}
+
+/* Floating Controls (Rotate / Delete) */
+.component-controls {
+    position: absolute;
+    top: -46px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: rgba(18, 24, 34, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 12px;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+    z-index: 50;
+    pointer-events: auto;
+}
+
+/* Invisible Hitbox Bridge so mouse transition from breadboard to buttons is 100% seamless */
+.component-controls::after {
+    content: "";
+    position: absolute;
+    bottom: -16px;
+    left: 0;
+    right: 0;
+    height: 16px;
+    background: transparent;
+}
+
+.control-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 15px;
+    transition: 0.15s ease;
+}
+
+.control-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+}
+
+.control-btn.delete:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #ef4444;
+}
+
+.control-btn.rotate:hover {
+    background: rgba(255, 138, 0, 0.25);
+    border-color: rgba(255, 138, 0, 0.5);
+    color: #FF8A00;
+}
+
+/* Breadboard Holes Interactivity - 100% instant and accurate cursor tracking */
+.breadboard-hole-node {
+    cursor: default;
+    pointer-events: auto;
+}
+
+.target-pin-animated {
+    transform-origin: center;
+}

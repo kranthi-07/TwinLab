@@ -1,0 +1,347 @@
+/* ==========================================
+   LARGE LAPTOPS
+========================================== */
+
+@media (max-width: 1400px){
+
+    .hero{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .hero-preview{
+
+        min-height:320px;
+
+    }
+
+}
+
+/* ==========================================
+   TABLETS
+========================================== */
+
+@media (max-width:1200px){
+
+    .quick-start{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .projects-grid{
+
+        grid-template-columns:repeat(2,1fr);
+
+    }
+
+}
+
+/* ==========================================
+   SMALL TABLETS
+========================================== */
+
+@media (max-width:992px){
+
+    .app{
+
+        flex-direction:column;
+
+    }
+
+    .sidebar{
+
+        position:relative;
+
+        width:100%;
+
+        height:auto;
+
+        margin:15px;
+
+    }
+
+    .main-content{
+
+        margin-left:0;
+
+        width:100%;
+
+    }
+
+    .topbar{
+
+        flex-wrap:wrap;
+
+        gap:20px;
+
+    }
+
+    .search-placeholder{
+
+        order:2;
+
+        width:100%;
+
+        max-width:none;
+
+    }
+
+    .hero{
+
+        grid-template-columns:1fr;
+
+        padding:32px;
+
+    }
+
+    .stats{
+
+        grid-template-columns:repeat(3,1fr);
+
+    }
+
+    .footer{
+
+        flex-direction:column;
+
+        align-items:flex-start;
+
+    }
+
+}
+
+/* ==========================================
+   MOBILE
+========================================== */
+
+@media (max-width:768px){
+
+    body{
+
+        overflow-x:hidden;
+
+    }
+
+    .topbar{
+
+        margin:15px;
+
+        padding:20px;
+
+    }
+
+    .hero{
+
+        margin:15px;
+
+        padding:24px;
+
+    }
+
+    .recent-projects{
+
+        margin:15px;
+
+    }
+
+    .quick-start{
+
+        margin:15px;
+
+    }
+
+    .footer{
+
+        margin:15px;
+
+    }
+
+    .hero h1{
+
+        font-size:40px;
+
+        line-height:1.2;
+
+    }
+
+    .description{
+
+        font-size:16px;
+
+    }
+
+    .hero-buttons{
+
+        flex-direction:column;
+
+    }
+
+    .primary-btn,
+
+    .secondary-btn{
+
+        width:100%;
+
+        justify-content:center;
+
+    }
+
+    .stats{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .projects-grid{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .quick-grid{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .footer-center{
+
+        flex-wrap:wrap;
+
+    }
+
+}
+
+/* ==========================================
+   SMALL MOBILES
+========================================== */
+
+@media (max-width:576px){
+
+    .sidebar{
+
+        margin:10px;
+
+        padding:20px;
+
+        border-radius:20px;
+
+    }
+
+    .topbar{
+
+        margin:10px;
+
+        padding:18px;
+
+    }
+
+    .hero{
+
+        margin:10px;
+
+        padding:20px;
+
+        border-radius:22px;
+
+    }
+
+    .recent-projects{
+
+        margin:10px;
+
+    }
+
+    .quick-start{
+
+        margin:10px;
+
+    }
+
+    .footer{
+
+        margin:10px;
+
+        padding:20px;
+
+        border-radius:20px;
+
+    }
+
+    .hero h1{
+
+        font-size:32px;
+
+    }
+
+    .section-title{
+
+        flex-direction:column;
+
+        align-items:flex-start;
+
+        gap:10px;
+
+    }
+
+    .project-card{
+
+        border-radius:18px;
+
+    }
+
+    .quick-panel,
+
+    .tips-panel{
+
+        padding:20px;
+
+    }
+
+    .profile-circle{
+
+        width:44px;
+
+        height:44px;
+
+    }
+
+}
+
+/* ==========================================
+   EXTRA SMALL DEVICES
+========================================== */
+
+@media (max-width:400px){
+
+    .hero h1{
+
+        font-size:28px;
+
+    }
+
+    .description{
+
+        font-size:15px;
+
+    }
+
+    .primary-btn,
+
+    .secondary-btn{
+
+        height:52px;
+
+        font-size:14px;
+
+    }
+
+    .stat-card h3{
+
+        font-size:28px;
+
+    }
+
+}

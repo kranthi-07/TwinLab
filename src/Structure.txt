@@ -1,0 +1,92 @@
+TwinLab/
+
+📁 public
+
+📁 src
+
+    📄 App.jsx
+    📄 main.jsx
+
+    📁 assets
+        📁 icons
+        📁 images
+        📁 fonts
+        📁 videos
+
+    📁 components
+
+        📁 Sidebar
+            📄 Sidebar.jsx
+            📄 Sidebar.css
+
+        📁 Topbar
+            📄 Topbar.jsx
+            📄 Topbar.css
+
+        📁 Toolbar
+            📄 Toolbar.jsx
+            📄 Toolbar.css
+
+        📁 Canvas
+            📄 Canvas.jsx
+            📄 Canvas.css
+
+        📁 Inspector
+            📄 Inspector.jsx
+            📄 Inspector.css
+
+        📁 Console
+            📄 Console.jsx
+            📄 Console.css
+
+        📁 ComponentLibrary
+            📄 ComponentLibrary.jsx
+            📄 ComponentLibrary.css
+
+        📁 MiniMap
+            📄 MiniMap.jsx
+            📄 MiniMap.css
+
+        📁 Common
+            📄 Button.jsx
+            📄 Button.css
+            📄 Card.jsx
+            📄 Card.css
+            📄 Modal.jsx
+            📄 Modal.css
+            📄 SearchBar.jsx
+            📄 SearchBar.css
+            📄 Dropdown.jsx
+            📄 Dropdown.css
+
+    📁 pages
+
+        📁 Dashboard
+            📄 Dashboard.jsx
+            📄 Dashboard.css
+
+        📁 Workspace
+            📄 Workspace.jsx
+            📄 Workspace.css
+
+        📁 Learn
+            📄 Learn.jsx
+            📄 Learn.css
+
+        📁 Settings
+            📄 Settings.jsx
+            📄 Settings.css
+
+    📁 styles
+        📄 variables.css
+        📄 globals.css
+
+    📁 hooks
+
+    📁 context
+
+    📁 services
+
+    📁 utils
+
+    📁 data

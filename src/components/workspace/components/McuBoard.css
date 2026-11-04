@@ -1,0 +1,484 @@
+/* ============================================================
+   MICROCONTROLLER BOARDS: ARDUINO UNO R3 & ESP32 DEVKIT V1
+============================================================ */
+.mcu-board-container {
+    position: absolute;
+    user-select: none;
+    cursor: move;
+    z-index: 7; /* Above breadboard (z-index 5), beneath active wires & inspector */
+    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.65)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+    transition: filter 0.15s ease;
+}
+
+.mcu-board-container.selected {
+    outline: 2px solid #38bdf8;
+    filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.6)) drop-shadow(0 12px 24px rgba(0, 0, 0, 0.65));
+}
+
+/* ============================================================
+   1. ARDUINO UNO R3 PCB (320px x 224px)
+============================================================ */
+.arduino-uno-board {
+    width: 320px;
+    height: 224px;
+}
+
+.arduino-pcb-surface {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #0f766e; /* Classic Arduino Teal */
+    border-radius: 12px 16px 12px 12px;
+    border: 2px solid #115e59;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+/* Metallic USB Type-B Port */
+.arduino-usb-port {
+    position: absolute;
+    top: 24px;
+    left: -8px;
+    width: 44px;
+    height: 38px;
+    background: linear-gradient(180deg, #e2e8f0, #94a3b8 50%, #64748b);
+    border-radius: 4px;
+    border: 1.5px solid #cbd5e1;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+    z-index: 8;
+}
+
+.usb-shield-metallic {
+    width: 100%;
+    height: 100%;
+    border-right: 3px solid #475569;
+}
+
+/* DC Barrel Jack */
+.arduino-dc-jack {
+    position: absolute;
+    bottom: 24px;
+    left: -12px;
+    width: 48px;
+    height: 42px;
+    background: #09090b;
+    border-radius: 4px;
+    border: 1.5px solid #27272a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+    z-index: 8;
+}
+
+.barrel-inner-hole {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #18181b;
+    border: 3px solid #52525b;
+}
+
+/* Reset Button */
+.arduino-reset-btn {
+    position: absolute;
+    top: 72px;
+    left: 24px;
+    width: 18px;
+    height: 18px;
+    background: #334155;
+    border-radius: 3px;
+    border: 1.5px solid #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reset-actuator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #dc2626;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* Crystal Oscillator */
+.arduino-crystal {
+    position: absolute;
+    top: 72px;
+    left: 64px;
+    width: 32px;
+    height: 14px;
+    background: linear-gradient(180deg, #f1f5f9, #94a3b8);
+    border-radius: 3px;
+    border: 1px solid #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.crystal-text {
+    font-size: 7px;
+    font-weight: 800;
+    font-family: monospace;
+    color: #334155;
+}
+
+/* ATmega328P DIP-28 Main IC */
+.arduino-atmega-ic {
+    position: absolute;
+    top: 104px;
+    left: 144px;
+    width: 120px;
+    height: 38px;
+    background: #09090b;
+    border-radius: 4px;
+    border: 1.5px solid #27272a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.15);
+    z-index: 6;
+}
+
+.ic-notch {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 10px;
+    background: #27272a;
+    border-radius: 0 4px 4px 0;
+}
+
+.ic-label {
+    font-size: 9px;
+    font-weight: 800;
+    font-family: monospace;
+    color: #a1a1aa;
+    letter-spacing: 0.1em;
+}
+
+/* Silkscreen Branding */
+.arduino-silkscreen-labels {
+    position: absolute;
+    top: 60px;
+    left: 144px;
+    display: flex;
+    flex-direction: column;
+}
+
+.board-title {
+    font-size: 15px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 0.15em;
+    font-family: system-ui, sans-serif;
+}
+
+.board-subtitle {
+    font-size: 11px;
+    font-weight: 800;
+    color: #cbd5e1;
+    letter-spacing: 0.12em;
+}
+
+/* Onboard LEDs */
+.arduino-leds-cluster {
+    position: absolute;
+    top: 56px;
+    left: 236px;
+    display: flex;
+    gap: 8px;
+}
+
+.status-led-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.micro-smd-led {
+    width: 5px;
+    height: 5px;
+    border-radius: 1px;
+    background: #3f3f46;
+    border: 0.5px solid #27272a;
+    transition: all 0.15s ease;
+}
+
+.smd-label {
+    font-size: 6px;
+    font-weight: 800;
+    color: #ffffff;
+    font-family: monospace;
+}
+
+.micro-smd-led.led-pwr.lit {
+    background: #22c55e;
+    box-shadow: 0 0 6px #22c55e, 0 0 10px rgba(34, 197, 94, 0.8);
+}
+
+.micro-smd-led.led-d13.lit {
+    background: #eab308;
+    box-shadow: 0 0 6px #eab308, 0 0 10px rgba(234, 179, 8, 0.8);
+}
+
+.micro-smd-led.pulse {
+    animation: smdPulse 1.2s infinite alternate;
+}
+
+@keyframes smdPulse {
+    0% { background: #3f3f46; box-shadow: none; }
+    100% { background: #f97316; box-shadow: 0 0 5px #f97316; }
+}
+
+.header-legend {
+    position: absolute;
+    font-size: 7px;
+    font-weight: 800;
+    font-family: monospace;
+    color: #ffffff;
+    letter-spacing: 0.05em;
+}
+
+.digital-low-legend { top: 32px; left: 20px; }
+.digital-high-legend { top: 32px; left: 160px; }
+.power-legend { bottom: 32px; left: 56px; }
+.analog-legend { bottom: 32px; left: 204px; }
+
+/* ============================================================
+   2. ESP32 DEVKIT V1 PCB (160px x 256px)
+============================================================ */
+.esp32-board {
+    width: 160px;
+    height: 256px;
+}
+
+.esp32-pcb-surface {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #18181b; /* Matte Black PCB */
+    border-radius: 8px;
+    border: 2px solid #27272a;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.15), inset 0 -3px 6px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+}
+
+/* ESP-WROOM-32 Metal RF Can */
+.esp32-metal-can {
+    position: absolute;
+    top: 10px;
+    left: 28px;
+    width: 104px;
+    height: 110px;
+}
+
+.pcb-antenna-trace {
+    width: 100%;
+    height: 24px;
+    background: #713f12;
+    border-radius: 4px 4px 0 0;
+    border: 1px solid #ca8a04;
+}
+
+.metal-can-plate {
+    width: 100%;
+    height: 86px;
+    background: linear-gradient(180deg, #e2e8f0, #cbd5e1 60%, #94a3b8);
+    border-radius: 0 0 4px 4px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+}
+
+.can-brand {
+    font-size: 8px;
+    font-weight: 900;
+    color: #1e293b;
+    letter-spacing: 0.12em;
+}
+
+.can-model {
+    font-size: 7.5px;
+    font-weight: 800;
+    color: #334155;
+    font-family: monospace;
+}
+
+.can-fcc {
+    font-size: 5px;
+    font-weight: 700;
+    color: #64748b;
+    font-family: monospace;
+}
+
+/* CP2102 Bridge IC */
+.esp32-uart-ic {
+    position: absolute;
+    top: 136px;
+    left: 62px;
+    width: 36px;
+    height: 36px;
+    background: #09090b;
+    border-radius: 3px;
+    border: 1px solid #27272a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.uart-label {
+    font-size: 6.5px;
+    font-weight: 800;
+    color: #a1a1aa;
+    font-family: monospace;
+}
+
+/* Micro-USB Port */
+.esp32-usb-port {
+    position: absolute;
+    bottom: -6px;
+    left: 56px;
+    width: 48px;
+    height: 24px;
+    background: linear-gradient(180deg, #e2e8f0, #94a3b8);
+    border-radius: 4px;
+    border: 1px solid #cbd5e1;
+    z-index: 8;
+}
+
+/* Push Buttons EN & BOOT */
+.esp32-button-left,
+.esp32-button-right {
+    position: absolute;
+    bottom: 22px;
+    width: 20px;
+    height: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.esp32-button-left { left: 32px; }
+.esp32-button-right { right: 32px; }
+
+.esp-btn-cap {
+    width: 14px;
+    height: 14px;
+    background: #334155;
+    border-radius: 2px;
+    border: 1px solid #64748b;
+}
+
+.esp-btn-label {
+    font-size: 6px;
+    font-weight: 800;
+    color: #ffffff;
+    font-family: monospace;
+}
+
+/* ESP32 Status LEDs */
+.esp32-leds {
+    position: absolute;
+    top: 184px;
+    left: 52px;
+    display: flex;
+    gap: 24px;
+}
+
+.esp-led-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.micro-smd-led.led-d2.lit {
+    background: #3b82f6;
+    box-shadow: 0 0 6px #3b82f6, 0 0 10px rgba(59, 130, 246, 0.85);
+}
+
+/* ============================================================
+   INTERACTIVE PIN SOCKET HOLES (16px GRID ALIGNED)
+============================================================ */
+.mcu-pin-sockets-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.mcu-socket-hole {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #09090b;
+    border-radius: 2px;
+    border: 1px solid #27272a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: crosshair;
+    pointer-events: auto;
+    transition: transform 0.1s ease, border-color 0.15s ease;
+}
+
+.mcu-socket-hole:hover,
+.mcu-socket-hole.targeted {
+    transform: scale(1.35);
+    border-color: #38bdf8;
+    box-shadow: 0 0 8px #38bdf8;
+    z-index: 50;
+}
+
+.socket-inner-metal {
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    background: #18181b;
+    border: 1px solid #ca8a04; /* Gold plated header contacts */
+}
+
+.socket-gnd .socket-inner-metal {
+    border-color: #38bdf8;
+}
+
+.socket-5v .socket-inner-metal {
+    border-color: #ef4444;
+}
+
+.socket-3v3 .socket-inner-metal {
+    border-color: #f59e0b;
+}
+
+/* Hover Tooltip Badge displaying exact pin name */
+.mcu-pin-hover-badge {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0f172a;
+    border: 1px solid #38bdf8;
+    color: #f8fafc;
+    font-size: 9px;
+    font-weight: 800;
+    font-family: monospace;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+    pointer-events: none;
+    z-index: 100;
+}

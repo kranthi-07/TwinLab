@@ -1,0 +1,215 @@
+/* ==========================================
+   CONSOLE (DOCKABLE & COLLAPSIBLE)
+========================================== */
+
+.bottom-console {
+    position: absolute;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    width: 680px;
+    height: 180px;
+    border-radius: 18px;
+    overflow: hidden;
+    background: rgba(18, 24, 34, 0.92);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.4);
+    z-index: 100;
+    transition: height 0.25s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.25s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.bottom-console.collapsed {
+    height: 42px;
+    bottom: 12px;
+}
+
+.console-header {
+    height: 42px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    user-select: none;
+}
+
+.console-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.console-title i {
+    color: #FF8A00;
+    font-size: 15px;
+}
+
+.console-status-pill {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    letter-spacing: 0.04em;
+}
+
+.console-status-pill.running {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.console-status-pill.running .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 6px #10b981;
+    animation: simDotPulse 1.2s infinite;
+}
+
+.console-status-pill.standby {
+    background: rgba(148, 163, 184, 0.1);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.console-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.console-actions button {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: 0.15s;
+    border: none;
+}
+
+.console-actions button:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.console-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 16px;
+    overflow-y: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 12px;
+}
+
+.console-empty {
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.console-empty i {
+    font-size: 24px;
+    color: #475569;
+}
+
+.console-log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.console-log-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    line-height: 1.45;
+}
+
+.console-log-item .log-time {
+    color: #64748b;
+    font-size: 11px;
+    min-width: 42px;
+}
+
+.console-log-item .log-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    min-width: 50px;
+    text-align: center;
+}
+
+.console-log-item.log-info .log-badge {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.console-log-item.log-info .log-msg {
+    color: #cbd5e1;
+}
+
+.console-log-item.log-serial .log-badge {
+    background: rgba(168, 85, 247, 0.22);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.console-log-item.log-serial .log-msg {
+    color: #f1f5f9;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-weight: 500;
+}
+
+.console-log-item.log-success .log-badge {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.console-log-item.log-success .log-msg {
+    color: #6ee7b7;
+    font-weight: 500;
+}
+
+.console-log-item.log-warn .log-badge {
+    background: rgba(239, 68, 68, 0.25);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.console-log-item.log-warn .log-msg {
+    color: #fca5a5;
+    font-weight: 600;
+}
+
+@keyframes simDotPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}

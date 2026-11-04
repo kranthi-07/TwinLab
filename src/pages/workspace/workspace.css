@@ -1,0 +1,290 @@
+/* ==========================================
+   WORKSPACE
+========================================== */
+
+.workspace {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0d1219;
+}
+
+/* ==========================================
+   PERFECT VISIBLE TINKERCAD GRID (16px STEP)
+========================================== */
+
+.workspace-grid {
+    position: absolute;
+    inset: 0;
+    background-image: 
+        radial-gradient(circle, rgba(255, 255, 255, 0.32) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(255, 138, 0, 0.22) 1.6px, transparent 1.6px);
+    background-size: 16px 16px, 80px 80px;
+    background-position: 0 0, 0 0;
+    pointer-events: none;
+}
+
+/* ==========================================
+   SAVE TOAST NOTIFICATION
+========================================== */
+
+.save-toast {
+    position: fixed;
+    bottom: 64px;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    width: fit-content;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 22px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.94);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5), 0 0 24px rgba(16, 185, 129, 0.35);
+    z-index: 2100;
+    pointer-events: none;
+}
+
+.save-toast i {
+    font-size: 16px;
+}
+
+@keyframes toastPop {
+    from { opacity: 0; transform: translate(-50%, 15px) scale(0.92); }
+    to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+/* ==========================================
+   UNSAVED EXIT CONFIRMATION MODAL
+========================================== */
+
+.exit-modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(14px);
+    z-index: 2000;
+    animation: fadeIn 0.15s ease;
+}
+
+.exit-modal {
+    width: 440px;
+    background: #151b24;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+}
+
+.exit-modal-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(255, 138, 0, 0.12);
+    color: #FF8A00;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    margin-bottom: 16px;
+}
+
+.exit-modal h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.exit-modal p {
+    font-size: 13px;
+    color: #8b99ae;
+    margin-top: 8px;
+    line-height: 1.5;
+}
+
+.exit-modal-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 24px;
+    width: 100%;
+}
+
+.exit-btn {
+    flex: 1;
+    height: 40px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.exit-btn.cancel {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+}
+
+.exit-btn.cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.exit-btn.discard {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+.exit-btn.discard:hover {
+    background: rgba(239, 68, 68, 0.25);
+    color: #fff;
+}
+
+.exit-btn.save {
+    background: #FF8A00;
+    color: #fff;
+    border: 1px solid transparent;
+}
+
+.exit-btn.save:hover {
+    background: #ff981a;
+    box-shadow: 0 4px 14px rgba(255, 138, 0, 0.4);
+}
+
+
+/* ==========================================
+   FOCUS MODE ACTIVATED FLOATING BUTTON & MINIMAP
+========================================== */
+
+.focus-mode-floating-control {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 150;
+    pointer-events: auto;
+}
+
+.activated-focus-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 18px 8px 12px;
+    background: rgba(18, 23, 31, 0.88);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1.5px solid #FF8A00;
+    border-radius: 999px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 20px rgba(255, 138, 0, 0.35);
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: pulseFocusGlow 2.5s infinite;
+}
+
+@keyframes pulseFocusGlow {
+    0%, 100% {
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 16px rgba(255, 138, 0, 0.3);
+    }
+    50% {
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.55), 0 0 26px rgba(255, 138, 0, 0.5);
+    }
+}
+
+.activated-focus-btn:hover {
+    background: rgba(26, 33, 44, 0.96);
+    transform: scale(1.04);
+}
+
+.activated-focus-btn i {
+    font-size: 18px;
+    color: #FF8A00;
+}
+
+.focus-exit-chip {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(255, 138, 0, 0.2);
+    border: 1px solid rgba(255, 138, 0, 0.4);
+    color: #FF8A00;
+}
+
+/* Position Minimap cleanly in Focus Mode (top left without topbar) */
+.workspace.focus-active .workspace-minimap {
+    top: 18px;
+    left: 20px;
+}
+
+/* Smooth Fade-out & Fade-in Transitions for Focus Mode */
+.top-floating-bar-wrapper,
+.right-sidebar,
+.bottom-console-wrapper {
+    transition: opacity 0.32s cubic-bezier(0.22, 1, 0.36, 1), 
+                transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+                visibility 0.32s ease;
+}
+
+.workspace.focus-active .top-floating-bar-wrapper {
+    opacity: 0 !important;
+    transform: translateY(-20px) !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+}
+
+.workspace.focus-active .left-sidebar {
+    opacity: 0 !important;
+    transform: translateY(-50%) translateX(-24px) !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+}
+
+.workspace.focus-active .right-sidebar {
+    opacity: 0 !important;
+    transform: translateY(-50%) translateX(24px) !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+}
+
+.workspace.focus-active .bottom-console-wrapper {
+    opacity: 0 !important;
+    transform: translateY(24px) !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+}
+
+/* Light mode support for Focus Mode Pill */
+[data-theme="light"] .activated-focus-btn {
+    background: rgba(255, 255, 255, 0.95);
+    color: #0f172a;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12), 0 0 16px rgba(255, 138, 0, 0.25);
+}
+
+[data-theme="light"] .activated-focus-btn:hover {
+    background: #ffffff;
+}

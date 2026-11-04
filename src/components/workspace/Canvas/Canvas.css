@@ -1,0 +1,387 @@
+/* ==========================================
+   CANVAS - TINKERCAD SIMULATION PLAYGROUND
+========================================== */
+
+.canvas {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0d1219;
+    user-select: none;
+    transition: background 0.2s ease, outline 0.2s ease;
+}
+
+.canvas.drag-over {
+    background: #0e1520;
+    outline: 2px dashed rgba(255, 138, 0, 0.6);
+    outline-offset: -8px;
+}
+
+/* ==========================================
+   VIEWPORT TRANSFORM LAYER (INFINITE WORKSPACE)
+========================================== */
+
+.canvas-viewport-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform-origin: 0 0;
+    will-change: transform;
+}
+
+/* ==========================================
+   ENGINEERING GRID (EXPANDS TO INFINITY)
+========================================== */
+
+.dot-grid {
+    position: absolute;
+    top: -8000px;
+    left: -8000px;
+    width: 20000px;
+    height: 20000px;
+    background-image: 
+        radial-gradient(circle, rgba(255, 255, 255, 0.32) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(255, 138, 0, 0.22) 1.6px, transparent 1.6px);
+    background-size: 16px 16px, 80px 80px;
+    background-position: 0 0, 0 0;
+    pointer-events: none;
+}
+
+/* ==========================================
+   FOCUS MODE TOP-RIGHT FLOATING CONTROLS
+========================================== */
+
+.focus-mode-indicator {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 500;
+    user-select: none;
+    animation: fadeIn 0.2s ease;
+}
+
+.focus-exit-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: rgba(18, 23, 31, 0.9);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 138, 0, 0.45);
+    color: #FF8A00;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 16px rgba(255, 138, 0, 0.25);
+    transition: 0.18s ease;
+}
+
+.focus-exit-btn:hover {
+    background: #FF8A00;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.exit-chip {
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.14);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.focus-zoom-val {
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(18, 23, 31, 0.85);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: monospace;
+}
+
+/* ==========================================
+   DROP TARGET HINT
+========================================== */
+
+.drop-target-hint {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 24px 36px;
+    background: rgba(255, 138, 0, 0.12);
+    border: 2px dashed #FF8A00;
+    border-radius: 20px;
+    color: #FF8A00;
+    font-size: 16px;
+    font-weight: 600;
+    pointer-events: none;
+    animation: dropPulse 1.5s infinite ease-in-out;
+}
+
+.drop-target-hint i {
+    font-size: 38px;
+}
+
+@keyframes dropPulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    50% { transform: translate(-50%, -50%) scale(1.04); opacity: 0.8; }
+}
+
+/* ==========================================
+   EMPTY CANVAS GUIDE
+========================================== */
+
+/* ==========================================
+   ECE MOTIVATIONAL QUOTE CARD (EMPTY STATE)
+========================================== */
+
+.canvas-quote-card {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 480px;
+    max-width: calc(100% - 60px);
+    padding: 28px 32px;
+    background: rgba(18, 24, 34, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    z-index: 10;
+    pointer-events: auto;
+    user-select: none;
+    animation: quoteFade 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes quoteFade {
+    from { opacity: 0; transform: translate(-50%, -46%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+.quote-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.quote-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: rgba(255, 138, 0, 0.12);
+    border: 1px solid rgba(255, 138, 0, 0.25);
+    color: #FF8A00;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+.quote-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: #94a3b8;
+}
+
+.quote-cycle-btn {
+    margin-left: auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s ease;
+}
+
+.quote-cycle-btn:hover {
+    background: rgba(255, 138, 0, 0.15);
+    border-color: rgba(255, 138, 0, 0.3);
+    color: #FF8A00;
+    transform: rotate(90deg);
+}
+
+.quote-text {
+    font-size: 15px;
+    font-style: italic;
+    line-height: 1.6;
+    color: #f1f5f9;
+    letter-spacing: -0.01em;
+}
+
+.quote-footer {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.quote-author {
+    font-size: 12px;
+    font-weight: 600;
+    color: #FF8A00;
+}
+
+.quote-prompt {
+    font-size: 11px;
+    color: #64748b;
+}
+
+/* Generic Fallback Component Card */
+.canvas-generic-comp {
+    position: absolute;
+    top: 0;
+    left: 0;
+    user-select: none;
+    cursor: default;
+    z-index: 10;
+}
+
+.canvas-generic-comp:active {
+    cursor: default;
+}
+
+.generic-comp-body {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    background: #1e2634;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    color: #f1f5f9;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.canvas-generic-comp.selected .generic-comp-body {
+    border-color: #FF8A00;
+    box-shadow: 0 0 0 4px rgba(255, 138, 0, 0.25);
+}
+
+/* Wire Mode Canvas Cursor & Guide */
+.canvas.wire-mode {
+    cursor: default;
+}
+
+.wire-mode-guide {
+    position: absolute;
+    top: 76px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    background: rgba(18, 24, 34, 0.9);
+    border: 1px solid rgba(255, 138, 0, 0.4);
+    color: #FF8A00;
+    font-size: 11px;
+    font-weight: 600;
+    backdrop-filter: blur(12px);
+    pointer-events: none;
+    z-index: 50;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    animation: fadeIn 0.2s ease;
+}
+
+.wire-mode-guide.active {
+    border-color: rgba(16, 185, 129, 0.5);
+    color: #10b981;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, -6px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ============================================================
+   ACTIVE COMPONENT CURSOR-FOLLOWING & PLACEMENT MODE
+============================================================ */
+.placing-ghost-wrapper {
+    pointer-events: none;
+    user-select: none;
+    transition: transform 0.08s ease-out;
+}
+
+/* Top HUD Guidance Pill during Component Placement */
+.placing-hud-pill {
+    position: absolute;
+    top: 76px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 18px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(22, 28, 42, 0.94) 0%, rgba(13, 17, 27, 0.96) 100%);
+    border: 1px solid rgba(255, 138, 0, 0.55);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(255, 138, 0, 0.25);
+    color: #f1f5f9;
+    font-size: 12px;
+    font-weight: 500;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    pointer-events: none;
+    z-index: 75;
+    animation: fadeIn 0.22s ease-out;
+}
+
+[data-theme="light"] .placing-hud-pill {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.98) 100%);
+    color: #0f172a;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12), 0 0 12px rgba(255, 138, 0, 0.2);
+}
+
+.placing-hud-pill i {
+    color: #FF8A00;
+    font-size: 14px;
+}
+
+.placing-hud-pill strong {
+    color: #FF8A00;
+    font-weight: 700;
+}
+
+.placing-hud-pill .hud-tip {
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+[data-theme="light"] .placing-hud-pill .hud-tip {
+    color: #64748b;
+}

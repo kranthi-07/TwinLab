@@ -1,0 +1,38 @@
+/* ==========================================
+   APP LAYOUT (ADOBE PRO STUDIO GRADE)
+========================================== */
+
+.layout {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 0%, rgba(255, 138, 0, 0.04) 0%, transparent 45%),
+                radial-gradient(circle at 90% 10%, rgba(59, 156, 255, 0.03) 0%, transparent 40%),
+                var(--bg-base);
+}
+
+/* ==========================================
+   BODY
+========================================== */
+
+.body {
+    flex: 1;
+    display: flex;
+    gap: 16px;
+    padding: 16px 20px 20px 20px;
+    overflow: hidden;
+}
+
+/* ==========================================
+   PAGE SCROLL CONTAINER
+========================================== */
+
+.page {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-radius: var(--radius-lg);
+    position: relative;
+}

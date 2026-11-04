@@ -1,0 +1,1281 @@
+/* ============================================================
+   WORKSPACE TOPBAR - 3 INDEPENDENT STUDIO GRADE FLOATING ISLANDS
+   Strict high z-index (9999) & solid backdrop so grid never bleeds!
+============================================================ */
+
+.top-floating-bar-wrapper {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    right: 20px;
+    z-index: 9999; /* HIGHER THAN EVERYTHING ELSE IN WORKSPACE */
+    pointer-events: none;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.top-floating-bar {
+    position: relative;
+    width: 100%;
+    height: 50px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+}
+
+.topbar-section.center-section {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+}
+
+/* ==========================================
+   INDIVIDUAL FLOATING ISLANDS
+========================================== */
+
+.topbar-section {
+    pointer-events: auto;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    background: #111722; /* 100% OPAQUE TO PREVENT ANY GRID DOTS BLEEDING */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-theme="light"] .topbar-section {
+    background: #ffffff; /* 100% OPAQUE SOLID WHITE */
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+.top-divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 0 2px;
+}
+
+[data-theme="light"] .top-divider {
+    background: rgba(15, 23, 42, 0.1);
+}
+
+/* ==========================================
+   1. TOP LEFT ISLAND CONTROLS
+========================================== */
+
+/* Back Button with Hover Toast */
+.back-btn-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.top-icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    cursor: default;
+    transition: 0.15s ease;
+    font-size: 16px;
+}
+
+.top-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+.top-icon-btn.delete-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #ef4444;
+}
+
+[data-theme="light"] .top-icon-btn {
+    background: rgba(15, 23, 42, 0.04);
+    border-color: rgba(15, 23, 42, 0.08);
+    color: #334155;
+}
+
+[data-theme="light"] .top-icon-btn:hover {
+    background: rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+}
+
+/* Smooth Floating Toast Label on Back Button Hover */
+.back-hover-toast {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    padding: 5px 10px;
+    border-radius: 8px;
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #f8fafc;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+}
+
+.back-btn-wrap:hover .back-hover-toast {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+[data-theme="light"] .back-hover-toast {
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.1);
+    color: #0f172a;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+}
+
+/* Clean Studio Project Name Pill (STRICTLY NO BORDER, ONLY SUBTLE BACKGROUND) */
+.project-name-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 6px;
+    background: transparent;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    cursor: text;
+    transition: background 0.15s ease;
+    box-sizing: border-box;
+}
+
+.project-name-pill:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.project-name-pill.is-editing {
+    background: rgba(255, 255, 255, 0.09) !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.project-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 6px currentColor;
+}
+
+.project-name-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f1f5f9;
+    letter-spacing: -0.01em;
+    line-height: 28px;
+    cursor: text;
+    user-select: none;
+    white-space: nowrap;
+}
+
+[data-theme="light"] .project-name-text {
+    color: #0f172a;
+}
+
+.topbar-project-name-input {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    color: #f1f5f9;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-family: inherit;
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 28px;
+    height: 28px;
+    cursor: text;
+    text-align: left;
+    box-sizing: border-box;
+}
+
+[data-theme="light"] .topbar-project-name-input {
+    color: #0f172a;
+}
+
+[data-theme="light"] .project-name-pill {
+    background: transparent;
+    border: none !important;
+}
+
+[data-theme="light"] .project-name-pill:hover {
+    background: rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="light"] .project-name-pill.is-editing {
+    background: rgba(15, 23, 42, 0.08) !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Selected Component Quick Action (Rotate & Delete sliding group) */
+.selected-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+/* Components Palette Button & Dropdown */
+.components-dropdown-wrap {
+    position: relative;
+}
+
+.components-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: default;
+    transition: 0.15s ease;
+}
+
+.components-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.components-toggle-btn.active {
+    background: rgba(255, 138, 0, 0.15);
+    border-color: rgba(255, 138, 0, 0.4);
+    color: #FF8A00;
+}
+
+[data-theme="light"] .components-toggle-btn {
+    background: rgba(15, 23, 42, 0.04);
+    border-color: rgba(15, 23, 42, 0.08);
+    color: #334155;
+}
+
+[data-theme="light"] .components-toggle-btn:hover {
+    background: rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+}
+
+.components-toggle-btn .caret {
+    font-size: 13px;
+    transition: transform 0.2s ease;
+}
+
+/* Realistic Component Palette Drawer */
+.components-palette-drawer {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    width: 290px;
+    background: #111722;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
+    padding: 12px;
+    z-index: 10000;
+    pointer-events: auto;
+}
+
+[data-theme="light"] .components-palette-drawer {
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.1);
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.15);
+}
+
+.palette-header {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 10px;
+}
+
+[data-theme="light"] .palette-header {
+    border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+
+.palette-header span {
+    font-size: 12px;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+[data-theme="light"] .palette-header span {
+    color: #0f172a;
+}
+
+.palette-header small {
+    font-size: 10px;
+    color: #64748b;
+}
+
+.palette-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.palette-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 4px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #cbd5e1;
+    font-size: 10.5px;
+    font-weight: 500;
+    cursor: default;
+    transition: 0.15s ease;
+}
+
+.palette-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 138, 0, 0.4);
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+.palette-item.wire-active {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: #10b981;
+    color: #10b981;
+}
+
+[data-theme="light"] .palette-item {
+    background: rgba(15, 23, 42, 0.03);
+    border-color: rgba(15, 23, 42, 0.06);
+    color: #475569;
+}
+
+[data-theme="light"] .palette-item:hover {
+    background: #ffffff;
+    border-color: #FF8A00;
+    color: #0f172a;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+/* Realistic Miniatures in Palette */
+.palette-item-miniature {
+    width: 38px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Resistor Miniature */
+.resistor-miniature {
+    display: flex;
+    align-items: center;
+    width: 32px;
+}
+
+.mini-resistor-lead {
+    width: 6px;
+    height: 1.5px;
+    background: #cbd5e1;
+}
+
+.mini-resistor-body {
+    width: 20px;
+    height: 9px;
+    background: #deb887;
+    border-radius: 2px;
+    border: 0.8px solid #b8860b;
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    padding: 0 1px;
+}
+
+.mini-resistor-body span {
+    width: 1.5px;
+    height: 100%;
+}
+
+.mini-resistor-body .b-red { background: #dc2626; }
+.mini-resistor-body .b-brown { background: #78350f; }
+.mini-resistor-body .b-gold { background: #d97706; }
+
+/* LED Miniature */
+.led-miniature {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.mini-led-dome {
+    width: 12px;
+    height: 12px;
+    border-radius: 50% 50% 40% 40%;
+    background: radial-gradient(circle at 35% 30%, #fca5a5 0%, #ef4444 60%, #991b1b 100%);
+    box-shadow: 0 0 6px #ef4444;
+}
+
+.mini-led-leads {
+    display: flex;
+    gap: 4px;
+}
+
+.mini-led-leads span {
+    width: 1px;
+    height: 6px;
+    background: #94a3b8;
+}
+
+/* Battery Miniature */
+.battery-miniature {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.mini-battery-snaps {
+    display: flex;
+    gap: 5px;
+    font-size: 7px;
+    font-weight: 800;
+}
+
+.mini-battery-snaps .pos { color: #ef4444; }
+.mini-battery-snaps .neg { color: #94a3b8; }
+
+.mini-battery-body {
+    width: 20px;
+    height: 14px;
+    background: #1e293b;
+    border: 1px solid #475569;
+    border-radius: 2px;
+    color: #f59e0b;
+    font-size: 8px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Capacitor Miniature */
+.cap-miniature {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.mini-cap-disc {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ea580c;
+    color: #fff;
+    font-size: 6px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mini-cap-leads {
+    display: flex;
+    gap: 4px;
+}
+
+.mini-cap-leads span {
+    width: 1px;
+    height: 5px;
+    background: #94a3b8;
+}
+
+/* Button Miniature */
+.mini-btn-case {
+    width: 16px;
+    height: 16px;
+    background: #334155;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mini-btn-plunger {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #0f172a;
+    border: 1px solid #64748b;
+}
+
+/* Potentiometer Miniature */
+.mini-pot-dial {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #2563eb;
+    border: 2px solid #93c5fd;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* Buzzer Miniature */
+.mini-buzzer-cylinder {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #0f172a;
+    border: 1.5px solid #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mini-buzzer-hole {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #334155;
+}
+
+/* Breadboard Miniature */
+.bb-miniature {
+    width: 28px;
+    height: 16px;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 2px;
+    position: relative;
+}
+
+.mini-bb-lines {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.mini-bb-lines .red {
+    height: 1px;
+    background: #ef4444;
+}
+
+.mini-bb-lines .blue {
+    height: 1px;
+    background: #3b82f6;
+}
+
+/* ==========================================
+   2. CENTER ISLAND: EXACTLY 4 BUTTONS
+   (Run, Stop, Focus, Zoom)
+========================================== */
+
+.sim-controls-pill {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sim-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: default;
+    transition: 0.15s ease;
+    position: relative;
+    font-size: 16px;
+}
+
+.sim-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+.sim-btn.play {
+    color: #10b981;
+}
+
+.sim-btn.play:hover {
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+}
+
+.sim-btn.play.running {
+    background: rgba(16, 185, 129, 0.2);
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.4);
+    color: #34d399;
+}
+
+.sim-running-dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 6px #10b981;
+    animation: simDotPulse 1.2s infinite;
+}
+
+.sim-btn.stop {
+    color: #f87171;
+}
+
+.sim-btn.stop:hover {
+    background: rgba(239, 68, 68, 0.18);
+    color: #ef4444;
+}
+
+.sim-btn.stop.inactive {
+    opacity: 0.45;
+}
+
+.sim-btn.focus.active {
+    background: rgba(255, 138, 0, 0.15);
+    color: #FF8A00;
+}
+
+.sim-divider {
+    width: 1px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 0 4px;
+}
+
+[data-theme="light"] .sim-divider {
+    background: rgba(15, 23, 42, 0.1);
+}
+
+/* 4th Button: Zoom with percentage & Popover */
+.zoom-btn-container {
+    position: relative;
+}
+
+.sim-btn.zoom-btn {
+    width: auto;
+    padding: 0 8px;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.sim-btn.zoom-btn i {
+    font-size: 15px;
+}
+
+.sim-btn.zoom-btn.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.zoom-quick-percent {
+    font-size: 11px;
+    font-family: monospace;
+}
+
+.zoom-dropdown-popover {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: #111722;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+}
+
+[data-theme="light"] .zoom-dropdown-popover {
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.1);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
+
+.zoom-pop-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    color: #cbd5e1;
+    cursor: default;
+    transition: 0.15s ease;
+}
+
+.zoom-pop-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+.zoom-pop-reset {
+    background: none;
+    border: none;
+    font-size: 11px;
+    font-family: monospace;
+    font-weight: 700;
+    color: #FF8A00;
+    padding: 0 4px;
+    cursor: default;
+}
+
+.zoom-pop-divider {
+    width: 1px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.zoom-pop-btn.locked {
+    color: #FF8A00;
+    background: rgba(255, 138, 0, 0.15);
+}
+
+/* ==========================================
+   3. RIGHT ISLAND: SEARCH, MODES, CODE BAR
+   (No Profile Icon!)
+========================================== */
+
+.top-search-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: default;
+    transition: 0.15s ease;
+}
+
+.top-search-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+[data-theme="light"] .top-search-btn {
+    background: rgba(15, 23, 42, 0.04);
+    border-color: rgba(15, 23, 42, 0.08);
+    color: #64748b;
+}
+
+/* Modes Pill: Theme + Circuit/Schematic */
+.modes-pill {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 3px 6px;
+}
+
+[data-theme="light"] .modes-pill {
+    background: rgba(15, 23, 42, 0.04);
+    border-color: rgba(15, 23, 42, 0.08);
+}
+
+.mode-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    padding: 4px 6px;
+    border-radius: 7px;
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: default;
+    transition: 0.15s ease;
+}
+
+.mode-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.mode-btn.active {
+    color: #FF8A00;
+    background: rgba(255, 138, 0, 0.15);
+    font-weight: 600;
+}
+
+.mode-sub-divider {
+    width: 1px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Code Bar */
+.code-pill-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    background: rgba(255, 138, 0, 0.12);
+    border: 1px solid rgba(255, 138, 0, 0.35);
+    color: #FF8A00;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: default;
+    transition: 0.15s ease;
+}
+
+.code-pill-btn:hover {
+    background: #FF8A00;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(255, 138, 0, 0.4);
+}
+
+.edit-firmware-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 6px;
+    background: rgba(255, 138, 0, 0.15);
+    border: 1px solid rgba(255, 138, 0, 0.4);
+    color: #FF8A00;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.edit-firmware-pill-btn:hover {
+    background: #FF8A00;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(255, 138, 0, 0.4);
+}
+
+.code-pill-btn.active {
+    background: #FF8A00;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(255, 138, 0, 0.45);
+}
+
+.code-pill-btn.active .code-badge {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+}
+
+.code-badge {
+    font-size: 9px;
+    font-family: monospace;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    color: #ffffff;
+}
+
+/* ============================================================
+   DYNAMIC CONTEXTUAL PROPERTY INSPECTOR BAR
+   (Floats directly below the top left bar for Wire colors,
+    Resistance, Capacitance, Voltage, etc.)
+============================================================ */
+
+/* ============================================================
+   ULTRA-PREMIUM CONTEXTUAL PROPERTY INSPECTOR BAR
+============================================================ */
+.context-property-bar {
+    align-self: flex-start;
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    padding: 7px 16px;
+    background: linear-gradient(135deg, rgba(17, 24, 39, 0.92) 0%, rgba(11, 15, 26, 0.96) 100%);
+    backdrop-filter: blur(20px) saturate(190%);
+    -webkit-backdrop-filter: blur(20px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.55), 
+                0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+                0 1px 0 0 rgba(255, 255, 255, 0.15) inset;
+    margin-left: 2px;
+    margin-top: 4px;
+    user-select: none;
+    z-index: 60;
+}
+
+[data-theme="light"] .context-property-bar {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.98) 100%);
+    border-color: rgba(15, 23, 42, 0.1);
+    box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.12),
+                0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+}
+
+.inspector-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.inspector-subgroup {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+}
+
+/* User-Based Component Naming & Reference Designator Pill */
+.inspector-designator-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 7px;
+    cursor: text;
+    transition: all 0.18s ease;
+}
+
+[data-theme="light"] .inspector-designator-pill {
+    background: rgba(15, 23, 42, 0.04);
+    border-color: rgba(15, 23, 42, 0.1);
+}
+
+.inspector-designator-pill:hover,
+.inspector-designator-pill:focus-within {
+    border-color: #FF8A00;
+    background: rgba(255, 138, 0, 0.12);
+    box-shadow: 0 0 0 1px rgba(255, 138, 0, 0.35);
+}
+
+.inspector-designator-pill i {
+    color: #FF8A00;
+    font-size: 13px;
+}
+
+.inspector-designator-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #f1f5f9;
+    font-size: 11.5px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    width: 72px;
+    min-width: 48px;
+    letter-spacing: 0.02em;
+    padding: 0;
+}
+
+[data-theme="light"] .inspector-designator-input {
+    color: #0f172a;
+}
+
+.edit-pencil-icon {
+    font-size: 11px;
+    color: #64748b;
+    opacity: 0.7;
+    transition: opacity 0.15s ease;
+}
+
+.inspector-designator-pill:hover .edit-pencil-icon {
+    opacity: 1;
+    color: #FF8A00;
+}
+
+.inspector-divider {
+    width: 1px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .inspector-divider {
+    background: rgba(15, 23, 42, 0.1);
+}
+
+.inspector-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: #94a3b8;
+}
+
+.inspector-label i {
+    color: #FF8A00;
+    font-size: 13.5px;
+}
+
+[data-theme="light"] .inspector-label {
+    color: #475569;
+}
+
+/* Color Swatches with Premium Ring and Glow */
+.wire-color-swatches {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.color-swatch-btn {
+    width: 19px;
+    height: 19px;
+    border-radius: 50%;
+    background: var(--swatch-color);
+    border: 2px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    padding: 0;
+}
+
+.color-swatch-btn:hover {
+    transform: scale(1.22);
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+.color-swatch-btn.active {
+    transform: scale(1.28);
+    border-color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(255, 138, 0, 0.5), 0 0 10px var(--swatch-color);
+}
+
+/* ============================================================
+   ROUTING MODE SEGMENTED CONTROL & HOVER TOOLTIPS
+============================================================ */
+.routing-segmented-control {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.28);
+    padding: 2.5px;
+    border-radius: 9px;
+    gap: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .routing-segmented-control {
+    background: rgba(15, 23, 42, 0.06);
+    border-color: rgba(15, 23, 42, 0.08);
+}
+
+.routing-mode-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 28px;
+    border-radius: 7px;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 0;
+}
+
+.routing-svg {
+    width: 17px;
+    height: 17px;
+    transition: transform 0.18s ease;
+}
+
+.routing-mode-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .routing-mode-btn:hover {
+    color: #0f172a;
+    background: rgba(15, 23, 42, 0.08);
+}
+
+.routing-mode-btn.active {
+    background: linear-gradient(135deg, #FF8A00 0%, #e05e00 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(255, 138, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.routing-mode-btn.active .routing-svg {
+    transform: scale(1.08);
+}
+
+/* Floating Hover Tooltip for Routing Mode Names */
+.routing-hover-label {
+    position: absolute;
+    bottom: -28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(4px) scale(0.92);
+    background: #090d16;
+    color: #f1f5f9;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.16s ease, transform 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 100;
+}
+
+[data-theme="light"] .routing-hover-label {
+    background: #1e293b;
+    color: #f8fafc;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.routing-mode-btn:hover .routing-hover-label {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+}
+
+/* Inspector Hint Note */
+.inspector-hint {
+    font-size: 11px;
+    font-weight: 500;
+    color: #64748b;
+    letter-spacing: 0.01em;
+}
+
+[data-theme="light"] .inspector-hint {
+    color: #64748b;
+}
+
+/* Preset Pills for Resistance, Capacitance, Voltage */
+.preset-pill-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 2px 4px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="light"] .preset-pill-group {
+    background: rgba(15, 23, 42, 0.04);
+    border-color: rgba(15, 23, 42, 0.06);
+}
+
+.preset-pill {
+    padding: 4px 9px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    transition: all 0.16s ease;
+}
+
+.preset-pill:hover {
+    background: rgba(255, 255, 255, 0.09);
+    color: #f8fafc;
+}
+
+.preset-pill.active {
+    background: rgba(255, 138, 0, 0.22);
+    border-color: rgba(255, 138, 0, 0.6);
+    color: #FF8A00;
+    box-shadow: 0 1px 4px rgba(255, 138, 0, 0.25);
+}
+
+[data-theme="light"] .preset-pill {
+    color: #475569;
+}
+
+[data-theme="light"] .preset-pill:hover {
+    background: rgba(15, 23, 42, 0.06);
+    color: #0f172a;
+}
+
+[data-theme="light"] .preset-pill.active {
+    background: rgba(255, 138, 0, 0.14);
+    border-color: #FF8A00;
+    color: #e05e00;
+}
+
+/* Specs Badge */
+.inspector-specs-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10.5px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.22);
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.01em;
+}
+
+[data-theme="light"] .inspector-specs-badge {
+    color: #059669;
+    background: rgba(5, 150, 105, 0.09);
+    border-color: rgba(5, 150, 105, 0.2);
+}
+
+@keyframes simDotPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}

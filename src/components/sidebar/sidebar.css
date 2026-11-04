@@ -1,0 +1,159 @@
+/* ==========================================
+   NAVIGATION RAIL (STUDIO GRADE FLOATING CAPSULE)
+========================================== */
+
+.nav-rail {
+    width: 68px;
+    height: fit-content;
+    position: relative;
+    z-index: 1000;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0;
+    border-radius: 22px;
+    background: rgba(18, 24, 34, 0.78);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
+    flex-shrink: 0;
+    transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Light Theme Navigation Rail */
+[data-theme="light"] .nav-rail {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+/* ==========================================
+   NAV ITEM BUTTON
+========================================== */
+
+.rail-item {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: transparent;
+    color: #94a3b8;
+    border: 1px solid transparent;
+    cursor: default;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: visible;
+}
+
+.icon-box {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 13px;
+    background: transparent;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rail-item i {
+    font-size: 20px;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Dark Mode Hover */
+.rail-item:hover {
+    color: #ffffff;
+}
+
+.rail-item:hover .icon-box {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.rail-item:hover i {
+    transform: scale(1.08);
+}
+
+/* Dark Mode Active */
+.rail-item.active {
+    color: var(--accent, #FF8A00);
+}
+
+.rail-item.active .icon-box {
+    background: color-mix(in srgb, var(--accent, #FF8A00) 18%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent, #FF8A00) 35%, transparent);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent, #FF8A00) 22%, transparent);
+}
+
+/* ==========================================
+   LIGHT MODE STYLING (NO CHUNKY BLACK BLOCKS)
+========================================== */
+
+[data-theme="light"] .rail-item {
+    color: #64748b;
+    background: transparent;
+}
+
+[data-theme="light"] .rail-item .icon-box {
+    background: transparent;
+}
+
+[data-theme="light"] .rail-item:hover {
+    color: #0f172a;
+}
+
+[data-theme="light"] .rail-item:hover .icon-box {
+    background: rgba(15, 23, 42, 0.05);
+}
+
+[data-theme="light"] .rail-item.active {
+    color: var(--accent, #FF8A00);
+}
+
+[data-theme="light"] .rail-item.active .icon-box {
+    background: color-mix(in srgb, var(--accent, #FF8A00) 14%, #ffffff);
+    border: 1px solid color-mix(in srgb, var(--accent, #FF8A00) 30%, transparent);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--accent, #FF8A00) 18%, transparent);
+}
+
+/* ==========================================
+   FLOATING TOOLTIP LABEL
+========================================== */
+
+.rail-item span {
+    position: absolute;
+    left: 64px;
+    top: 50%;
+    transform: translateY(-50%) translateX(-8px);
+    padding: 8px 14px;
+    border-radius: 10px;
+    background: rgba(18, 24, 34, 0.94);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #f8fafc;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 500;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="light"] .rail-item span {
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+    box-shadow: 0 8px 25px rgba(15, 23, 42, 0.1);
+}
+
+.rail-item:hover span {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}

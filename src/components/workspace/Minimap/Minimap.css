@@ -1,0 +1,145 @@
+/* ============================================================
+   MINIMAP - BIG SCREEN BIRD'S EYE VIEW (TOP LEFT BELOW TOPBAR)
+============================================================ */
+
+.workspace-minimap {
+    position: absolute;
+    top: 76px;
+    left: 96px;
+    width: 224px;
+    background: rgba(18, 23, 31, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
+    z-index: 90;
+    user-select: none;
+    overflow: hidden;
+    transition: width 0.2s ease, border-color 0.2s ease;
+}
+
+.workspace-minimap.offscreen-alert {
+    border-color: rgba(255, 138, 0, 0.5);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45), 0 0 16px rgba(255, 138, 0, 0.25);
+}
+
+.minimap-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.minimap-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #cbd5e1;
+}
+
+.minimap-title i {
+    font-size: 13px;
+    color: var(--project-accent, #FF8A00);
+}
+
+.offscreen-pill {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(255, 138, 0, 0.2);
+    border: 1px solid rgba(255, 138, 0, 0.4);
+    color: var(--project-accent, #FF8A00);
+    animation: minimapPulse 1.6s infinite;
+}
+
+@keyframes minimapPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.minimap-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.minimap-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 13px;
+    transition: 0.15s ease;
+}
+
+.minimap-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+.minimap-body {
+    position: relative;
+    width: 220px;
+    height: 135px;
+    margin: 2px;
+    cursor: crosshair;
+    background: rgba(11, 15, 22, 0.95);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.minimap-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.minimap-viewport-rect {
+    cursor: move;
+    box-shadow: 0 0 10px rgba(255, 138, 0, 0.8);
+    transition: all 0.05s linear;
+}
+
+.minimap-offscreen-badge {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #FF8A00;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+    white-space: nowrap;
+    transition: transform 0.15s ease, background 0.15s ease;
+    animation: badgeBounce 2s infinite ease-in-out;
+}
+
+.minimap-offscreen-badge:hover {
+    background: #ff9d26;
+    transform: translateX(-50%) scale(1.05);
+}
+
+@keyframes badgeBounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-3px); }
+}

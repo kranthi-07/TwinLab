@@ -1,0 +1,486 @@
+/* ============================================================
+   CREATE PROJECT MODAL - PREMIUM & SLEEK
+============================================================ */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(4, 7, 12, 0.65);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    z-index: 5000;
+    padding: 20px;
+    animation: fadeIn 0.18s ease;
+}
+
+.new-project-modal {
+    position: relative;
+    width: 660px;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: 24px;
+    padding: 30px;
+    background: rgba(19, 25, 35, 0.95);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55), 0 0 40px var(--accent-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    user-select: none;
+}
+
+/* Dynamic Ambient Glow */
+.modal-ambient-glow {
+    position: absolute;
+    top: -90px;
+    right: -90px;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+    opacity: 0.18;
+    pointer-events: none;
+    transition: background 0.3s ease;
+}
+
+/* Header */
+.modal-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.modal-title-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.modal-badge-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--accent-subtle);
+    border: 1px solid var(--accent-border);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    transition: all 0.25s ease;
+}
+
+.modal-title-group h2 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: #f8fafc;
+    margin: 0;
+}
+
+.modal-title-group p {
+    font-size: 12px;
+    color: #8b99ae;
+    margin: 2px 0 0;
+}
+
+.modal-close-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    transition: 0.18s ease;
+}
+
+.modal-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+/* Modal Body */
+.modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.modal-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.field-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.field-hint {
+    font-size: 11px;
+    font-weight: 400;
+    color: #717d91;
+}
+
+/* 1. Project Name Input */
+.field-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon {
+    position: absolute;
+    left: 14px;
+    font-size: 16px;
+    color: #717d91;
+    pointer-events: none;
+    transition: color 0.2s;
+}
+
+.modal-project-name-input {
+    width: 100%;
+    height: 46px;
+    padding: 0 16px 0 42px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.modal-project-name-input:focus {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.modal-project-name-input:focus + .input-icon,
+.field-input-wrap:focus-within .input-icon {
+    color: var(--accent);
+}
+
+/* 2. Hardware Base Platform Cards */
+.hardware-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.hw-card {
+    position: relative;
+    padding: 16px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hw-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.hw-card.selected {
+    background: var(--accent-subtle);
+    border-color: var(--accent);
+    box-shadow: 0 6px 20px var(--accent-subtle);
+}
+
+.hw-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.hw-icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #e2e8f0;
+    transition: color 0.2s ease;
+}
+
+.hw-card.selected .hw-icon-box {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--accent);
+}
+
+.hw-chip-tag {
+    font-size: 10px;
+    font-weight: 600;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: #94a3b8;
+}
+
+.hw-card.selected .hw-chip-tag {
+    border-color: var(--accent-border);
+    color: var(--accent);
+}
+
+.hw-card-info h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f1f5f9;
+    margin: 0;
+}
+
+.hw-card-info p {
+    font-size: 11px;
+    color: #717d91;
+    margin: 2px 0 0;
+}
+
+.hw-selected-check {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+/* 3. Workspace Accent Color Swatches */
+.accent-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.active-color-name {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    transition: color 0.2s ease;
+}
+
+.color-swatches-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 4px 0;
+}
+
+.swatch-btn {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.swatch-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.swatch-btn:hover .swatch-circle {
+    transform: scale(1.15);
+}
+
+.swatch-ring {
+    position: absolute;
+    inset: 1px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    pointer-events: none;
+    animation: ringPop 0.2s ease;
+}
+
+@keyframes ringPop {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.swatch-btn.active .swatch-circle {
+    transform: scale(0.9);
+}
+
+/* Modal Footer */
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.btn-modal-cancel {
+    height: 44px;
+    padding: 0 20px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.18s ease;
+}
+
+.btn-modal-cancel:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+.btn-modal-create {
+    height: 44px;
+    padding: 0 24px;
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 8px 24px var(--accent-glow);
+    border: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.btn-modal-create:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 30px var(--accent-glow);
+    opacity: 0.95;
+}
+
+.btn-modal-create i {
+    font-size: 16px;
+}
+
+/* ============================================================
+   LIGHT MODE OVERRIDES FOR NEW PROJECT MODAL
+============================================================ */
+
+[data-theme="light"] .new-project-modal {
+    background: rgba(255, 255, 255, 0.96);
+    border-color: rgba(15, 23, 42, 0.09);
+    box-shadow: 0 30px 90px rgba(15, 23, 42, 0.18), 0 0 30px var(--accent-subtle);
+}
+
+[data-theme="light"] .modal-top {
+    border-bottom-color: rgba(15, 23, 42, 0.07);
+}
+
+[data-theme="light"] .modal-title-group h2 {
+    color: #0f172a;
+}
+
+[data-theme="light"] .modal-title-group p {
+    color: #64748b;
+}
+
+[data-theme="light"] .modal-close-btn {
+    background: rgba(15, 23, 42, 0.04);
+    border-color: rgba(15, 23, 42, 0.08);
+    color: #64748b;
+}
+
+[data-theme="light"] .modal-close-btn:hover {
+    background: rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+}
+
+[data-theme="light"] .field-label {
+    color: #0f172a;
+}
+
+[data-theme="light"] .modal-project-name-input {
+    background: rgba(15, 23, 42, 0.03);
+    border-color: rgba(15, 23, 42, 0.1);
+    color: #0f172a;
+}
+
+[data-theme="light"] .modal-project-name-input:focus {
+    background: #ffffff;
+}
+
+[data-theme="light"] .hw-card {
+    background: rgba(15, 23, 42, 0.02);
+    border-color: rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .hw-card:hover {
+    background: rgba(15, 23, 42, 0.04);
+    border-color: rgba(15, 23, 42, 0.15);
+}
+
+[data-theme="light"] .hw-card-info h4 {
+    color: #0f172a;
+}
+
+[data-theme="light"] .hw-card-info p {
+    color: #64748b;
+}
+
+[data-theme="light"] .hw-icon-box {
+    background: rgba(15, 23, 42, 0.04);
+    color: #334155;
+}
+
+[data-theme="light"] .btn-modal-cancel {
+    background: rgba(15, 23, 42, 0.04);
+    border-color: rgba(15, 23, 42, 0.08);
+    color: #475569;
+}
+
+[data-theme="light"] .btn-modal-cancel:hover {
+    background: rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+}
+
+[data-theme="light"] .modal-footer {
+    border-top-color: rgba(15, 23, 42, 0.07);
+}

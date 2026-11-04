@@ -1,0 +1,705 @@
+/* ==========================================
+   RIGHT SIDEBAR
+========================================== */
+
+.right-sidebar {
+
+    position: absolute;
+
+    top: 50%;
+    transform: translateY(-50%);
+
+    right: 20px;
+
+    height: 360px;
+
+    display: flex;
+
+    align-items: center;
+
+    z-index: 100;
+
+}
+
+
+/* ==========================================
+   PANEL
+
+   The panel grows LEFT from
+   the icon rail.
+========================================== */
+
+.right-panel {
+
+    width: 0;
+
+    height: 360px;
+
+    overflow: hidden;
+
+    box-sizing: border-box;
+
+    background:
+        rgba(22, 27, 34, .94);
+
+    backdrop-filter:
+        blur(26px);
+
+    border:
+        1px solid transparent;
+
+    border-radius:
+        26px;
+
+    opacity: 0;
+
+    transform:
+        translateX(20px);
+
+    pointer-events: none;
+
+    transition:
+        width .38s cubic-bezier(.22, 1, .36, 1),
+        opacity .22s ease,
+        transform .38s cubic-bezier(.22, 1, .36, 1),
+        border-color .25s ease;
+
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, .38);
+
+}
+
+
+/* ==========================================
+   OPEN PANEL
+========================================== */
+
+.right-sidebar.open .right-panel {
+
+    width: 380px;
+
+    opacity: 1;
+
+    transform:
+        translateX(0);
+
+    pointer-events: auto;
+
+    border-color:
+        color-mix(
+            in srgb,
+            var(--accent) 35%,
+            rgba(255,255,255,.06)
+        );
+
+}
+
+
+/* ==========================================
+   PANEL INNER
+========================================== */
+
+.right-panel-header {
+
+    height: 76px;
+
+    padding:
+        0 18px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    box-sizing: border-box;
+
+    border-bottom:
+        1px solid
+        rgba(255,255,255,.055);
+
+    white-space: nowrap;
+
+}
+
+
+.right-panel-title {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+}
+
+
+.right-heading-icon {
+
+    width: 42px;
+
+    height: 42px;
+
+    border-radius: 13px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--accent) 10%,
+            transparent
+        );
+
+}
+
+
+.right-heading-icon i {
+
+    font-size: 21px;
+
+}
+
+
+.right-panel-title h3 {
+
+    margin: 0;
+
+    color: white;
+
+    font-size: 17px;
+
+    font-weight: 600;
+
+}
+
+
+.right-panel-title span {
+
+    display: block;
+
+    margin-top: 2px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+
+}
+
+
+/* ==========================================
+   CLOSE
+========================================== */
+
+.right-close {
+
+    width: 38px;
+
+    height: 38px;
+
+    border: none;
+
+    border-radius: 12px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background:
+        rgba(255,255,255,.05);
+
+    color:
+        var(--muted);
+
+    cursor: pointer;
+
+    transition:
+        transform .25s ease,
+        background .25s ease,
+        color .25s ease;
+
+}
+
+
+.right-close:hover {
+
+    transform:
+        rotate(90deg);
+
+    background:
+        rgba(255,255,255,.09);
+
+    color: white;
+
+}
+
+
+/* ==========================================
+   CONTENT
+========================================== */
+
+.right-panel-content {
+
+    height:
+        calc(100% - 76px);
+
+    padding: 14px;
+
+    box-sizing: border-box;
+
+    overflow-y: auto;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 10px;
+
+}
+
+
+.right-panel-content::-webkit-scrollbar {
+
+    width: 4px;
+
+}
+
+
+.right-panel-content::-webkit-scrollbar-thumb {
+
+    background:
+        rgba(255,255,255,.12);
+
+    border-radius:
+        999px;
+
+}
+
+
+/* ==========================================
+   FLOATING ICON RAIL
+========================================== */
+
+.right-icons {
+
+    width: 64px;
+
+    height: 360px;
+
+    flex-shrink: 0;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+}
+
+
+/* ==========================================
+   INDIVIDUAL ICON
+========================================== */
+
+.right-icon {
+
+    position: relative;
+
+    width: 56px;
+
+    height: 56px;
+
+    flex-shrink: 0;
+
+    border:
+        1px solid
+        rgba(255,255,255,.08);
+
+    border-radius: 17px;
+
+    background:
+        rgba(22,27,34,.82);
+
+    backdrop-filter:
+        blur(20px);
+
+    color:
+        var(--icon-color);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    cursor: pointer;
+
+    transition:
+        transform .25s
+        cubic-bezier(.22,1,.36,1),
+
+        background .25s ease,
+
+        border-color .25s ease,
+
+        box-shadow .25s ease;
+
+}
+
+
+/* ==========================================
+   ICON
+========================================== */
+
+.right-icon i {
+
+    font-size: 22px;
+
+    transition:
+        transform .25s
+        cubic-bezier(.22,1,.36,1);
+
+}
+
+
+.right-icon:hover {
+
+    transform:
+        translateX(-3px);
+
+    background:
+        rgba(255,255,255,.07);
+
+}
+
+
+.right-icon:hover i {
+
+    transform:
+        scale(1.12);
+
+}
+
+
+/* ==========================================
+   ACTIVE ICON
+========================================== */
+
+.right-icon.active {
+
+    border-color:
+        var(--icon-color);
+
+    background:
+        color-mix(
+            in srgb,
+            var(--icon-color) 8%,
+            rgba(22,27,34,.92)
+        );
+
+    box-shadow:
+        0 0 20px
+        color-mix(
+            in srgb,
+            var(--icon-color) 20%,
+            transparent
+        );
+
+}
+
+
+/* ==========================================
+   TOOLTIP
+========================================== */
+
+.right-tooltip {
+
+    position: absolute;
+
+    right: 68px;
+
+    top: 50%;
+
+    padding:
+        7px 10px;
+
+    border-radius:
+        9px;
+
+    background:
+        #202733;
+
+    border:
+        1px solid
+        rgba(255,255,255,.06);
+
+    color: white;
+
+    font-size: 12px;
+
+    white-space: nowrap;
+
+    opacity: 0;
+
+    transform:
+        translateX(8px)
+        translateY(-50%);
+
+    pointer-events: none;
+
+    box-shadow:
+        0 10px 30px
+        rgba(0,0,0,.25);
+
+    transition:
+        opacity .2s ease,
+        transform .2s ease;
+
+}
+
+
+.right-icon:hover .right-tooltip {
+
+    opacity: 1;
+
+    transform:
+        translateX(0)
+        translateY(-50%);
+
+}
+
+
+/* ==========================================
+   HIDE TOOLTIP WHILE PANEL IS OPEN
+========================================== */
+
+.right-sidebar.open
+.right-tooltip {
+
+    opacity: 0;
+
+}
+
+
+/* ==========================================
+   INSTRUMENT CARD
+========================================== */
+
+.instrument-card {
+
+    min-height: 70px;
+
+    padding: 10px;
+
+    box-sizing: border-box;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    border-radius: 16px;
+
+    background:
+        rgba(255,255,255,.035);
+
+    border:
+        1px solid
+        rgba(255,255,255,.055);
+
+    transition:
+        transform .22s ease,
+        background .22s ease,
+        border-color .22s ease;
+
+}
+
+
+.instrument-card:hover {
+
+    transform:
+        translateX(-2px);
+
+    background:
+        rgba(255,255,255,.055);
+
+    border-color:
+        color-mix(
+            in srgb,
+            var(--accent) 20%,
+            rgba(255,255,255,.055)
+        );
+
+}
+
+
+.instrument-icon {
+
+    width: 42px;
+
+    height: 42px;
+
+    flex-shrink: 0;
+
+    border-radius: 12px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+}
+
+
+.instrument-icon i {
+
+    font-size: 19px;
+
+}
+
+
+.instrument-info {
+
+    flex: 1;
+
+    min-width: 0;
+
+}
+
+
+.instrument-info strong {
+
+    display: block;
+
+    color: white;
+
+    font-size: 13px;
+
+}
+
+
+.instrument-info span {
+
+    display: block;
+
+    margin-top: 3px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+
+}
+
+
+.instrument-open {
+
+    border: none;
+
+    border-radius: 9px;
+
+    padding:
+        7px 10px;
+
+    background:
+        rgba(255,255,255,.05);
+
+    color:
+        var(--muted);
+
+    cursor: pointer;
+
+}
+
+
+.instrument-open:hover {
+
+    background:
+        rgba(255,255,255,.09);
+
+    color: white;
+
+}
+
+
+/* ==========================================
+   EMPTY STATE
+========================================== */
+
+.right-empty {
+
+    flex: 1;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    text-align: center;
+
+    gap: 8px;
+
+}
+
+
+.right-empty i {
+
+    font-size: 30px;
+
+    color: var(--accent);
+
+    opacity: .55;
+
+}
+
+
+.right-empty strong {
+
+    color: white;
+
+    font-size: 14px;
+
+}
+
+
+.right-empty span {
+
+    max-width: 220px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+
+    line-height: 1.5;
+
+}
+
+.right-panel-content {
+    animation: panelContentIn .28s cubic-bezier(.22, 1, .36, 1);
+}
+
+@keyframes panelContentIn {
+
+    from {
+        opacity: 0;
+        transform: translateX(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+}

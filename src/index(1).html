@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>TwinLab Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/sidebar.css">
+    <link rel="stylesheet" href="css/topbar.css">
+    <link rel="stylesheet" href="css/hero.css">
+    <link rel="stylesheet" href="css/projects.css">
+    <link rel="stylesheet" href="css/quickstart.css">
+    <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+
+<body>
+    <div class="app">
+        <aside class="sidebar">
+
+            <!-- ==========================================
+         LOGO
+    =========================================== -->
+
+            <div class="sidebar-logo">
+
+                <div class="logo-icon">
+
+                    <i class="ri-cpu-line"></i>
+
+                </div>
+
+                <div class="logo-text">
+
+                    <h2>Twin<span>Lab</span></h2>
+
+                    <p>Digital Twin Electronics</p>
+
+                </div>
+
+            </div>
+
+            <!-- ==========================================
+         NAVIGATION
+    =========================================== -->
+
+            <nav class="sidebar-nav">
+
+                <a href="#" class="nav-item active">
+
+                    <span class="nav-icon">
+                        <i class="ri-home-5-line"></i>
+                    </span>
+
+                    <span class="nav-text">
+                        Home
+                    </span>
+
+                    <span class="nav-indicator"></span>
+
+                </a>
+
+                <a href="#" class="nav-item">
+
+                    <span class="nav-icon">
+                        <i class="ri-folder-3-line"></i>
+                    </span>
+
+                    <span class="nav-text">
+                        Projects
+                    </span>
+
+                    <span class="nav-indicator"></span>
+
+                </a>
+
+                <a href="#" class="nav-item">
+
+                    <span class="nav-icon">
+                        <i class="ri-cpu-line"></i>
+                    </span>
+
+                    <span class="nav-text">
+                        Components
+                    </span>
+
+                    <span class="nav-indicator"></span>
+
+                </a>
+
+                <a href="#" class="nav-item">
+
+                    <span class="nav-icon">
+                        <i class="ri-pulse-line"></i>
+                    </span>
+
+                    <span class="nav-text">
+                        Instruments
+                    </span>
+
+                    <span class="nav-indicator"></span>
+
+                </a>
+
+                <a href="#" class="nav-item">
+
+                    <span class="nav-icon">
+                        <i class="ri-flask-line"></i>
+                    </span>
+
+                    <span class="nav-text">
+                        Experiments
+                    </span>
+
+                    <span class="nav-indicator"></span>
+
+                </a>
+
+                <a href="#" class="nav-item">
+
+                    <span class="nav-icon">
+                        <i class="ri-book-open-line"></i>
+                    </span>
+
+                    <span class="nav-text">
+                        Learn
+                    </span>
+
+                    <span class="nav-indicator"></span>
+
+                </a>
+
+                <a href="#" class="nav-item">
+
+                    <span class="nav-icon">
+                        <i class="ri-group-line"></i>
+                    </span>
+
+                    <span class="nav-text">
+                        Community
+                    </span>
+
+                    <span class="nav-indicator"></span>
+
+                </a>
+
+                <a href="#" class="nav-item">
+
+                    <span class="nav-icon">
+                        <i class="ri-settings-4-line"></i>
+                    </span>
+
+                    <span class="nav-text">
+                        Settings
+                    </span>
+
+                    <span class="nav-indicator"></span>
+
+                </a>
+
+            </nav>
+
+            <!-- ==========================================
+         SYSTEM STATUS
+    =========================================== -->
+
+            <div class="system-card">
+
+                <div class="system-header">
+
+                    <div class="system-dot"></div>
+
+                    <span>System Status</span>
+
+                </div>
+
+                <div class="system-list">
+
+                    <div class="system-item">
+
+                        <span>Simulator</span>
+
+                        <strong>Online</strong>
+
+                    </div>
+
+                    <div class="system-item">
+
+                        <span>Autosave</span>
+
+                        <strong>Enabled</strong>
+
+                    </div>
+
+                    <div class="system-item">
+
+                        <span>Engine</span>
+
+                        <strong>Ready</strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- ==========================================
+         USER
+    =========================================== -->
+
+            <div class="sidebar-user">
+
+                <div class="user-avatar">
+
+                    K
+
+                </div>
+
+                <div class="user-info">
+
+                    <h4>Kranthi Kumar</h4>
+
+                    <p>Electronics Developer</p>
+
+                </div>
+
+                <button class="user-menu">
+
+                    <i class="ri-more-2-fill"></i>
+
+                </button>
+
+            </div>
+
+        </aside>
+
+
+        <main class="main-content">
+            <header class="topbar">
+
+                <!-- Search -->
+
+                <div class="search-container">
+
+                    <i class="ri-search-line"></i>
+
+                    <input type="text" placeholder="Search projects, components, experiments...">
+
+                    <span class="shortcut">
+                        Ctrl + K
+                    </span>
+
+                </div>
+
+                <!-- Center -->
+
+                <div class="page-title">
+
+                    <h2>Dashboard</h2>
+
+                    <p>Digital Twin Electronics Platform</p>
+
+                </div>
+
+                <!-- Actions -->
+
+                <div class="top-actions">
+
+                    <button class="theme-toggle">
+
+                        <i class="ri-moon-clear-line"></i>
+
+                    </button>
+
+                    <button>
+
+                        <i class="ri-settings-4-line"></i>
+
+                    </button>
+
+                    <button class="notification">
+
+                        <i class="ri-notification-3-line"></i>
+
+                    </button>
+
+                    <div class="profile">
+
+                        <div class="profile-image">
+
+                            K
+
+                            <span class="online"></span>
+
+                        </div>
+
+                        <div class="profile-info">
+
+                            <h4>Kranthi</h4>
+
+                            <p>Online</p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </header>
+
+            <!-- ===================== HERO ===================== -->
+            <section class="hero">
+
+                <div class="hero-content">
+
+                    <!-- Left Side -->
+                    <div class="hero-left">
+
+                        <span class="hero-tag">
+                            <i class="ri-cpu-line"></i>
+                            Digital Twin Workspace
+                        </span>
+
+                        <h1>
+                            Welcome Back,
+                            <span>Kranthi</span>
+                        </h1>
+
+                        <p class="hero-description">
+                            Design, simulate and test electronic circuits in your digital
+                            laboratory. Build projects, experiment freely and bring your
+                            ideas to life with TwinLab.
+                        </p>
+
+                        <div class="hero-buttons">
+
+                            <button class="primary-btn">
+                                <i class="ri-add-line"></i>
+                                New Project
+                            </button>
+
+                            <button class="secondary-btn">
+                                <i class="ri-folder-open-line"></i>
+                                Import
+                            </button>
+
+                            <button class="secondary-btn">
+                                <i class="ri-book-open-line"></i>
+                                Learn
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Right Side -->
+                    <div class="hero-right">
+
+                        <div class="stat-card">
+                            <i class="ri-folder-3-line"></i>
+                            <h2>24</h2>
+                            <span>Projects</span>
+                        </div>
+
+                        <div class="stat-card">
+                            <i class="ri-cpu-line"></i>
+                            <h2>148</h2>
+                            <span>Components</span>
+                        </div>
+
+                        <div class="stat-card">
+                            <i class="ri-flask-line"></i>
+                            <h2>12</h2>
+                            <span>Experiments</span>
+                        </div>
+
+                        <div class="stat-card">
+                            <i class="ri-pulse-line"></i>
+                            <h2>97%</h2>
+                            <span>Engine Ready</span>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            
+            <section class="recent-projects">
+                <div class="section-title">
+                    <h2>Recent Projects</h2><a href="#">
+                        View All
+                        <i class="ri-arrow-right-line"></i>
+                    </a>
+                </div>
+                <div class="projects-grid">
+                    <article class="project-card">
+
+                        <span class="project-badge">Auto Saved</span>
+
+                        <div class="project-menu">
+                            <i class="ri-more-2-fill"></i>
+                        </div>
+
+                        <div class="project-thumbnail"></div>
+
+                        <div class="project-body">
+
+                            <h3>LED Blinking Circuit</h3>
+
+                            <p>Basic Electronics</p>
+
+                            <div class="project-footer">
+
+                                <span class="project-date">
+                                    Edited 2 min ago
+                                </span>
+
+                                <span class="project-open">
+                                    Open →
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </article>
+
+                    <article class="project-card">
+
+                        <span class="project-badge">Auto Saved</span>
+
+                        <div class="project-menu">
+                            <i class="ri-more-2-fill"></i>
+                        </div>
+
+                        <div class="project-thumbnail"></div>
+
+                        <div class="project-body">
+
+                            <h3>LED Blinking Circuit</h3>
+
+                            <p>Basic Electronics</p>
+
+                            <div class="project-footer">
+
+                                <span class="project-date">
+                                    Edited 2 min ago
+                                </span>
+
+                                <span class="project-open">
+                                    Open →
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </article>
+
+                    <article class="project-card">
+
+                        <span class="project-badge">Auto Saved</span>
+
+                        <div class="project-menu">
+                            <i class="ri-more-2-fill"></i>
+                        </div>
+
+                        <div class="project-thumbnail"></div>
+
+                        <div class="project-body">
+
+                            <h3>LED Blinking Circuit</h3>
+
+                            <p>Basic Electronics</p>
+
+                            <div class="project-footer">
+
+                                <span class="project-date">
+                                    Edited 2 min ago
+                                </span>
+
+                                <span class="project-open">
+                                    Open →
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </article>
+
+                    <article class="project-card">
+
+                        <span class="project-badge">Auto Saved</span>
+
+                        <div class="project-menu">
+                            <i class="ri-more-2-fill"></i>
+                        </div>
+
+                        <div class="project-thumbnail"></div>
+
+                        <div class="project-body">
+
+                            <h3>LED Blinking Circuit</h3>
+
+                            <p>Basic Electronics</p>
+
+                            <div class="project-footer">
+
+                                <span class="project-date">
+                                    Edited 2 min ago
+                                </span>
+
+                                <span class="project-open">
+                                    Open →
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </article>
+
+                    <article class="project-card">
+
+                        <span class="project-badge">Auto Saved</span>
+
+                        <div class="project-menu">
+                            <i class="ri-more-2-fill"></i>
+                        </div>
+
+                        <div class="project-thumbnail"></div>
+
+                        <div class="project-body">
+
+                            <h3>LED Blinking Circuit</h3>
+
+                            <p>Basic Electronics</p>
+
+                            <div class="project-footer">
+
+                                <span class="project-date">
+                                    Edited 2 min ago
+                                </span>
+
+                                <span class="project-open">
+                                    Open →
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </article>
+
+                </div>
+            </section>
+
+            <section class="quick-start">
+
+                <div class="quick-panel">
+
+                    <h2>Quick Start</h2>
+
+                    <p>Create a new electronics project in seconds.</p>
+
+                    <div class="quick-grid">
+
+                        <div class="quick-card">
+
+                            <div class="quick-icon">
+                                <i class="ri-add-line"></i>
+                            </div>
+
+                            <h3>New Project</h3>
+
+                            <p>Start building a new circuit from scratch.</p>
+
+                        </div>
+
+                        <!-- More quick cards -->
+
+                    </div>
+
+                </div>
+
+                <div class="tips-panel">
+
+                    <h2>Tips & Updates</h2>
+
+                    <div class="tip">
+
+                        <div class="tip-icon">
+                            <i class="ri-lightbulb-line"></i>
+                        </div>
+
+                        <div class="tip-content">
+                            <h4>Auto Save Enabled</h4>
+                            <p>Your projects are saved automatically every few seconds.</p>
+                        </div>
+
+                    </div>
+
+                    <!-- More tips -->
+
+                </div>
+
+            </section>
+
+
+            <footer class="footer">
+
+                <div class="footer-left">
+
+                    <h3>TwinLab</h3>
+
+                    <p>
+                        Digital Twin Platform for Electronics Learning.
+                    </p>
+
+                </div>
+
+                <div class="footer-center">
+
+                    <a href="#" class="footer-link">Documentation</a>
+
+                    <a href="#" class="footer-link">Community</a>
+
+                    <a href="#" class="footer-link">Privacy</a>
+
+                    <a href="#" class="footer-link">Support</a>
+
+                </div>
+
+                <div class="footer-right">
+
+                    <span class="version">
+                        Version 1.0.0
+                    </span>
+
+                    <span class="status">
+                        All Systems Operational
+                    </span>
+
+                    <div class="footer-social">
+
+                        <a href="#"><i class="ri-github-line"></i></a>
+
+                        <a href="#"><i class="ri-discord-line"></i></a>
+
+                        <a href="#"><i class="ri-twitter-x-line"></i></a>
+
+                    </div>
+
+                </div>
+
+            </footer>
+        </main>
+    </div>
+</body>
+<script src="js/sidebar.js"></script>
+
+</html>

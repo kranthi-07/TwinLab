@@ -1,0 +1,392 @@
+/* ==========================================
+   TRANSITIONS
+========================================== */
+
+.fade-in {
+
+    animation: fadeIn .8s ease forwards;
+
+}
+
+.fade-up {
+
+    animation: fadeUp .8s ease forwards;
+
+}
+
+.fade-down {
+
+    animation: fadeDown .8s ease forwards;
+
+}
+
+.fade-left {
+
+    animation: fadeLeft .8s ease forwards;
+
+}
+
+.fade-right {
+
+    animation: fadeRight .8s ease forwards;
+
+}
+
+.zoom-in {
+
+    animation: zoomIn .6s ease forwards;
+
+}
+
+.scale-in {
+
+    animation: scaleIn .5s ease forwards;
+
+}
+
+.float {
+
+    animation: float 4s ease-in-out infinite;
+
+}
+
+.pulse {
+
+    animation: pulse 2.5s infinite;
+
+}
+
+.rotate-slow {
+
+    animation: rotateSlow 18s linear infinite;
+
+}
+
+.glow {
+
+    animation: glow 3s ease-in-out infinite;
+
+}
+
+/* ==========================================
+   HOVER UTILITIES
+========================================== */
+
+.hover-lift {
+
+    transition: .35s;
+
+}
+
+.hover-lift:hover {
+
+    transform: translateY(-6px);
+
+}
+
+.hover-scale {
+
+    transition: .35s;
+
+}
+
+.hover-scale:hover {
+
+    transform: scale(1.04);
+
+}
+
+.hover-rotate {
+
+    transition: .35s;
+
+}
+
+.hover-rotate:hover {
+
+    transform: rotate(-4deg);
+
+}
+
+/* ==========================================
+   KEYFRAMES
+========================================== */
+
+@keyframes fadeIn {
+
+    from {
+
+        opacity: 0;
+
+    }
+
+    to {
+
+        opacity: 1;
+
+    }
+
+}
+
+@keyframes fadeUp {
+
+    from {
+
+        opacity: 0;
+
+        transform: translateY(40px);
+
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform: translateY(0);
+
+    }
+
+}
+
+@keyframes fadeDown {
+
+    from {
+
+        opacity: 0;
+
+        transform: translateY(-40px);
+
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform: translateY(0);
+
+    }
+
+}
+
+@keyframes fadeLeft {
+
+    from {
+
+        opacity: 0;
+
+        transform: translateX(-40px);
+
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform: translateX(0);
+
+    }
+
+}
+
+@keyframes fadeRight {
+
+    from {
+
+        opacity: 0;
+
+        transform: translateX(40px);
+
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform: translateX(0);
+
+    }
+
+}
+
+@keyframes zoomIn {
+
+    from {
+
+        opacity: 0;
+
+        transform: scale(.9);
+
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform: scale(1);
+
+    }
+
+}
+
+@keyframes scaleIn {
+
+    from {
+
+        opacity: 0;
+
+        transform: scale(.8);
+
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform: scale(1);
+
+    }
+
+}
+
+@keyframes float {
+
+    0% {
+
+        transform: translateY(0);
+
+    }
+
+    50% {
+
+        transform: translateY(-12px);
+
+    }
+
+    100% {
+
+        transform: translateY(0);
+
+    }
+
+}
+
+@keyframes pulse {
+
+    0% {
+
+        transform: scale(1);
+
+    }
+
+    50% {
+
+        transform: scale(1.05);
+
+    }
+
+    100% {
+
+        transform: scale(1);
+
+    }
+
+}
+
+@keyframes rotateSlow {
+
+    from {
+
+        transform: rotate(0deg);
+
+    }
+
+    to {
+
+        transform: rotate(360deg);
+
+    }
+
+}
+
+@keyframes glow {
+
+    0% {
+
+        box-shadow:
+            0 0 0 rgba(55, 169, 255, 0);
+
+    }
+
+    50% {
+
+        box-shadow:
+            0 0 28px rgba(55, 169, 255, .35);
+
+    }
+
+    100% {
+
+        box-shadow:
+            0 0 0 rgba(55, 169, 255, 0);
+
+    }
+
+}
+
+/* ==========================================
+   STAGGER DELAYS
+========================================== */
+
+.delay-1 {
+
+    animation-delay: .1s;
+
+}
+
+.delay-2 {
+
+    animation-delay: .2s;
+
+}
+
+.delay-3 {
+
+    animation-delay: .3s;
+
+}
+
+.delay-4 {
+
+    animation-delay: .4s;
+
+}
+
+.delay-5 {
+
+    animation-delay: .5s;
+
+}
+
+/* ==========================================
+   PERFORMANCE
+========================================== */
+
+.fade-in,
+.fade-up,
+.fade-down,
+.fade-left,
+.fade-right,
+.zoom-in,
+.scale-in,
+.float,
+.pulse,
+.rotate-slow,
+.glow {
+
+    will-change: transform, opacity;
+
+    backface-visibility: hidden;
+
+    transform: translateZ(0);
+
+}

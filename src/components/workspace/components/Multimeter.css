@@ -1,0 +1,310 @@
+/* ============================================================
+   DIGITAL MULTIMETER (DMM) - BENCHTOP TEST INSTRUMENT
+============================================================ */
+.dmm-system {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 12;
+}
+
+.dmm-cables-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 5000px;
+    height: 5000px;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 11;
+}
+
+/* Meter Holster Body */
+.dmm-body-case {
+    position: absolute;
+    width: 120px;
+    height: 184px;
+    background: #eab308; /* Classic safety yellow multimeter rubber holster */
+    border-radius: 12px;
+    border: 3px solid #ca8a04;
+    padding: 8px 10px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), inset 0 2px 3px rgba(255, 255, 255, 0.35);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    pointer-events: auto;
+    cursor: move;
+    user-select: none;
+    z-index: 12;
+}
+
+.dmm-system.selected .dmm-body-case {
+    outline: 2px solid #38bdf8;
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.5), 0 12px 28px rgba(0, 0, 0, 0.6);
+}
+
+.dmm-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 8px;
+    font-weight: 900;
+    color: #1e293b;
+    letter-spacing: 0.08em;
+}
+
+/* Digital LCD Display Screen */
+.dmm-lcd-bezel {
+    background: #0f172a;
+    border-radius: 6px;
+    padding: 4px;
+    border: 1.5px solid #334155;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.dmm-lcd-screen {
+    background: #1e2d24; /* Backlit green-tinted engineering LCD */
+    border-radius: 4px;
+    padding: 4px 6px;
+    border: 1px solid #14532d;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.dmm-lcd-top-icons {
+    display: flex;
+    justify-content: space-between;
+    font-size: 7px;
+    font-weight: 800;
+    color: #4ade80;
+    letter-spacing: 0.06em;
+    opacity: 0.85;
+}
+
+.dmm-lcd-digits {
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 4px;
+    margin-top: 2px;
+}
+
+.digits-text {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 20px;
+    font-weight: 900;
+    color: #4ade80;
+    letter-spacing: 0.08em;
+    text-shadow: 0 0 6px rgba(74, 222, 128, 0.75);
+}
+
+.unit-text {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+    font-weight: 900;
+    color: #4ade80;
+}
+
+/* Rotary Mode Selector Dial */
+.dmm-dial-area {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dial-label-btn {
+    position: absolute;
+    background: none;
+    border: none;
+    font-size: 9px;
+    font-weight: 800;
+    color: #1e293b;
+    padding: 2px 4px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s ease;
+}
+
+.dial-label-btn:hover {
+    color: #000000;
+    transform: scale(1.15);
+}
+
+.dial-label-btn.active {
+    color: #ffffff;
+    background: #0f172a;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.label-v { top: 0px; left: 50%; transform: translateX(-50%); }
+.label-a { right: -2px; top: 50%; transform: translateY(-50%); }
+.label-ohm { bottom: 0px; left: 50%; transform: translateX(-50%); }
+.label-cont { left: -6px; top: 50%; transform: translateY(-50%); }
+
+.dmm-rotary-knob {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #334155, #0f172a 80%);
+    border: 2px solid #1e293b;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dial-pointer-notch {
+    position: absolute;
+    top: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 9px;
+    background: #f8fafc;
+    border-radius: 1px;
+    box-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
+}
+
+.dial-cap {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #1e293b;
+    border: 1px solid #475569;
+}
+
+/* Bottom Input Jacks */
+.dmm-jack-row {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: #0f172a;
+    border-radius: 6px;
+    padding: 3px 6px;
+    border: 1px solid #334155;
+}
+
+.banana-jack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.jack-label {
+    font-size: 6.5px;
+    font-weight: 800;
+    color: #94a3b8;
+    letter-spacing: 0.05em;
+}
+
+.jack-socket {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1.5px solid #000000;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.black-socket {
+    background: #1e293b;
+    border-color: #475569;
+}
+
+.red-socket {
+    background: #dc2626;
+    border-color: #ef4444;
+}
+
+/* ============================================================
+   MOVABLE SHARP TEST PROBE PENS
+============================================================ */
+.dmm-probe-pen {
+    position: absolute;
+    width: 14px;
+    height: 48px;
+    pointer-events: auto;
+    cursor: grab;
+    z-index: 25;
+    user-select: none;
+    transition: filter 0.15s ease;
+}
+
+.dmm-probe-pen:hover,
+.dmm-probe-pen.dragging {
+    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8));
+    cursor: grabbing;
+}
+
+.probe-needle-point {
+    position: absolute;
+    top: -12px;
+    left: 5px;
+    width: 4px;
+    height: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.needle-metal {
+    width: 2px;
+    height: 10px;
+    background: linear-gradient(180deg, #f8fafc, #94a3b8);
+    border-radius: 1px;
+}
+
+.probe-contact-tip {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #38bdf8;
+    box-shadow: 0 0 6px #38bdf8;
+    position: absolute;
+    top: -4px;
+    left: -2px;
+    cursor: crosshair;
+}
+
+.probe-barrel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 14px;
+    height: 48px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+}
+
+.red-barrel {
+    background: linear-gradient(180deg, #ef4444, #b91c1c);
+    border: 1px solid #f87171;
+}
+
+.black-barrel {
+    background: linear-gradient(180deg, #334155, #0f172a);
+    border: 1px solid #475569;
+}
+
+.probe-plus-sign {
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.probe-minus-sign {
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 900;
+}

@@ -1,0 +1,403 @@
+/* ============================================================
+   EMBEDDED MCU FIRMWARE CODE STUDIO (C++ / INO)
+   Ultra-Premium Glassmorphism Docked Panel
+============================================================ */
+
+.code-editor-dock {
+    position: absolute;
+    top: 68px;
+    right: 20px;
+    bottom: 24px;
+    width: 580px;
+    max-width: calc(100vw - 40px);
+    background: rgba(15, 23, 42, 0.94);
+    backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    z-index: 120;
+    overflow: hidden;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ------------------------------------------------------------
+   1. HEADER BAR
+------------------------------------------------------------ */
+.code-editor-header {
+    height: 52px;
+    background: rgba(30, 41, 59, 0.7);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    user-select: none;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.editor-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.editor-title-wrap .code-icon {
+    font-size: 18px;
+    color: #FF8A00;
+}
+
+.editor-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f8fafc;
+    letter-spacing: 0.02em;
+}
+
+.lang-tag {
+    font-size: 9px;
+    font-weight: 800;
+    font-family: monospace;
+    background: rgba(255, 138, 0, 0.18);
+    color: #ffaa40;
+    border: 1px solid rgba(255, 138, 0, 0.35);
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.06em;
+}
+
+.board-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.28);
+    padding: 3px 9px;
+    border-radius: 6px;
+}
+
+.board-badge i {
+    font-size: 12px;
+}
+
+.board-selector-dropdown {
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+}
+
+.board-selector-dropdown option {
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.preset-select-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.preset-label {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.preset-dropdown {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #f1f5f9;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.preset-dropdown:hover {
+    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.preset-dropdown option {
+    background: #0f172a;
+    color: #f1f5f9;
+}
+
+/* Action Buttons */
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    outline: none;
+    border: none;
+}
+
+.upload-btn {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+.upload-btn:hover {
+    filter: brightness(1.12);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+}
+
+.upload-btn.active {
+    background: linear-gradient(135deg, #059669, #047857);
+}
+
+.stop-btn {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.stop-btn:hover {
+    background: rgba(239, 68, 68, 0.32);
+    color: #fca5a5;
+}
+
+.close-panel-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.close-panel-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #f1f5f9;
+}
+
+/* Flash upload progress bar */
+.upload-progress-track {
+    width: 100%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+}
+
+.upload-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #38bdf8);
+    transition: width 0.25s ease;
+}
+
+/* ------------------------------------------------------------
+   2. CODE EDITOR BODY & LINE NUMBERS
+------------------------------------------------------------ */
+.code-editor-body {
+    flex: 1;
+    display: flex;
+    background: #090d16;
+    overflow: hidden;
+    position: relative;
+}
+
+.line-numbers-gutter {
+    width: 44px;
+    padding: 16px 0;
+    background: rgba(15, 23, 42, 0.6);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    user-select: none;
+    overflow-y: hidden;
+}
+
+.line-num {
+    height: 22px;
+    line-height: 22px;
+    padding-right: 12px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+    color: #475569;
+}
+
+.code-input-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.code-textarea {
+    width: 100%;
+    height: 100%;
+    padding: 16px;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    color: #e2e8f0;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 22px;
+    tab-size: 2;
+    white-space: pre;
+    overflow: auto;
+}
+
+.code-textarea::selection {
+    background: rgba(56, 189, 248, 0.3);
+}
+
+/* Error Banner */
+.compile-error-banner {
+    padding: 8px 16px;
+    background: rgba(239, 68, 68, 0.18);
+    border-top: 1px solid rgba(239, 68, 68, 0.35);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fca5a5;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.compile-error-banner i {
+    color: #ef4444;
+    font-size: 14px;
+}
+
+/* ------------------------------------------------------------
+   3. FOOTER STATUS BAR
+------------------------------------------------------------ */
+.code-editor-footer {
+    height: 40px;
+    background: rgba(15, 23, 42, 0.85);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    font-size: 11px;
+    user-select: none;
+}
+
+.footer-status-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-indicator-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+}
+
+.status-indicator-dot.running {
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+}
+
+.status-indicator-dot.idle {
+    background: #64748b;
+}
+
+.status-text {
+    color: #cbd5e1;
+    font-weight: 600;
+}
+
+.com-port-tag {
+    font-family: monospace;
+    color: #64748b;
+    font-size: 10px;
+    padding-left: 6px;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-status-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.baud-selector-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #94a3b8;
+}
+
+.baud-select {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+}
+
+.baud-select option {
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
+.serial-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.serial-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+.serial-toggle-btn.active {
+    background: rgba(168, 85, 247, 0.2);
+    border-color: rgba(168, 85, 247, 0.4);
+    color: #c084fc;
+}
