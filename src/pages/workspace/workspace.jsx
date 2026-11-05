@@ -12,6 +12,7 @@ import CodeEditor from "../../components/workspace/CodeEditor/CodeEditor";
 import Minimap from "../../components/workspace/Minimap/Minimap";
 import SchematicView from "../../components/workspace/SchematicView/SchematicView";
 import Oscilloscope from "../../components/workspace/Instruments/Oscilloscope";
+import ComponentSearchModal from "../../components/workspace/SearchModal/ComponentSearchModal";
 import { McuExecutionSession, DEFAULT_SKETCHES } from "../../simulation/mcuRuntime";
 
 const STORAGE_KEY = "twinlab_active_project";
@@ -99,6 +100,7 @@ function Workspace({ onBackToHome }) {
     const [isSimulating, setIsSimulating] = useState(false);
     const [viewMode, setViewMode] = useState("simulation"); // "simulation" | "schematic"
     const [isOscilloscopeOpen, setIsOscilloscopeOpen] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     // MCU Boards & Firmware Execution
     const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false);
@@ -340,6 +342,7 @@ function Workspace({ onBackToHome }) {
     // ==========================================
     const historyRef = useRef({ past: [], future: [] });
     const clipboardRef = useRef(null);
+    const [historyCounts, setHistoryCounts] = useState({ past: 0, future: 0 });
 
     // Record snapshot to history stack before changes
     const recordSnapshot = useCallback(() => {
@@ -353,6 +356,7 @@ function Workspace({ onBackToHome }) {
             historyRef.current.past.shift();
         }
         historyRef.current.future = [];
+        setHistoryCounts({ past: historyRef.current.past.length, future: 0 });
     }, [components, wires, selectedId, selectedWireId]);
 
     // Undo action (Ctrl+Z)
@@ -374,6 +378,7 @@ function Workspace({ onBackToHome }) {
         setSelectedId(prev.selectedId);
         setSelectedWireId(prev.selectedWireId);
         setIsUnsaved(true);
+        setHistoryCounts({ past: historyRef.current.past.length, future: historyRef.current.future.length });
         setToastMessage("↩ Undo (Ctrl+Z)");
         setTimeout(() => setToastMessage(""), 1600);
     }, [components, wires, selectedId, selectedWireId]);
@@ -397,9 +402,19 @@ function Workspace({ onBackToHome }) {
         setSelectedId(next.selectedId);
         setSelectedWireId(next.selectedWireId);
         setIsUnsaved(true);
+        setHistoryCounts({ past: historyRef.current.past.length, future: historyRef.current.future.length });
         setToastMessage("↪ Redo (Ctrl+Y)");
         setTimeout(() => setToastMessage(""), 1600);
     }, [components, wires, selectedId, selectedWireId]);
+
+    const handleOpenMultimeter = useCallback(() => {
+        const dmm = components.find(c => c.type === "multimeter");
+        if (dmm) {
+            handleSelectComponent(dmm.id);
+        } else {
+            handleAddComponent({ type: "multimeter", x: 260, y: 320 });
+        }
+    }, [components, handleSelectComponent, handleAddComponent]);
 
     // Copy action (Ctrl+C)
     const handleCopy = useCallback(() => {
@@ -589,6 +604,13 @@ function Workspace({ onBackToHome }) {
             if (isCtrl && (e.key === "s" || e.key === "S")) {
                 e.preventDefault();
                 handleSaveProject();
+                return;
+            }
+
+            // SEARCH: Ctrl+F / Cmd+F
+            if (isCtrl && (e.key === "f" || e.key === "F")) {
+                e.preventDefault();
+                setIsSearchOpen(true);
                 return;
             }
 
@@ -1039,6 +1061,8 @@ function Workspace({ onBackToHome }) {
                     selectedId={selectedId}
                     onSelectComponent={handleSelectComponent}
                     projectName={projectMeta.name || "Project - 1"}
+                    zoom={viewport.zoom}
+                    onUpdateZoom={(newZoom) => setViewport(prev => ({ ...prev, zoom: newZoom }))}
                     onClose={() => setViewMode("simulation")}
                 />
             ) : (
@@ -1123,10 +1147,11 @@ function Workspace({ onBackToHome }) {
                 projectAccent={projectMeta.accent || "#FF8A00"}
                 onRenameProject={handleRenameProject}
                 onBackToHome={handleBackClick} 
+                onOpenSearch={() => setIsSearchOpen(true)}
                 onUndo={handleUndo}
                 onRedo={handleRedo}
-                canUndo={historyRef.current.past.length > 0}
-                canRedo={historyRef.current.future.length > 0}
+                canUndo={historyCounts.past > 0}
+                canRedo={historyCounts.future > 0}
                 selectedComponent={selectedComponent}
                 onUpdateComponent={handleUpdateComponent}
                 selectedWire={wires.find(w => w.id === selectedWireId)}
@@ -1174,14 +1199,7 @@ function Workspace({ onBackToHome }) {
             <RightSidebar 
                 onOpenOscilloscope={() => setIsOscilloscopeOpen(true)}
                 onOpenSerial={() => setIsSerialOpen(prev => !prev)}
-                onOpenMultimeter={() => {
-                    const dmm = components.find(c => c.type === "multimeter");
-                    if (dmm) {
-                        handleSelectComponent(dmm.id);
-                    } else {
-                        handleAddComponent({ type: "multimeter", x: 260, y: 320 });
-                    }
-                }}
+                onOpenMultimeter={handleOpenMultimeter}
                 selectedComponent={selectedComponent}
                 components={components}
                 onSelectComponent={handleSelectComponent}
@@ -1233,6 +1251,17 @@ function Workspace({ onBackToHome }) {
                     />
                 )}
             </AnimatePresence>
+
+            {/* Component Search Spotlight Modal (Ctrl+F) */}
+            <ComponentSearchModal
+                isOpen={isSearchOpen}
+                onClose={() => setIsSearchOpen(false)}
+                onAddComponent={handleAddComponent}
+                onOpenInstrument={(inst) => {
+                    if (inst === "oscilloscope") setIsOscilloscopeOpen(true);
+                    else if (inst === "multimeter") handleOpenMultimeter();
+                }}
+            />
 
             {/* Smooth In-App Animated Toast (Ctrl+S / Save feedback) */}
             <AnimatePresence>

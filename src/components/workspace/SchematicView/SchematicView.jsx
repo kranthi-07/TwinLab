@@ -9,9 +9,21 @@ function SchematicView({
     selectedId,
     onSelectComponent,
     projectName = "Project - 1",
+    zoom: externalZoom,
+    onUpdateZoom,
     onClose
 }) {
-    const [zoom, setZoom] = useState(1);
+    const [internalZoom, setInternalZoom] = useState(1);
+    const zoom = externalZoom !== undefined ? externalZoom : internalZoom;
+
+    const setZoom = (valOrFn) => {
+        const nextVal = typeof valOrFn === "function" ? valOrFn(zoom) : valOrFn;
+        if (onUpdateZoom) {
+            onUpdateZoom(nextVal);
+        } else {
+            setInternalZoom(nextVal);
+        }
+    };
     const [pan, setPan] = useState({ x: 60, y: 60 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });

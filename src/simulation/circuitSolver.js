@@ -554,6 +554,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
     });
 
     // 4. Solve LEDs
+    const leds = [];
     const ledStates = {};
     const simLogs = [];
 
@@ -581,6 +582,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
 
             anodeNode = dsu.find(anodeNode);
             cathodeNode = dsu.find(cathodeNode);
+            leds.push({ id: c.id, nodeAnode: anodeNode, nodeCathode: cathodeNode });
 
             // A. Check if both terminals are shorted together (same node)
             if (anodeNode === cathodeNode) {
@@ -843,6 +845,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
     });
 
     // 4b. Solve Piezo Buzzers
+    const buzzers = [];
     const buzzerStates = {};
     components.forEach((c) => {
         if (c.type === "buzzer") {
@@ -867,6 +870,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
 
             posNode = dsu.find(posNode);
             negNode = dsu.find(negNode);
+            buzzers.push({ id: c.id, nodePos: posNode, nodeNeg: negNode });
 
             if (posNode === negNode || posNodes.length === 0 || gndNodes.length === 0) {
                 buzzerStates[c.id] = { isBeeping: false, voltage: 0, currentMa: 0 };

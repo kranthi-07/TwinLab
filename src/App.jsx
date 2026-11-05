@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import WorkspaceLayout from "./layouts/WorkspaceLayout";
 import HomepageLayout from "./layouts/HomepageLayout";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 
 const VIEW_STORAGE_KEY = "twinlab_active_view";
 
@@ -34,12 +35,14 @@ function App() {
         return () => window.removeEventListener("hashchange", handleHashChange);
     }, []);
 
-    if (view === "workspace") {
-        return <WorkspaceLayout onBackToHome={() => navigateTo("home")} />;
-    }
-
     return (
-        <HomepageLayout onOpenWorkspace={() => navigateTo("workspace")} />
+        <ErrorBoundary>
+            {view === "workspace" ? (
+                <WorkspaceLayout onBackToHome={() => navigateTo("home")} />
+            ) : (
+                <HomepageLayout onOpenWorkspace={() => navigateTo("workspace")} />
+            )}
+        </ErrorBoundary>
     );
 }
 

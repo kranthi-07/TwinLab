@@ -773,6 +773,69 @@
     gap: 12px;
 }
 
+/* Inspector Top Navigation (Back to all components) */
+.inspector-top-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.inspector-back-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.inspector-back-nav-btn:hover {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: #38bdf8;
+    color: #38bdf8;
+}
+
+.inspector-back-nav-btn i {
+    font-size: 15px;
+}
+
+.comp-count-chip {
+    font-size: 9.5px;
+    font-family: monospace;
+    background: rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
+.inspector-close-btn {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: 0.15s ease;
+}
+
+.inspector-close-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
 .inspector-active-card {
     display: flex;
     flex-direction: column;
@@ -983,36 +1046,86 @@
 .placed-components-list {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    max-height: 180px;
+    gap: 6px;
+    max-height: 220px;
     overflow-y: auto;
+    padding-right: 4px;
 }
 
 .placed-item-chip {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 6px 10px;
+    gap: 10px;
+    padding: 7px 10px;
     background: rgba(255, 255, 255, 0.035);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 6px;
+    border-radius: 9px;
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
 .placed-item-chip:hover {
     background: rgba(56, 189, 248, 0.1);
-    border-color: rgba(56, 189, 248, 0.3);
+    border-color: rgba(56, 189, 248, 0.35);
+    transform: translateX(2px);
+}
+
+.chip-3d-thumb {
+    width: 36px;
+    height: 28px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.chip-3d-thumb .thumb-3d-svg {
+    max-width: 90%;
+    max-height: 90%;
+}
+
+.chip-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .chip-name {
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 11.5px;
+    font-weight: 700;
     color: #e2e8f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .chip-pos {
-    font-size: 10px;
+    font-size: 9.5px;
     font-family: 'JetBrains Mono', monospace;
     color: #64748b;
+}
+
+.chip-chevron {
+    font-size: 14px;
+    color: #64748b;
+    transition: transform 0.15s ease;
+}
+
+.placed-item-chip:hover .chip-chevron {
+    color: #38bdf8;
+    transform: translateX(2px);
+}
+
+.no-comps-hint {
+    padding: 16px;
+    text-align: center;
+    font-size: 11px;
+    color: #64748b;
+    border: 1px dashed rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
 }

@@ -912,31 +912,21 @@ function TopFloatingBar({
 
                     <div className="top-divider"></div>
 
-                    {/* Search */}
-                    <button className="top-search-btn" title="Search Components (Ctrl+F)">
+                    {/* Search Component Modal Trigger */}
+                    <button 
+                        className="top-search-btn" 
+                        onClick={onOpenSearch}
+                        title="Search Components (Ctrl+F)"
+                    >
                         <i className="ri-search-line"></i>
                         <span>Search</span>
+                        <span className="search-kbd-chip">Ctrl F</span>
                     </button>
 
                     <div className="top-divider"></div>
 
                     {/* Modes Pill: Theme Switcher & Schematic Mode */}
                     <div className="modes-pill">
-                        {/* Theme Dropdown Selector */}
-                        <div className="theme-select-wrap">
-                            <select 
-                                className="theme-mode-select"
-                                value={theme || "dark"}
-                                onChange={(e) => setTheme && setTheme(e.target.value)}
-                                title="Studio Theme"
-                            >
-                                <option value="dark">Obsidian</option>
-                                <option value="glassmorphism">Frost Glass</option>
-                                <option value="cyberpunk">Cyber Neon</option>
-                                <option value="light">Light</option>
-                            </select>
-                        </div>
-
                         {/* Quick Theme Toggle */}
                         <button 
                             className="mode-btn theme-btn"

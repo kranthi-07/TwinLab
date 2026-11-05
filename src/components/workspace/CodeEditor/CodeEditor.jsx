@@ -1,7 +1,53 @@
 import "./CodeEditor.css";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { DEFAULT_SKETCHES } from "../../../simulation/mcuRuntime";
+
+/**
+ * High-performance C++ / Arduino Syntax Tokenizer & Highlighter
+ */
+export function highlightArduinoCpp(code) {
+    if (!code) return "";
+
+    // Escape HTML characters safely
+    const escaped = code
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+    // Order matters: comments and strings must take precedence so keywords inside them aren't tokenized
+    const tokenRegex = new RegExp(
+        [
+            "(?<comment>\\/\\/[^\\n]*|\\/\\*[\\s\\S]*?\\*\\/)",
+            "(?<preproc>#[a-zA-Z_]+(?:\\s+&lt;[^&>\\n]+&gt;|\\s+\"[^\"\\n]+\"|\\s+[a-zA-Z0-9_]+)?)",
+            "(?<string>\"(?:\\\\.|[^\"\\\\])*\")",
+            "(?<char>'(?:\\\\.|[^'\\\\])*')",
+            "(?<number>\\b(?:0x[0-9a-fA-F]+|\\d+(?:\\.\\d+)?(?:f|UL|U|L)?)\\b)",
+            "(?<constant>\\b(?:HIGH|LOW|INPUT|OUTPUT|INPUT_PULLUP|LED_BUILTIN|true|false|NULL|HEX|BIN|DEC|OCT)\\b)",
+            "(?<keyword>\\b(?:void|int|float|double|bool|boolean|char|byte|word|long|short|unsigned|const|static|volatile|return|if|else|for|while|do|switch|case|break|continue|default|class|struct|new|delete|sizeof|typedef)\\b)",
+            "(?<builtin>\\b(?:setup|loop|pinMode|digitalWrite|digitalRead|analogRead|analogWrite|analogReference|delay|delayMicroseconds|millis|micros|map|constrain|min|max|abs|random|randomSeed|tone|noTone|pulseIn|shiftOut|shiftIn|Serial|Wire|SPI)\\b)",
+            "(?<type>\\b(?:String|HardwareSerial|TwoWire|SPIClass|IPAddress|WiFi|BleDevice|WebServer)\\b)",
+            "(?<func>\\b[a-zA-Z_][a-zA-Z0-9_]*(?=\\s*\\())"
+        ].join("|"),
+        "g"
+    );
+
+    return escaped.replace(tokenRegex, (match, ...args) => {
+        const groups = args[args.length - 1];
+        if (!groups) return match;
+
+        if (groups.comment) return `<span class="syn-comment">${match}</span>`;
+        if (groups.preproc) return `<span class="syn-preproc">${match}</span>`;
+        if (groups.string || groups.char) return `<span class="syn-string">${match}</span>`;
+        if (groups.number) return `<span class="syn-num">${match}</span>`;
+        if (groups.constant) return `<span class="syn-const">${match}</span>`;
+        if (groups.keyword) return `<span class="syn-keyword">${match}</span>`;
+        if (groups.builtin) return `<span class="syn-builtin">${match}</span>`;
+        if (groups.type) return `<span class="syn-type">${match}</span>`;
+        if (groups.func) return `<span class="syn-func">${match}</span>`;
+        return match;
+    });
+}
 
 function CodeEditor({
     isOpen = false,
@@ -23,16 +69,27 @@ function CodeEditor({
     const [uploadProgress, setUploadProgress] = useState(null); // null or number 0-100
     const [errorMsg, setErrorMsg] = useState(null);
     const textareaRef = useRef(null);
+    const overlayRef = useRef(null);
     const lineNumbersRef = useRef(null);
+
+    // Compute syntax highlighted HTML
+    const highlightedCode = useMemo(() => highlightArduinoCpp(code), [code]);
 
     // Sync line numbers count with code lines
     const lineCount = Math.max(1, code.split("\n").length);
     const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
 
-    // Sync scroll between line numbers and code textarea
+    // Sync scroll between textarea, syntax overlay, and line numbers
     const handleScroll = () => {
-        if (textareaRef.current && lineNumbersRef.current) {
-            lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+        if (textareaRef.current) {
+            const { scrollTop, scrollLeft } = textareaRef.current;
+            if (overlayRef.current) {
+                overlayRef.current.scrollTop = scrollTop;
+                overlayRef.current.scrollLeft = scrollLeft;
+            }
+            if (lineNumbersRef.current) {
+                lineNumbersRef.current.scrollTop = scrollTop;
+            }
         }
     };
 
@@ -46,7 +103,7 @@ function CodeEditor({
         }
     };
 
-    // Handle Tab key inside textarea
+    // Smart Tab and Enter handling
     const handleKeyDown = (e) => {
         if (e.key === "Tab") {
             e.preventDefault();
@@ -57,6 +114,25 @@ function CodeEditor({
             setTimeout(() => {
                 if (textareaRef.current) {
                     textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 2;
+                }
+            }, 0);
+        } else if (e.key === "Enter") {
+            // Auto indentation
+            const start = textareaRef.current.selectionStart;
+            const lineStart = code.lastIndexOf("\n", start - 1) + 1;
+            const currentLine = code.substring(lineStart, start);
+            const matchIndent = currentLine.match(/^\s*/);
+            const indent = matchIndent ? matchIndent[0] : "";
+            const extraIndent = currentLine.trim().endsWith("{") ? "  " : "";
+            
+            e.preventDefault();
+            const insert = "\n" + indent + extraIndent;
+            const newCode = code.substring(0, start) + insert + code.substring(start);
+            setCode(newCode);
+            setTimeout(() => {
+                if (textareaRef.current) {
+                    textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + insert.length;
+                    handleScroll();
                 }
             }, 0);
         }
@@ -119,21 +195,28 @@ function CodeEditor({
             exit={{ x: 500, opacity: 0 }}
             transition={{ type: "spring", stiffness: 320, damping: 30 }}
         >
-            {/* Header bar */}
+            {/* Header bar with IDE Window Dots and Board Switcher */}
             <div className="code-editor-header">
                 <div className="header-left">
+                    {/* IDE Window Controls */}
+                    <div className="ide-window-dots">
+                        <span className="window-dot dot-close" onClick={onClose} title="Close Editor"></span>
+                        <span className="window-dot dot-min" title="Minimize"></span>
+                        <span className="window-dot dot-max" title="Full View"></span>
+                    </div>
+
                     <div className="editor-title-wrap">
                         <i className="ri-code-s-slash-fill code-icon"></i>
                         <span className="editor-title">Firmware Studio</span>
                         <span className="lang-tag">C++ / INO</span>
                     </div>
 
-                    {/* Target Board Badge / Selector */}
+                    {/* Target Board Dropdown with Professional Dark Styling */}
                     {availableBoards.length > 1 ? (
-                        <div className="board-selector-wrap">
-                            <i className="ri-cpu-line board-sel-icon"></i>
+                        <div className="custom-ide-select-container board-selector-container">
+                            <i className="ri-cpu-line ide-select-icon board-icon"></i>
                             <select 
-                                className="board-selector-dropdown"
+                                className="custom-ide-select board-select"
                                 value={targetBoard?.id || ""}
                                 onChange={(e) => onSelectTargetBoard && onSelectTargetBoard(e.target.value)}
                                 title="Switch target microcontroller"
@@ -147,6 +230,7 @@ function CodeEditor({
                                     );
                                 })}
                             </select>
+                            <i className="ri-arrow-down-s-line ide-select-chevron"></i>
                         </div>
                     ) : (
                         <div className="board-badge" title={`Active Target: ${currentBoard.name} (${currentBoard.arch})`}>
@@ -160,13 +244,15 @@ function CodeEditor({
 
                 {/* Right controls */}
                 <div className="header-right">
-                    {/* Preset examples dropdown */}
-                    <div className="preset-select-wrap">
-                        <label className="preset-label">Example:</label>
+                    {/* Professional Preset Examples Dropdown */}
+                    <div className="custom-ide-select-container preset-select-container">
+                        <i className="ri-folder-code-line ide-select-icon"></i>
+                        <span className="preset-prefix-label">Example:</span>
                         <select 
-                            className="preset-dropdown"
+                            className="custom-ide-select preset-select"
                             value={selectedPreset}
                             onChange={(e) => handlePresetChange(e.target.value)}
+                            title="Load starter firmware sketch"
                         >
                             <option value="blink">Blink (1s)</option>
                             <option value="strobe">Fast Strobe (100ms)</option>
@@ -174,6 +260,7 @@ function CodeEditor({
                             <option value="dual_pins">Dual Pins (13 & 12)</option>
                             <option value="analog_serial">Analog Monitor (A0)</option>
                         </select>
+                        <i className="ri-arrow-down-s-line ide-select-chevron"></i>
                     </div>
 
                     {/* Compile & Upload Button */}
@@ -217,6 +304,7 @@ function CodeEditor({
                     <span className="tab-clean-dot"></span>
                 </div>
                 <div className="tab-board-info">
+                    <i className="ri-speed-line"></i>
                     <span>{currentBoard.arch}</span>
                 </div>
             </div>
@@ -231,7 +319,7 @@ function CodeEditor({
                 </div>
             )}
 
-            {/* Editor Workspace with Line Numbers */}
+            {/* Editor Workspace with Line Numbers & Real-Time Syntax Highlighting */}
             <div className="code-editor-body">
                 {/* Line numbers gutter */}
                 <div className="line-numbers-gutter" ref={lineNumbersRef}>
@@ -240,8 +328,18 @@ function CodeEditor({
                     ))}
                 </div>
 
-                {/* Main Code Textarea */}
+                {/* Main Code Input Container with Syntax Highlighting Overlay */}
                 <div className="code-input-container">
+                    {/* Underlying Syntax Colored Overlay */}
+                    <pre 
+                        ref={overlayRef}
+                        className="code-syntax-overlay" 
+                        aria-hidden="true"
+                    >
+                        <code dangerouslySetInnerHTML={{ __html: highlightedCode + "\n" }} />
+                    </pre>
+
+                    {/* Transparent Editable Textarea */}
                     <textarea
                         ref={textareaRef}
                         className="code-textarea"
@@ -266,7 +364,7 @@ function CodeEditor({
                 </div>
             )}
 
-            {/* Footer status bar */}
+            {/* Footer status bar with Baud Selector and Serial Monitor Drawer Link */}
             <div className="code-editor-footer">
                 <div className="footer-status-left">
                     <span className={`status-indicator-dot ${isExecuting ? "running" : "idle"}`}></span>
@@ -275,11 +373,11 @@ function CodeEditor({
                 </div>
 
                 <div className="footer-status-right">
-                    {/* Baud Rate selector */}
-                    <div className="baud-selector-wrap">
-                        <i className="ri-wireless-charging-line"></i>
+                    {/* Professional Baud Rate Selector */}
+                    <div className="custom-ide-select-container baud-select-container">
+                        <i className="ri-wireless-charging-line ide-select-icon"></i>
                         <select 
-                            className="baud-select" 
+                            className="custom-ide-select baud-select" 
                             value={baudRate}
                             onChange={(e) => onChangeBaudRate && onChangeBaudRate(Number(e.target.value))}
                             title="Serial Communication Baud Rate"
@@ -290,6 +388,7 @@ function CodeEditor({
                             <option value={57600}>57600 Baud</option>
                             <option value={115200}>115200 Baud</option>
                         </select>
+                        <i className="ri-arrow-down-s-line ide-select-chevron"></i>
                     </div>
 
                     {/* Quick Serial Monitor Toggle */}

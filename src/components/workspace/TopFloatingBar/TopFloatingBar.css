@@ -892,13 +892,25 @@
     color: #94a3b8;
     font-size: 12px;
     font-weight: 500;
-    cursor: default;
+    cursor: pointer;
     transition: 0.15s ease;
 }
 
 .top-search-btn:hover {
     background: rgba(255, 255, 255, 0.1);
     color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+.search-kbd-chip {
+    font-size: 9px;
+    font-weight: 700;
+    font-family: monospace;
+    background: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 1px 5px;
+    border-radius: 4px;
 }
 
 [data-theme="light"] .top-search-btn {
@@ -1291,34 +1303,48 @@
 
 /* Custom styled dropdowns */
 .studio-custom-select {
-    height: 24px;
-    padding: 0 6px;
-    background: #1e293b;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 5px;
+    height: 26px;
+    padding: 0 20px 0 8px;
+    background-color: #1e293b;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='12' height='12' fill='%2394a3b8'%3E%3Cpath d='M12 16L6 10H18L12 16Z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 6px;
     color: #f1f5f9;
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
     transition: all 0.15s ease;
 }
 
 .studio-custom-select:hover {
-    background: #334155;
-    border-color: rgba(255, 255, 255, 0.25);
+    background-color: #334155;
+    border-color: rgba(255, 255, 255, 0.28);
 }
 
 .studio-custom-select:focus {
     border-color: #FF8A00;
+    box-shadow: 0 0 0 2px rgba(255, 138, 0, 0.2);
 }
 
 .studio-custom-select.unit-select {
     color: #fbbf24;
     font-weight: 700;
-    background: rgba(251, 191, 36, 0.1);
-    border-color: rgba(251, 191, 36, 0.3);
+    background-color: rgba(251, 191, 36, 0.12);
+    border-color: rgba(251, 191, 36, 0.35);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='12' height='12' fill='%23fbbf24'%3E%3Cpath d='M12 16L6 10H18L12 16Z'/%3E%3C/svg%3E");
+}
+
+.studio-custom-select option {
+    background: #0f172a;
+    color: #f1f5f9;
+    padding: 6px 8px;
 }
 
 [data-theme="light"] .studio-custom-select {

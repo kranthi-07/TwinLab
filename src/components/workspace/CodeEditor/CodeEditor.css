@@ -8,13 +8,13 @@
     top: 68px;
     right: 20px;
     bottom: 24px;
-    width: 580px;
+    width: 620px;
     max-width: calc(100vw - 40px);
-    background: rgba(15, 23, 42, 0.94);
-    backdrop-filter: blur(28px) saturate(180%);
+    background: rgba(10, 15, 29, 0.96);
+    backdrop-filter: blur(28px) saturate(190%);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 18px;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
     z-index: 120;
@@ -27,19 +27,57 @@
 ------------------------------------------------------------ */
 .code-editor-header {
     height: 52px;
-    background: rgba(30, 41, 59, 0.7);
+    background: rgba(22, 30, 46, 0.85);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 16px;
     user-select: none;
+    gap: 12px;
 }
 
 .header-left {
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+/* IDE Window Control Dots */
+.ide-window-dots {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 2px;
+}
+
+.window-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+    opacity: 0.85;
+}
+
+.window-dot:hover {
+    transform: scale(1.15);
+    opacity: 1;
+}
+
+.dot-close {
+    background: #ff5f56;
+    border: 1px solid #e0443e;
+}
+
+.dot-min {
+    background: #ffbd2e;
+    border: 1px solid #dea123;
+}
+
+.dot-max {
+    background: #27c93f;
+    border: 1px solid #1aab29;
 }
 
 .editor-title-wrap {
@@ -81,8 +119,8 @@
     color: #38bdf8;
     background: rgba(56, 189, 248, 0.1);
     border: 1px solid rgba(56, 189, 248, 0.28);
-    padding: 3px 8px;
-    border-radius: 6px;
+    padding: 4px 10px;
+    border-radius: 7px;
 }
 
 .board-status-dot {
@@ -108,40 +146,83 @@
     font-weight: 700;
     background: rgba(56, 189, 248, 0.2);
     color: #bae6fd;
-    padding: 1px 4px;
-    border-radius: 3px;
+    padding: 1px 5px;
+    border-radius: 4px;
     margin-left: 2px;
 }
 
-.board-selector-wrap {
-    display: flex;
+/* ------------------------------------------------------------
+   CUSTOM SLEEK IDE SELECT DROPDOWNS
+------------------------------------------------------------ */
+.custom-ide-select-container {
+    position: relative;
+    display: inline-flex;
     align-items: center;
-    gap: 4px;
-    background: rgba(56, 189, 248, 0.1);
-    border: 1px solid rgba(56, 189, 248, 0.28);
-    padding: 2px 6px;
-    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 0 6px;
+    height: 30px;
+    transition: all 0.2s ease;
 }
 
-.board-sel-icon {
+.custom-ide-select-container:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+.custom-ide-select-container:focus-within {
+    border-color: #FF8A00;
+    box-shadow: 0 0 0 2px rgba(255, 138, 0, 0.2);
+}
+
+.ide-select-icon {
     font-size: 13px;
     color: #38bdf8;
+    margin-right: 4px;
+    pointer-events: none;
 }
 
-.board-selector-dropdown {
+.preset-prefix-label {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-right: 4px;
+    user-select: none;
+    pointer-events: none;
+}
+
+.custom-ide-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
     background: transparent;
     border: none;
-    color: #38bdf8;
+    outline: none;
+    color: #f1f5f9;
+    font-family: 'JetBrains Mono', system-ui, monospace;
     font-size: 11px;
     font-weight: 600;
-    padding: 2px 4px;
-    outline: none;
+    padding: 4px 18px 4px 2px;
     cursor: pointer;
 }
 
-.board-selector-dropdown option {
+.custom-ide-select option {
     background: #0f172a;
-    color: #e2e8f0;
+    color: #f1f5f9;
+    padding: 6px;
+}
+
+.ide-select-chevron {
+    position: absolute;
+    right: 6px;
+    font-size: 13px;
+    color: #64748b;
+    pointer-events: none;
+    transition: color 0.15s ease;
+}
+
+.custom-ide-select-container:hover .ide-select-chevron {
+    color: #cbd5e1;
 }
 
 /* ------------------------------------------------------------
@@ -149,7 +230,7 @@
 ------------------------------------------------------------ */
 .editor-tabs-bar {
     height: 32px;
-    background: rgba(18, 24, 38, 0.95);
+    background: rgba(14, 20, 32, 0.95);
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     display: flex;
     align-items: center;
@@ -162,8 +243,8 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 10px;
-    background: #090d16;
+    padding: 4px 12px;
+    background: #070a11;
     border-radius: 6px 6px 0 0;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-bottom: none;
@@ -178,7 +259,7 @@
     font-family: monospace;
     background: #00979c;
     color: #ffffff;
-    padding: 1px 3px;
+    padding: 1px 4px;
     border-radius: 2px;
     letter-spacing: 0.04em;
 }
@@ -196,6 +277,9 @@
 }
 
 .tab-board-info {
+    display: flex;
+    align-items: center;
+    gap: 5px;
     font-size: 10.5px;
     font-family: monospace;
     color: #64748b;
@@ -207,40 +291,6 @@
     gap: 10px;
 }
 
-.preset-select-wrap {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.preset-label {
-    font-size: 11px;
-    color: #94a3b8;
-}
-
-.preset-dropdown {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #f1f5f9;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 4px 8px;
-    border-radius: 6px;
-    outline: none;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.preset-dropdown:hover {
-    border-color: rgba(255, 255, 255, 0.25);
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.preset-dropdown option {
-    background: #0f172a;
-    color: #f1f5f9;
-}
-
 /* Action Buttons */
 .action-btn {
     display: flex;
@@ -248,39 +298,39 @@
     gap: 6px;
     font-size: 12px;
     font-weight: 700;
-    padding: 6px 12px;
+    padding: 6px 14px;
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     outline: none;
     border: none;
 }
 
 .upload-btn {
     background: linear-gradient(135deg, #10b981, #059669);
-    color: #ffffff;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+    color: white;
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
 }
 
 .upload-btn:hover {
-    filter: brightness(1.12);
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
 }
 
 .upload-btn.active {
-    background: linear-gradient(135deg, #059669, #047857);
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    box-shadow: 0 2px 10px rgba(2, 132, 199, 0.35);
 }
 
 .stop-btn {
-    background: rgba(239, 68, 68, 0.2);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.35);
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.3);
 }
 
 .stop-btn:hover {
-    background: rgba(239, 68, 68, 0.32);
-    color: #fca5a5;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.45);
 }
 
 .close-panel-btn {
@@ -292,9 +342,9 @@
     background: transparent;
     border: none;
     color: #94a3b8;
-    font-size: 18px;
     border-radius: 6px;
     cursor: pointer;
+    font-size: 16px;
     transition: all 0.15s ease;
 }
 
@@ -318,12 +368,12 @@
 }
 
 /* ------------------------------------------------------------
-   2. CODE EDITOR BODY & LINE NUMBERS
+   2. CODE EDITOR BODY & SYNTAX HIGHLIGHTING
 ------------------------------------------------------------ */
 .code-editor-body {
     flex: 1;
     display: flex;
-    background: #090d16;
+    background: #070a11;
     overflow: hidden;
     position: relative;
 }
@@ -331,13 +381,14 @@
 .line-numbers-gutter {
     width: 44px;
     padding: 16px 0;
-    background: rgba(15, 23, 42, 0.6);
+    background: rgba(10, 15, 29, 0.7);
     border-right: 1px solid rgba(255, 255, 255, 0.06);
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     user-select: none;
     overflow-y: hidden;
+    flex-shrink: 0;
 }
 
 .line-num {
@@ -353,27 +404,116 @@
     flex: 1;
     position: relative;
     overflow: hidden;
+    height: 100%;
 }
 
-.code-textarea {
+/* Syntax Overlay (Pre/Code) */
+.code-syntax-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
+    margin: 0;
     padding: 16px;
-    background: transparent;
     border: none;
-    outline: none;
-    resize: none;
-    color: #e2e8f0;
+    box-sizing: border-box;
     font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
     font-size: 13px;
     line-height: 22px;
     tab-size: 2;
+    letter-spacing: 0;
+    font-variant-ligatures: none;
     white-space: pre;
+    color: #cbd5e1;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.code-syntax-overlay code {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    white-space: inherit;
+}
+
+/* Transparent Textarea directly overlying syntax */
+.code-textarea {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 16px;
+    border: none;
+    box-sizing: border-box;
+    background: transparent;
+    color: transparent;
+    caret-color: #38bdf8;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 22px;
+    tab-size: 2;
+    letter-spacing: 0;
+    font-variant-ligatures: none;
+    white-space: pre;
+    resize: none;
+    outline: none;
+    z-index: 2;
     overflow: auto;
 }
 
 .code-textarea::selection {
-    background: rgba(56, 189, 248, 0.3);
+    background: rgba(56, 189, 248, 0.35);
+    color: transparent;
+}
+
+/* ------------------------------------------------------------
+   SYNTAX HIGHLIGHTING TOKEN COLOR PALETTE
+------------------------------------------------------------ */
+.syn-comment {
+    color: #64748b;
+    font-style: italic;
+}
+
+.syn-preproc {
+    color: #f472b6;
+    font-weight: 600;
+}
+
+.syn-string {
+    color: #34d399;
+}
+
+.syn-num {
+    color: #fb923c;
+    font-weight: 500;
+}
+
+.syn-const {
+    color: #f59e0b;
+    font-weight: 700;
+}
+
+.syn-keyword {
+    color: #c084fc;
+    font-weight: 600;
+}
+
+.syn-builtin {
+    color: #38bdf8;
+    font-weight: 600;
+}
+
+.syn-type {
+    color: #facc15;
+    font-weight: 600;
+}
+
+.syn-func {
+    color: #60a5fa;
 }
 
 /* Error Banner */
@@ -399,7 +539,7 @@
 ------------------------------------------------------------ */
 .code-editor-footer {
     height: 40px;
-    background: rgba(15, 23, 42, 0.85);
+    background: rgba(14, 20, 32, 0.9);
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     align-items: center;
@@ -449,50 +589,43 @@
     gap: 12px;
 }
 
-.baud-selector-wrap {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: #94a3b8;
+.baud-select-container {
+    height: 26px;
 }
 
-.baud-select {
-    background: transparent;
-    border: none;
-    color: #94a3b8;
-    font-size: 11px;
-    font-weight: 600;
-    outline: none;
-    cursor: pointer;
+.baud-select-container .ide-select-icon {
+    font-size: 12px;
+    color: #38bdf8;
 }
 
-.baud-select option {
-    background: #0f172a;
-    color: #e2e8f0;
+.baud-select-container .custom-ide-select {
+    font-size: 10.5px;
+    padding: 2px 14px 2px 2px;
 }
 
 .serial-toggle-btn {
     display: flex;
     align-items: center;
-    gap: 5px;
-    background: rgba(255, 255, 255, 0.06);
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: #cbd5e1;
     font-size: 11px;
     font-weight: 600;
-    padding: 3px 8px;
+    padding: 4px 10px;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
 .serial-toggle-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.1);
     color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .serial-toggle-btn.active {
-    background: rgba(168, 85, 247, 0.2);
-    border-color: rgba(168, 85, 247, 0.4);
-    color: #c084fc;
+    background: rgba(255, 138, 0, 0.15);
+    color: #FF8A00;
+    border-color: rgba(255, 138, 0, 0.35);
 }
