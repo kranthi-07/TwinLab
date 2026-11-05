@@ -218,27 +218,40 @@
     transform: scale(1.04);
 }
 
-.activated-focus-btn i {
+.focus-exit-minimal-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(18, 23, 31, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1.5px solid var(--project-accent, #FF8A00);
+    color: var(--project-accent, #FF8A00);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
     font-size: 18px;
-    color: #FF8A00;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 16px rgba(255, 138, 0, 0.35);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease;
+    animation: pulseFocusGlow 2.5s infinite;
 }
 
-.focus-exit-chip {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 3px 8px;
-    border-radius: 999px;
-    background: rgba(255, 138, 0, 0.2);
-    border: 1px solid rgba(255, 138, 0, 0.4);
-    color: #FF8A00;
+.focus-exit-minimal-btn:hover {
+    background: rgba(30, 38, 52, 0.98);
+    transform: scale(1.12);
 }
 
-/* Position Minimap cleanly in Focus Mode (top left without topbar) */
+[data-theme="light"] .focus-exit-minimal-btn {
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15), 0 0 14px rgba(255, 138, 0, 0.3);
+}
+
+/* Position Minimap cleanly in Focus Mode (top right corner per user request) */
 .workspace.focus-active .workspace-minimap {
-    top: 18px;
-    left: 20px;
+    top: 20px;
+    right: 24px;
+    left: auto;
 }
 
 /* Smooth Fade-out & Fade-in Transitions for Focus Mode */
@@ -287,4 +300,61 @@
 
 [data-theme="light"] .activated-focus-btn:hover {
     background: #ffffff;
+}
+
+/* ============================================================
+   THEME: GLASSMORPHISM / FROST GLASS
+   Translucent blurred glassmorphism, iridescent lighting, radiant glows
+============================================================ */
+[data-theme="glassmorphism"] .workspace {
+    background: radial-gradient(circle at 50% 20%, rgba(99, 102, 241, 0.12), transparent 55%),
+                radial-gradient(circle at 80% 80%, rgba(244, 63, 94, 0.08), transparent 50%),
+                radial-gradient(circle at 20% 70%, rgba(14, 165, 233, 0.1), transparent 50%),
+                #0a0e17;
+}
+
+[data-theme="glassmorphism"] .workspace-grid {
+    background-image: 
+        radial-gradient(circle, rgba(255, 255, 255, 0.22) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(99, 102, 241, 0.28) 1.6px, transparent 1.6px);
+}
+
+[data-theme="glassmorphism"] .top-floating-bar,
+[data-theme="glassmorphism"] .context-property-bar,
+[data-theme="glassmorphism"] .left-sidebar,
+[data-theme="glassmorphism"] .right-panel,
+[data-theme="glassmorphism"] .code-editor-dock,
+[data-theme="glassmorphism"] .console-drawer,
+[data-theme="glassmorphism"] .workspace-minimap {
+    background: rgba(18, 24, 38, 0.72) !important;
+    backdrop-filter: blur(28px) saturate(190%) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 0 24px rgba(99, 102, 241, 0.15) !important;
+}
+
+/* ============================================================
+   THEME: CYBERPUNK / CYBER NEON
+   Deep pitch dark with vibrant high-contrast electric neon accents
+============================================================ */
+[data-theme="cyberpunk"] .workspace {
+    background: radial-gradient(circle at 50% 30%, rgba(6, 182, 212, 0.12), transparent 60%),
+                radial-gradient(circle at 80% 75%, rgba(236, 72, 153, 0.1), transparent 50%),
+                #05070a;
+}
+
+[data-theme="cyberpunk"] .workspace-grid {
+    background-image: 
+        radial-gradient(circle, rgba(6, 182, 212, 0.35) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(236, 72, 153, 0.25) 1.6px, transparent 1.6px);
+}
+
+[data-theme="cyberpunk"] .top-floating-bar,
+[data-theme="cyberpunk"] .context-property-bar,
+[data-theme="cyberpunk"] .left-sidebar,
+[data-theme="cyberpunk"] .right-panel,
+[data-theme="cyberpunk"] .code-editor-dock {
+    background: rgba(8, 12, 20, 0.95) !important;
+    border: 1px solid rgba(6, 182, 212, 0.3) !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), 0 0 20px rgba(6, 182, 212, 0.2) !important;
 }

@@ -7,7 +7,7 @@ export const COMPONENTS_CATALOG = [
     {
         id: "breadboard-half",
         name: "Breadboard (Half-Size)",
-        type: "breadboard",
+        type: "breadboard-half",
         category: "boards",
         image: breadboardImg,
         icon: "ri-layout-grid-line",
@@ -23,7 +23,7 @@ export const COMPONENTS_CATALOG = [
         category: "boards",
         image: breadboardImg,
         icon: "ri-layout-grid-fill",
-        width: 960,
+        width: 1040,
         height: 288,
         desc: "Full 60-column solderless breadboard with extended dual power rails (830 tie-points)",
         tag: "Core"
@@ -34,8 +34,8 @@ export const COMPONENTS_CATALOG = [
         type: "breadboard-mini",
         category: "boards",
         icon: "ri-grid-line",
-        width: 272,
-        height: 192,
+        width: 352,
+        height: 208,
         desc: "Compact 17-column mini breadboard without power rails for small circuits",
         tag: "Core"
     },
@@ -45,8 +45,8 @@ export const COMPONENTS_CATALOG = [
         type: "arduino-uno",
         category: "boards",
         icon: "ri-router-line",
-        width: 288,
-        height: 192,
+        width: 320,
+        height: 224,
         desc: "ATmega328P microcontroller with 14 digital I/O pins, 6 analog inputs, 16MHz clock",
         tag: "MCU"
     },
@@ -56,8 +56,8 @@ export const COMPONENTS_CATALOG = [
         type: "arduino-mega",
         category: "boards",
         icon: "ri-server-line",
-        width: 384,
-        height: 192,
+        width: 480,
+        height: 224,
         desc: "ATmega2560 with 54 digital I/O pins, 16 analog inputs, 4 UARTs for massive projects",
         tag: "MCU"
     },
@@ -67,8 +67,8 @@ export const COMPONENTS_CATALOG = [
         type: "arduino-nano",
         category: "boards",
         icon: "ri-cpu-line",
-        width: 144,
-        height: 80,
+        width: 256,
+        height: 96,
         desc: "Breadboard-friendly 30-pin mini Arduino powered by ATmega328P",
         tag: "MCU"
     },

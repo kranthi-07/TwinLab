@@ -53,7 +53,14 @@ function NewProjectModal({
     const [projectName, setProjectName] = useState("");
 
     useEffect(() => {
-        if (initialTemplate) setSelectedTemplate(initialTemplate);
+        if (initialTemplate) {
+            setSelectedTemplate(initialTemplate);
+            const tmplObj = HARDWARE_TEMPLATES.find(t => t.id === initialTemplate);
+            if (initialTemplate === "arduino") setSelectedColor("#3B82F6");
+            else if (initialTemplate === "pi") setSelectedColor("#A855F7");
+            else if (initialTemplate === "blank") setSelectedColor("#10B981");
+            else setSelectedColor("#FF8A00");
+        }
     }, [initialTemplate]);
 
     // Reset or set initial values when modal opens

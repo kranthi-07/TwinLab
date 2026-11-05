@@ -21,14 +21,17 @@ function Multimeter({
     onMouseDown,
     isWireMode,
     activeWire,
-    onStartWireAtPoint
+    onStartWireAtPoint,
+    zoom = 1,
+    findSnapTarget
 }) {
-    // Default probe positions relative to DMM body if not set
+    // Default probe positions relative to DMM body if not set (needle tip coordinates)
     const redPos = probeRed || { x: x + 160, y: y + 48 };
     const blackPos = probeBlack || { x: x + 160, y: y + 112 };
 
     const [draggingProbe, setDraggingProbe] = useState(null); // 'red' | 'black' | null
     const [hoveredProbe, setHoveredProbe] = useState(null);
+    const [activeSnapPoint, setActiveSnapPoint] = useState(null);
 
     // Audio chime for continuity mode
     useEffect(() => {
@@ -48,7 +51,7 @@ function Multimeter({
         onUpdate && onUpdate({ mode: nextMode });
     };
 
-    // Dragging probe needles
+    // Dragging probe needles with intelligent magnetic pin/hole snapping
     const handleProbeMouseDown = (e, probeType) => {
         e.stopPropagation();
         if (isWireMode) return;
@@ -59,15 +62,22 @@ function Multimeter({
         const initialProbe = probeType === "red" ? { ...redPos } : { ...blackPos };
 
         const handleMove = (moveEvt) => {
-            const dx = moveEvt.clientX - startMouseX;
-            const dy = moveEvt.clientY - startMouseY;
-            const newX = snapToGrid(initialProbe.x + dx);
-            const newY = snapToGrid(initialProbe.y + dy);
+            const dx = (moveEvt.clientX - startMouseX) / (zoom || 1);
+            const dy = (moveEvt.clientY - startMouseY) / (zoom || 1);
+            const rawX = initialProbe.x + dx;
+            const rawY = initialProbe.y + dy;
+
+            // Search for nearby breadboard hole or terminal (24px magnetic lock radius)
+            const snap = findSnapTarget ? findSnapTarget(rawX, rawY, 24) : null;
+            const targetX = snap ? snap.x : Math.round(rawX);
+            const targetY = snap ? snap.y : Math.round(rawY);
+
+            setActiveSnapPoint(snap ? { x: targetX, y: targetY } : null);
 
             if (probeType === "red") {
-                onUpdate && onUpdate({ probeRed: { x: newX, y: newY } });
+                onUpdate && onUpdate({ probeRed: { x: targetX, y: targetY } });
             } else {
-                onUpdate && onUpdate({ probeBlack: { x: newX, y: newY } });
+                onUpdate && onUpdate({ probeBlack: { x: targetX, y: targetY } });
             }
         };
 
@@ -75,6 +85,7 @@ function Multimeter({
             window.removeEventListener("mousemove", handleMove);
             window.removeEventListener("mouseup", handleUp);
             setDraggingProbe(null);
+            setActiveSnapPoint(null);
         };
 
         window.addEventListener("mousemove", handleMove);
@@ -92,8 +103,8 @@ function Multimeter({
     const currentAngle = dialAngles[mode] || 0;
 
     // Cable start points on DMM body
-    const redJack = { x: x + 88, y: y + 162 };
-    const blackJack = { x: x + 32, y: y + 162 };
+    const redJack = { x: x + 88, y: y + 184 };
+    const blackJack = { x: x + 32, y: y + 184 };
 
     // Format LCD display readout
     const displayValue = simState?.readout != null ? simState.readout : (mode === "resistance" || mode === "continuity" ? "0.L" : "0.00");
@@ -101,20 +112,28 @@ function Multimeter({
 
     return (
         <div className={`dmm-system ${isSelected ? "selected" : ""}`}>
-            {/* SVG Flexible Test Probe Cables */}
+            {/* SVG Flexible Test Probe Cables & Snap Markers */}
             <svg className="dmm-cables-svg">
-                {/* Red Probe Cable */}
+                {/* Active Magnetic Pin Lock Ring */}
+                {activeSnapPoint && (
+                    <g className="probe-magnetic-snap-fx">
+                        <circle cx={activeSnapPoint.x} cy={activeSnapPoint.y} r="8" fill="rgba(56, 189, 248, 0.2)" stroke="#38bdf8" strokeWidth="1.8" strokeDasharray="3 2" />
+                        <circle cx={activeSnapPoint.x} cy={activeSnapPoint.y} r="2.5" fill="#38bdf8" />
+                    </g>
+                )}
+
+                {/* Red Probe Cable (Enters bottom of probe handle) */}
                 <path
-                    d={`M ${redJack.x} ${redJack.y} C ${redJack.x + 40} ${redJack.y + 40}, ${redPos.x - 40} ${redPos.y + 30}, ${redPos.x} ${redPos.y}`}
+                    d={`M ${redJack.x} ${redJack.y} C ${redJack.x + 35} ${redJack.y + 60}, ${redPos.x - 25} ${redPos.y + 85}, ${redPos.x} ${redPos.y + 56}`}
                     stroke="#dc2626"
                     strokeWidth="3.5"
                     strokeLinecap="round"
                     fill="none"
                     filter="drop-shadow(0 2px 4px rgba(0,0,0,0.5))"
                 />
-                {/* Black Probe Cable */}
+                {/* Black Probe Cable (Enters bottom of probe handle) */}
                 <path
-                    d={`M ${blackJack.x} ${blackJack.y} C ${blackJack.x - 20} ${blackJack.y + 50}, ${blackPos.x - 30} ${blackPos.y + 40}, ${blackPos.x} ${blackPos.y}`}
+                    d={`M ${blackJack.x} ${blackJack.y} C ${blackJack.x - 25} ${blackJack.y + 60}, ${blackPos.x - 25} ${blackPos.y + 85}, ${blackPos.x} ${blackPos.y + 56}`}
                     stroke="#0f172a"
                     strokeWidth="3.5"
                     strokeLinecap="round"
@@ -131,7 +150,6 @@ function Multimeter({
                     transformOrigin: "0 0"
                 }}
                 onMouseDown={(e) => {
-                    if (isWireMode) return;
                     onSelect && onSelect(id);
                     onMouseDown && onMouseDown(e, id);
                 }}
@@ -155,6 +173,46 @@ function Multimeter({
                             <span className="unit-text">{displayUnit}</span>
                         </div>
                     </div>
+                </div>
+
+                {/* Special Tactile Mode Selector Keypad */}
+                <div className="dmm-function-keypad">
+                    <button
+                        type="button"
+                        className={`dmm-fn-key fn-voltage ${mode === "voltage" ? "active" : ""}`}
+                        onClick={(e) => handleSetMode(e, "voltage")}
+                        title="DC Voltage (V⎓)"
+                    >
+                        <span className="fn-led-dot"></span>
+                        <span className="fn-key-label">V⎓</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`dmm-fn-key fn-current ${mode === "current" ? "active" : ""}`}
+                        onClick={(e) => handleSetMode(e, "current")}
+                        title="DC Current (mA⎓)"
+                    >
+                        <span className="fn-led-dot"></span>
+                        <span className="fn-key-label">mA</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`dmm-fn-key fn-resistance ${mode === "resistance" ? "active" : ""}`}
+                        onClick={(e) => handleSetMode(e, "resistance")}
+                        title="Resistance (Ω)"
+                    >
+                        <span className="fn-led-dot"></span>
+                        <span className="fn-key-label">Ω</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`dmm-fn-key fn-continuity ${mode === "continuity" ? "active" : ""}`}
+                        onClick={(e) => handleSetMode(e, "continuity")}
+                        title="Continuity Beeper (•)))"
+                    >
+                        <span className="fn-led-dot"></span>
+                        <span className="fn-key-label">🔊</span>
+                    </button>
                 </div>
 
                 {/* Rotary Mode Selector Dial */}
@@ -216,48 +274,54 @@ function Multimeter({
                 </div>
             </div>
 
-            {/* RED TEST PROBE (Movable needle handle) */}
+            {/* RED TEST PROBE (Movable needle handle - Tip centered at redPos) */}
             <div
                 className={`dmm-probe-pen red-probe ${hoveredProbe === "red" ? "hovered" : ""} ${draggingProbe === "red" ? "dragging" : ""}`}
-                style={{ transform: `translate(${redPos.x}px, ${redPos.y}px)` }}
+                style={{ 
+                    left: redPos.x, 
+                    top: redPos.y 
+                }}
                 onMouseEnter={() => setHoveredProbe("red")}
                 onMouseLeave={() => setHoveredProbe(null)}
                 onMouseDown={(e) => handleProbeMouseDown(e, "red")}
-                title="Red Probe Tip (+) - Drag onto any pin, terminal, or breadboard hole"
             >
-                <div className="probe-needle-point">
+                {/* Needle tip at (0, 0) */}
+                <div 
+                    className="probe-needle-point"
+                    onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        onStartWireAtPoint && onStartWireAtPoint(redPos);
+                    }}
+                >
+                    <span className="probe-contact-tip"></span>
                     <span className="needle-metal"></span>
-                    <span 
-                        className="probe-contact-tip"
-                        onDoubleClick={(e) => {
-                            e.stopPropagation();
-                            onStartWireAtPoint && onStartWireAtPoint(redPos);
-                        }}
-                    ></span>
                 </div>
                 <div className="probe-barrel red-barrel">
                     <span className="probe-plus-sign">+</span>
                 </div>
             </div>
 
-            {/* BLACK TEST PROBE (Movable needle handle) */}
+            {/* BLACK TEST PROBE (Movable needle handle - Tip centered at blackPos) */}
             <div
                 className={`dmm-probe-pen black-probe ${hoveredProbe === "black" ? "hovered" : ""} ${draggingProbe === "black" ? "dragging" : ""}`}
-                style={{ transform: `translate(${blackPos.x}px, ${blackPos.y}px)` }}
+                style={{ 
+                    left: blackPos.x, 
+                    top: blackPos.y 
+                }}
                 onMouseEnter={() => setHoveredProbe("black")}
                 onMouseLeave={() => setHoveredProbe(null)}
                 onMouseDown={(e) => handleProbeMouseDown(e, "black")}
-                title="Black Probe Tip (COM / -) - Drag onto any pin, terminal, or breadboard hole"
             >
-                <div className="probe-needle-point">
+                {/* Needle tip at (0, 0) */}
+                <div 
+                    className="probe-needle-point"
+                    onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        onStartWireAtPoint && onStartWireAtPoint(blackPos);
+                    }}
+                >
+                    <span className="probe-contact-tip"></span>
                     <span className="needle-metal"></span>
-                    <span 
-                        className="probe-contact-tip"
-                        onDoubleClick={(e) => {
-                            e.stopPropagation();
-                            onStartWireAtPoint && onStartWireAtPoint(blackPos);
-                        }}
-                    ></span>
                 </div>
                 <div className="probe-barrel black-barrel">
                     <span className="probe-minus-sign">−</span>

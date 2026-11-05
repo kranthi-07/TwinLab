@@ -1,0 +1,147 @@
+/* ============================================================
+   VERTICAL WHEEL / ROLLER SCROLL PICKER
+   iOS / Drum Style: Center is active, Top & Bottom are faded
+============================================================ */
+
+.wheel-picker-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+}
+
+.wheel-picker-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.wheel-picker-box {
+    position: relative;
+    width: 90px;
+    height: 72px; /* Exactly 3 items * 24px */
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .wheel-picker-box {
+    background: rgba(241, 245, 249, 0.9);
+    border-color: rgba(15, 23, 42, 0.12);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Center selection indicator highlight bar */
+.wheel-center-glass-bar {
+    position: absolute;
+    top: 24px;
+    left: 2px;
+    right: 2px;
+    height: 24px;
+    background: rgba(255, 138, 0, 0.18);
+    border: 1px solid rgba(255, 138, 0, 0.5);
+    border-radius: 5px;
+    pointer-events: none;
+    z-index: 2;
+    box-shadow: 0 0 10px rgba(255, 138, 0, 0.25);
+}
+
+/* Vertical scrolling viewport with linear gradient mask */
+.wheel-viewport {
+    width: 100%;
+    height: 100%;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none; /* Hide scrollbar Firefox */
+    -ms-overflow-style: none; /* Hide scrollbar IE/Edge */
+    position: relative;
+    z-index: 1;
+
+    /* Gradient mask: top and bottom fade away smoothly */
+    mask-image: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.05) 0%,
+        rgba(0, 0, 0, 0.45) 20%,
+        rgba(0, 0, 0, 1) 38%,
+        rgba(0, 0, 0, 1) 62%,
+        rgba(0, 0, 0, 0.45) 80%,
+        rgba(0, 0, 0, 0.05) 100%
+    );
+    -webkit-mask-image: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.05) 0%,
+        rgba(0, 0, 0, 0.45) 20%,
+        rgba(0, 0, 0, 1) 38%,
+        rgba(0, 0, 0, 1) 62%,
+        rgba(0, 0, 0, 0.45) 80%,
+        rgba(0, 0, 0, 0.05) 100%
+    );
+}
+
+.wheel-viewport::-webkit-scrollbar {
+    display: none; /* Hide scrollbar Chrome/Safari */
+}
+
+.wheel-spacer {
+    width: 100%;
+    pointer-events: none;
+}
+
+/* Drum Items */
+.wheel-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    scroll-snap-align: center;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.wheel-item-text {
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.02em;
+    transition: all 0.18s ease;
+}
+
+/* Center Active */
+.wheel-item.active-center {
+    opacity: 1;
+    transform: scale(1.06);
+}
+
+.wheel-item.active-center .wheel-item-text {
+    color: #ffaa40;
+    font-weight: 800;
+    text-shadow: 0 0 8px rgba(255, 138, 0, 0.4);
+}
+
+[data-theme="light"] .wheel-item.active-center .wheel-item-text {
+    color: #d97706;
+}
+
+/* Near Faded (1 item above/below) */
+.wheel-item.faded-near {
+    opacity: 0.45;
+    transform: scale(0.92);
+}
+
+.wheel-item.faded-near .wheel-item-text {
+    color: #94a3b8;
+}
+
+/* Far Faded */
+.wheel-item.faded-far {
+    opacity: 0.18;
+    transform: scale(0.85);
+}
+
+.wheel-item.faded-far .wheel-item-text {
+    color: #64748b;
+}

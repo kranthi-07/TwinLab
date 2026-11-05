@@ -113,6 +113,77 @@
     gap: 12px;
 }
 
+/* Custom Styled Theme Dropdown on Home Screen */
+.home-theme-dropdown-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 11px;
+    padding: 0 10px 0 12px;
+    height: 38px;
+    transition: all 0.2s ease;
+}
+
+.home-theme-dropdown-wrap:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.home-theme-dropdown-wrap .theme-icon {
+    font-size: 15px;
+    color: #FF8A00;
+    margin-right: 6px;
+    pointer-events: none;
+}
+
+.home-theme-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: transparent;
+    border: none;
+    color: #e2e8f0;
+    font-size: 12px;
+    font-weight: 600;
+    padding-right: 18px;
+    outline: none;
+    cursor: pointer;
+}
+
+.home-theme-select option {
+    background: #111722;
+    color: #f1f5f9;
+}
+
+.select-chevron {
+    position: absolute;
+    right: 8px;
+    font-size: 14px;
+    color: #94a3b8;
+    pointer-events: none;
+    transition: transform 0.2s ease;
+}
+
+.home-theme-dropdown-wrap:hover .select-chevron {
+    color: #ffffff;
+}
+
+[data-theme="light"] .home-theme-dropdown-wrap {
+    background: rgba(15, 23, 42, 0.04);
+    border-color: rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .home-theme-select {
+    color: #0f172a;
+}
+
+[data-theme="light"] .home-theme-select option {
+    background: #ffffff;
+    color: #0f172a;
+}
+
 .action-btn {
     width: 38px;
     height: 38px;

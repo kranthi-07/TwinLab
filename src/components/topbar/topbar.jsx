@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useTheme } from "../../context/ThemeContext";
 
 function Topbar({ onOpenWorkspace }) {
-    const { isDark, toggleTheme } = useTheme();
+    const { theme, setTheme, isDark, toggleTheme } = useTheme();
 
     return (
         <header className="topbar">
@@ -30,6 +30,22 @@ function Topbar({ onOpenWorkspace }) {
 
             {/* Right Quick Controls */}
             <div className="topbar-actions">
+                {/* Platform Themes Dropdown (Home Screen Only) */}
+                <div className="home-theme-dropdown-wrap" title="Change Platform Theme">
+                    <i className="ri-palette-line theme-icon"></i>
+                    <select 
+                        className="home-theme-select custom-select-styled"
+                        value={theme || "dark"}
+                        onChange={(e) => setTheme(e.target.value)}
+                    >
+                        <option value="dark">Obsidian Dark</option>
+                        <option value="glassmorphism">Frost Glass</option>
+                        <option value="cyberpunk">Cyber Neon</option>
+                        <option value="light">Minimal Light</option>
+                    </select>
+                    <i className="ri-arrow-down-s-line select-chevron"></i>
+                </div>
+
                 {/* Theme Toggle */}
                 <motion.button 
                     className="action-btn theme-toggle-btn" 

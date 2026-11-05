@@ -482,3 +482,159 @@
     pointer-events: none;
     z-index: 100;
 }
+
+/* ============================================================
+   ARDUINO MEGA 2560 PCB SPECIFIC STYLING (480px x 224px)
+============================================================ */
+.arduino-mega-board {
+    width: 480px;
+    height: 224px;
+}
+
+.mega-pcb-surface {
+    background: #005c5e !important;
+    border-color: #004244 !important;
+}
+
+.arduino-mega-ic {
+    position: absolute;
+    top: 96px;
+    left: 200px;
+    width: 42px;
+    height: 42px;
+    background: #09090b;
+    border-radius: 4px;
+    border: 1.5px solid #27272a;
+    transform: rotate(45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+}
+
+.mega-ic-label {
+    font-size: 6.5px;
+    font-weight: 800;
+    font-family: monospace;
+    color: #a1a1aa;
+    transform: rotate(-45deg);
+    letter-spacing: 0.05em;
+}
+
+.mega-comm-legend {
+    position: absolute;
+    top: 32px;
+    left: 304px;
+    font-size: 7px;
+    font-weight: 800;
+    font-family: monospace;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.mega-analog-legend {
+    position: absolute;
+    bottom: 30px;
+    left: 176px;
+    font-size: 8px;
+    font-weight: 800;
+    font-family: monospace;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.mega-dual-legend {
+    position: absolute;
+    top: 14px;
+    right: 12px;
+    font-size: 7px;
+    font-weight: 800;
+    font-family: monospace;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* ============================================================
+   ARDUINO NANO PCB SPECIFIC STYLING (256px x 96px DIP-30)
+============================================================ */
+.arduino-nano-board {
+    width: 256px;
+    height: 96px;
+}
+
+.nano-pcb-surface {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #0284c7;
+    border-radius: 6px;
+    border: 2px solid #0369a1;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+.nano-usb-port {
+    position: absolute;
+    top: 36px;
+    left: -4px;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(180deg, #e2e8f0, #94a3b8);
+    border-radius: 3px;
+    border: 1px solid #cbd5e1;
+    z-index: 8;
+}
+
+.nano-reset-btn {
+    position: absolute;
+    top: 38px;
+    left: 118px;
+    width: 20px;
+    height: 20px;
+    background: #334155;
+    border-radius: 3px;
+    border: 1px solid #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nano-atmega-ic {
+    position: absolute;
+    top: 36px;
+    left: 48px;
+    width: 24px;
+    height: 24px;
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 3px;
+    transform: rotate(45deg);
+}
+
+.nano-branding {
+    position: absolute;
+    top: 36px;
+    left: 160px;
+    display: flex;
+    flex-direction: column;
+}
+
+.nano-title {
+    font-size: 10px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 0.1em;
+    font-family: system-ui, sans-serif;
+}
+
+.nano-subtitle {
+    font-size: 8px;
+    font-weight: 800;
+    color: #bae6fd;
+    letter-spacing: 0.15em;
+}
+
+.nano-leds-cluster {
+    position: absolute;
+    top: 38px;
+    left: 84px;
+    display: flex;
+    gap: 4px;
+}

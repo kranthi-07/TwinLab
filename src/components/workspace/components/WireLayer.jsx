@@ -57,7 +57,7 @@ function WireLayer({
         <svg className={`canvas-wires-layer ${activeWire ? "routing-active" : ""}`}>
             {/* Placed Wires */}
             {wires.map((wire) => {
-                const isSelected = selectedWireId === wire.id;
+                const isSelected = selectedWireId === wire.id || selectedWireId === "all";
                 const wireMode = wire.routingMode || routingMode;
                 const pathStr = pointsToPath(wire.points, wireMode);
 
@@ -80,9 +80,7 @@ function WireLayer({
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             className="wire-click-target"
-                        >
-                            <title>{`Wire (${wire.color || "#10b981"}) • Click to select, Backspace/Del to remove`}</title>
-                        </path>
+                        />
 
                         {/* 2. Soft depth shadow beneath wire */}
                         <path 

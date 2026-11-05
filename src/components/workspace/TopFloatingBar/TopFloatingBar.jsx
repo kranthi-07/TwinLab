@@ -3,6 +3,30 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../../../context/ThemeContext";
 
+const COMPONENT_META = {
+    "resistor": { label: "Resistor", icon: "ri-pulse-line" },
+    "led": { label: "LED", icon: "ri-lightbulb-line" },
+    "battery-9v": { label: "Battery", icon: "ri-battery-charge-line" },
+    "capacitor-ceramic": { label: "Capacitor", icon: "ri-contrast-2-line" },
+    "potentiometer": { label: "Potentiometer", icon: "ri-equalizer-line" },
+    "buzzer": { label: "Buzzer", icon: "ri-volume-up-line" },
+    "button": { label: "Pushbutton", icon: "ri-radio-button-line" },
+    "pushbutton": { label: "Pushbutton", icon: "ri-radio-button-line" },
+    "switch-spdt": { label: "Slide Switch", icon: "ri-toggle-line" },
+    "slide-switch": { label: "Slide Switch", icon: "ri-toggle-line" },
+    "multimeter": { label: "Multimeter", icon: "ri-dashboard-3-line" },
+    "breadboard": { label: "Breadboard (Half)", icon: "ri-layout-grid-line" },
+    "breadboard-half": { label: "Breadboard (Half)", icon: "ri-layout-grid-line" },
+    "breadboard-full": { label: "Breadboard (Full)", icon: "ri-layout-grid-fill" },
+    "breadboard-mini": { label: "Breadboard (Mini)", icon: "ri-grid-line" },
+    "arduino-uno": { label: "Arduino Uno", icon: "ri-cpu-line" },
+    "arduino-mega": { label: "Arduino Mega", icon: "ri-cpu-line" },
+    "arduino-nano": { label: "Arduino Nano", icon: "ri-cpu-line" },
+    "esp32": { label: "ESP32", icon: "ri-cpu-line" },
+    "esp32-devkit": { label: "ESP32", icon: "ri-cpu-line" },
+    "esp32-s3": { label: "ESP32", icon: "ri-cpu-line" },
+};
+
 const WIRE_COLORS = [
     { key: "1", name: "Green", color: "#10b981" },
     { key: "2", name: "Red", color: "#ef4444" },
@@ -13,6 +37,15 @@ const WIRE_COLORS = [
     { key: "7", name: "White", color: "#f8fafc" },
     { key: "8", name: "Purple", color: "#8b5cf6" },
     { key: "9", name: "Brown", color: "#78350f" }
+];
+
+const BREADBOARD_COLORS = [
+    { name: "Studio White", color: "#f8fafc", border: "#cbd5e1" },
+    { name: "Ivory Cream", color: "#fefce8", border: "#fef08a" },
+    { name: "Bone Gray", color: "#f1f5f9", border: "#cbd5e1" },
+    { name: "Arctic Frost", color: "#f0fdfa", border: "#99f6e4" },
+    { name: "Quartz White", color: "#faf5ff", border: "#e9d5ff" },
+    { name: "Alabaster", color: "#fffbf5", border: "#fed7aa" },
 ];
 
 const RESISTOR_PRESETS = ["100", "220", "330", "470", "1k", "2.2k", "4.7k", "10k", "100k", "1M"];
@@ -28,6 +61,297 @@ const parseResistanceValue = (val) => {
     if (str.endsWith("k")) return parseFloat(str) * 1000;
     return parseFloat(str) || 220;
 };
+
+function StudioValueUnitControl({
+    label = "Value",
+    numericValue = "",
+    unit = "",
+    units = [],
+    presets = [],
+    onNumericChange,
+    onUnitChange,
+    onPresetSelect,
+    subtext = ""
+}) {
+    const [localVal, setLocalVal] = useState(String(numericValue));
+
+    useEffect(() => {
+        setLocalVal(String(numericValue));
+    }, [numericValue]);
+
+    return (
+        <div className="studio-val-unit-control">
+            <span className="studio-control-label">{label}</span>
+            <div className="studio-control-cluster">
+                {/* Manual Number Typing Input */}
+                <input
+                    type="number"
+                    step="any"
+                    className="studio-manual-number-input"
+                    value={localVal}
+                    onChange={(e) => {
+                        const val = e.target.value;
+                        setLocalVal(val);
+                        onNumericChange(val);
+                    }}
+                    onKeyDown={(e) => {
+                        e.stopPropagation();
+                        if (e.key === "Enter") e.target.blur();
+                    }}
+                    placeholder="Val"
+                    title="Type custom numerical value"
+                />
+
+                {/* Preset Values Dropdown */}
+                {presets && presets.length > 0 && (
+                    <select
+                        className="studio-custom-select preset-select"
+                        value=""
+                        onChange={(e) => {
+                            if (e.target.value) {
+                                onPresetSelect(e.target.value);
+                                e.target.value = "";
+                            }
+                        }}
+                        title="Quick preset values"
+                    >
+                        <option value="" disabled>Standard ▾</option>
+                        {presets.map((p) => (
+                            <option key={p} value={p}>
+                                {p}
+                            </option>
+                        ))}
+                    </select>
+                )}
+
+                {/* Unit Dropdown */}
+                {units && units.length > 0 && (
+                    <select
+                        className="studio-custom-select unit-select"
+                        value={unit}
+                        onChange={(e) => onUnitChange(e.target.value)}
+                        title="Unit"
+                    >
+                        {units.map((u) => (
+                            <option key={u} value={u}>
+                                {u}
+                            </option>
+                        ))}
+                    </select>
+                )}
+            </div>
+            {subtext && <span className="specs-subtext">{subtext}</span>}
+        </div>
+    );
+}
+
+function ResistorValueControl({ component, onUpdate }) {
+    const rawR = component.resistance != null ? Number(component.resistance) : 220;
+    let initialUnit = "Ω";
+    let initialNum = rawR;
+    if (rawR >= 1e6) {
+        initialUnit = "MΩ";
+        initialNum = +(rawR / 1e6).toFixed(3);
+    } else if (rawR >= 1e3) {
+        initialUnit = "kΩ";
+        initialNum = +(rawR / 1e3).toFixed(3);
+    }
+
+    const [unit, setUnit] = useState(initialUnit);
+
+    useEffect(() => {
+        if (rawR >= 1e6) setUnit("MΩ");
+        else if (rawR >= 1e3) setUnit("kΩ");
+        else setUnit("Ω");
+    }, [rawR]);
+
+    const displayNum = unit === "MΩ" ? +(rawR / 1e6).toFixed(3) : unit === "kΩ" ? +(rawR / 1e3).toFixed(3) : rawR;
+
+    return (
+        <StudioValueUnitControl
+            label="Resistance"
+            numericValue={displayNum}
+            unit={unit}
+            units={["Ω", "kΩ", "MΩ"]}
+            presets={["10Ω", "47Ω", "100Ω", "220Ω", "330Ω", "470Ω", "1kΩ", "2.2kΩ", "4.7kΩ", "10kΩ", "47kΩ", "100kΩ", "470kΩ", "1MΩ"]}
+            onNumericChange={(typedStr) => {
+                const n = parseFloat(typedStr);
+                if (!isNaN(n) && n > 0) {
+                    const mult = unit === "MΩ" ? 1e6 : unit === "kΩ" ? 1e3 : 1;
+                    const ohms = Math.round(n * mult * 100) / 100;
+                    onUpdate && onUpdate(component.id, {
+                        resistance: ohms,
+                        name: `Resistor (${n}${unit})`
+                    });
+                }
+            }}
+            onUnitChange={(newUnit) => {
+                setUnit(newUnit);
+                const mult = newUnit === "MΩ" ? 1e6 : newUnit === "kΩ" ? 1e3 : 1;
+                const ohms = Math.round(displayNum * mult * 100) / 100;
+                onUpdate && onUpdate(component.id, {
+                    resistance: ohms,
+                    name: `Resistor (${displayNum}${newUnit})`
+                });
+            }}
+            onPresetSelect={(presetStr) => {
+                const ohms = parseResistanceValue(presetStr);
+                if (presetStr.includes("M")) setUnit("MΩ");
+                else if (presetStr.includes("k")) setUnit("kΩ");
+                else setUnit("Ω");
+
+                onUpdate && onUpdate(component.id, {
+                    resistance: ohms,
+                    name: `Resistor (${presetStr})`
+                });
+            }}
+            subtext="1/4W Metal Film"
+        />
+    );
+}
+
+function CapacitorValueControl({ component, onUpdate }) {
+    const capStr = component.capacitance || "100nF";
+    const match = capStr.match(/^([\d.]+)\s*([a-zA-ZµμF]+)$/);
+    const initialNum = match ? match[1] : "100";
+    const initialUnit = match ? match[2] : "nF";
+
+    const [unit, setUnit] = useState(initialUnit);
+
+    useEffect(() => {
+        const m = (component.capacitance || "100nF").match(/^([\d.]+)\s*([a-zA-ZµμF]+)$/);
+        if (m) setUnit(m[2]);
+    }, [component.capacitance]);
+
+    return (
+        <StudioValueUnitControl
+            label="Capacitance"
+            numericValue={initialNum}
+            unit={unit}
+            units={["pF", "nF", "µF", "mF"]}
+            presets={["10pF", "47pF", "100pF", "1nF", "10nF", "47nF", "100nF", "1µF", "10µF", "47µF", "100µF", "470µF"]}
+            onNumericChange={(typedStr) => {
+                const n = parseFloat(typedStr);
+                if (!isNaN(n) && n > 0) {
+                    const fullCap = `${n}${unit}`;
+                    onUpdate && onUpdate(component.id, {
+                        capacitance: fullCap,
+                        name: `Ceramic Cap (${fullCap})`
+                    });
+                }
+            }}
+            onUnitChange={(newUnit) => {
+                setUnit(newUnit);
+                const fullCap = `${initialNum}${newUnit}`;
+                onUpdate && onUpdate(component.id, {
+                    capacitance: fullCap,
+                    name: `Ceramic Cap (${fullCap})`
+                });
+            }}
+            onPresetSelect={(presetStr) => {
+                const m = presetStr.match(/^([\d.]+)\s*([a-zA-ZµμF]+)$/);
+                if (m) setUnit(m[2]);
+                onUpdate && onUpdate(component.id, {
+                    capacitance: presetStr,
+                    name: `Ceramic Cap (${presetStr})`
+                });
+            }}
+            subtext="50V Ceramic Disk"
+        />
+    );
+}
+
+function BatteryValueControl({ component, onUpdate }) {
+    const rawV = component.voltage != null ? parseFloat(component.voltage) : 9;
+    const [unit, setUnit] = useState("V");
+
+    const displayNum = unit === "mV" ? +(rawV * 1000).toFixed(0) : rawV;
+
+    return (
+        <StudioValueUnitControl
+            label="Voltage"
+            numericValue={displayNum}
+            unit={unit}
+            units={["V", "mV"]}
+            presets={["1.5V", "3V", "3.3V", "5V", "9V", "12V", "24V"]}
+            onNumericChange={(typedStr) => {
+                const n = parseFloat(typedStr);
+                if (!isNaN(n) && n >= 0) {
+                    const volts = unit === "mV" ? n / 1000 : n;
+                    onUpdate && onUpdate(component.id, {
+                        voltage: volts,
+                        name: `Battery (${n}${unit})`
+                    });
+                }
+            }}
+            onUnitChange={(newUnit) => {
+                setUnit(newUnit);
+                const volts = newUnit === "mV" ? displayNum / 1000 : displayNum;
+                onUpdate && onUpdate(component.id, {
+                    voltage: volts,
+                    name: `Battery (${volts}V)`
+                });
+            }}
+            onPresetSelect={(presetStr) => {
+                const volts = parseFloat(presetStr);
+                setUnit("V");
+                onUpdate && onUpdate(component.id, {
+                    voltage: volts,
+                    name: `Battery (${presetStr})`
+                });
+            }}
+            subtext="DC Supply"
+        />
+    );
+}
+
+function PotentiometerValueControl({ component, onUpdate }) {
+    const rawR = component.resistance != null ? Number(component.resistance) : 10000;
+    const [unit, setUnit] = useState(rawR >= 1e6 ? "MΩ" : rawR >= 1e3 ? "kΩ" : "Ω");
+
+    const displayNum = unit === "MΩ" ? +(rawR / 1e6).toFixed(3) : unit === "kΩ" ? +(rawR / 1e3).toFixed(3) : rawR;
+
+    return (
+        <StudioValueUnitControl
+            label="Resistance"
+            numericValue={displayNum}
+            unit={unit}
+            units={["kΩ", "Ω", "MΩ"]}
+            presets={["1kΩ", "5kΩ", "10kΩ", "20kΩ", "50kΩ", "100kΩ", "1MΩ"]}
+            onNumericChange={(typedStr) => {
+                const n = parseFloat(typedStr);
+                if (!isNaN(n) && n > 0) {
+                    const mult = unit === "MΩ" ? 1e6 : unit === "kΩ" ? 1e3 : 1;
+                    const ohms = Math.round(n * mult);
+                    onUpdate && onUpdate(component.id, {
+                        resistance: ohms,
+                        name: `Potentiometer (${n}${unit})`
+                    });
+                }
+            }}
+            onUnitChange={(newUnit) => {
+                setUnit(newUnit);
+                const mult = newUnit === "MΩ" ? 1e6 : newUnit === "kΩ" ? 1e3 : 1;
+                const ohms = Math.round(displayNum * mult);
+                onUpdate && onUpdate(component.id, {
+                    resistance: ohms,
+                    name: `Potentiometer (${displayNum}${newUnit})`
+                });
+            }}
+            onPresetSelect={(presetStr) => {
+                const ohms = parseResistanceValue(presetStr);
+                if (presetStr.includes("M")) setUnit("MΩ");
+                else if (presetStr.includes("k")) setUnit("kΩ");
+                else setUnit("Ω");
+                onUpdate && onUpdate(component.id, {
+                    resistance: ohms,
+                    name: `Potentiometer (${presetStr})`
+                });
+            }}
+            subtext={`Wiper: ${Math.round((component.wiperValue ?? 0.5) * 100)}%`}
+        />
+    );
+}
 
 function TopFloatingBar({
     projectName = "Project - 1",
@@ -61,12 +385,29 @@ function TopFloatingBar({
     onStartSimulation,
     onStopSimulation,
     isCodeOpen = false,
-    onToggleCodeEditor
+    onToggleCodeEditor,
+    viewMode = "simulation",
+    onChangeViewMode,
+    onUndo,
+    onRedo,
+    canUndo = false,
+    canRedo = false,
+    onOpenSearch
 }) {
     const { isDark, toggleTheme } = useTheme();
     const [isComponentsOpen, setIsComponentsOpen] = useState(false);
     const [isZoomOpen, setIsZoomOpen] = useState(false);
-    const [viewModeType, setViewModeType] = useState("simulation"); // "simulation" | "schematic"
+    const [internalViewMode, setInternalViewMode] = useState("simulation");
+    const effectiveViewMode = viewMode || internalViewMode;
+
+    const handleToggleViewMode = () => {
+        const nextMode = effectiveViewMode === "simulation" ? "schematic" : "simulation";
+        if (onChangeViewMode) {
+            onChangeViewMode(nextMode);
+        } else {
+            setInternalViewMode(nextMode);
+        }
+    };
     
     // Editable Project Name state
     const [isEditingName, setIsEditingName] = useState(false);
@@ -122,8 +463,10 @@ function TopFloatingBar({
         ? [
             "resistor", "led", "battery-9v", "capacitor-ceramic", 
             "potentiometer", "buzzer", "button", "pushbutton", 
-            "switch-spdt", "slide-switch", "multimeter", "arduino-uno", "esp32"
-          ].includes(selectedComponent.type)
+            "switch-spdt", "slide-switch", "multimeter", 
+            "arduino-uno", "arduino-mega", "arduino-nano", "esp32", "esp32-devkit", "esp32-s3",
+            "breadboard", "breadboard-half", "breadboard-full", "breadboard-mini"
+          ].includes(selectedComponent.type) || selectedComponent.type?.startsWith("breadboard") || selectedComponent.type?.startsWith("arduino") || selectedComponent.type?.startsWith("esp32")
         : (isWireMode || !!selectedWire);
 
     return (
@@ -370,54 +713,6 @@ function TopFloatingBar({
                                             <span>Buzzer</span>
                                         </button>
 
-                                        {/* Breadboard item */}
-                                        <button
-                                            className="palette-item"
-                                            onClick={() => {
-                                                onAddComponent({ type: "breadboard", name: "Breadboard (Half-Size)" });
-                                                setIsComponentsOpen(false);
-                                            }}
-                                            title="Add Solderless Breadboard"
-                                        >
-                                            <div className="palette-item-miniature bb-miniature">
-                                                <div className="mini-bb-lines">
-                                                    <span className="red"></span>
-                                                    <span className="blue"></span>
-                                                </div>
-                                            </div>
-                                            <span>Breadboard</span>
-                                        </button>
-
-                                        {/* Arduino Uno R3 */}
-                                        <button
-                                            className="palette-item"
-                                            onClick={() => {
-                                                onAddComponent({ type: "arduino-uno", name: "Arduino Uno R3" });
-                                                setIsComponentsOpen(false);
-                                            }}
-                                            title="Add Arduino Uno R3"
-                                        >
-                                            <div className="palette-item-miniature" style={{ background: "rgba(14, 165, 233, 0.15)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                <i className="ri-cpu-line" style={{ color: "#38bdf8", fontSize: 16 }}></i>
-                                            </div>
-                                            <span>Arduino Uno</span>
-                                        </button>
-
-                                        {/* ESP32 DevKit V1 */}
-                                        <button
-                                            className="palette-item"
-                                            onClick={() => {
-                                                onAddComponent({ type: "esp32-devkit", name: "ESP32 DevKit V1" });
-                                                setIsComponentsOpen(false);
-                                            }}
-                                            title="Add ESP32 DevKit V1"
-                                        >
-                                            <div className="palette-item-miniature" style={{ background: "rgba(168, 85, 247, 0.15)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                <i className="ri-wifi-line" style={{ color: "#c084fc", fontSize: 16 }}></i>
-                                            </div>
-                                            <span>ESP32 DevKit</span>
-                                        </button>
-
                                         {/* Digital Multimeter */}
                                         <button
                                             className="palette-item"
@@ -590,9 +885,33 @@ function TopFloatingBar({
                 </div>
 
                 {/* ------------------------------------------------------------
-                    3. TOP RIGHT BAR: Search, Modes, Code Bar (No Profile Icon)
+                    3. TOP RIGHT BAR: Undo/Redo, Search, Modes, Code Bar
                 ------------------------------------------------------------ */}
                 <div className="topbar-section right-section">
+                    {/* Undo & Redo Buttons */}
+                    <div className="undo-redo-pill">
+                        <button 
+                            type="button"
+                            className="undo-redo-btn"
+                            onClick={onUndo}
+                            disabled={!canUndo}
+                            title="Undo (Ctrl+Z)"
+                        >
+                            <i className="ri-arrow-go-back-line"></i>
+                        </button>
+                        <button 
+                            type="button"
+                            className="undo-redo-btn"
+                            onClick={onRedo}
+                            disabled={!canRedo}
+                            title="Redo (Ctrl+Y)"
+                        >
+                            <i className="ri-arrow-go-forward-line"></i>
+                        </button>
+                    </div>
+
+                    <div className="top-divider"></div>
+
                     {/* Search */}
                     <button className="top-search-btn" title="Search Components (Ctrl+F)">
                         <i className="ri-search-line"></i>
@@ -603,7 +922,22 @@ function TopFloatingBar({
 
                     {/* Modes Pill: Theme Switcher & Schematic Mode */}
                     <div className="modes-pill">
-                        {/* Theme Switcher */}
+                        {/* Theme Dropdown Selector */}
+                        <div className="theme-select-wrap">
+                            <select 
+                                className="theme-mode-select"
+                                value={theme || "dark"}
+                                onChange={(e) => setTheme && setTheme(e.target.value)}
+                                title="Studio Theme"
+                            >
+                                <option value="dark">Obsidian</option>
+                                <option value="glassmorphism">Frost Glass</option>
+                                <option value="cyberpunk">Cyber Neon</option>
+                                <option value="light">Light</option>
+                            </select>
+                        </div>
+
+                        {/* Quick Theme Toggle */}
                         <button 
                             className="mode-btn theme-btn"
                             onClick={toggleTheme}
@@ -616,12 +950,12 @@ function TopFloatingBar({
 
                         {/* View Mode: Simulation vs Schematic */}
                         <button 
-                            className={`mode-btn view-btn ${viewModeType === "simulation" ? "active" : ""}`}
-                            onClick={() => setViewModeType(viewModeType === "simulation" ? "schematic" : "simulation")}
-                            title={viewModeType === "simulation" ? "Switch to Schematic View" : "Switch to Circuit Simulation"}
+                            className={`mode-btn view-btn ${effectiveViewMode === "simulation" ? "active" : ""}`}
+                            onClick={handleToggleViewMode}
+                            title={effectiveViewMode === "simulation" ? "Switch to Schematic View" : "Switch to Circuit Simulation"}
                         >
-                            <i className={viewModeType === "simulation" ? "ri-cpu-line" : "ri-git-branch-line"}></i>
-                            <span className="mode-label">{viewModeType === "simulation" ? "Circuit" : "Schematic"}</span>
+                            <i className={effectiveViewMode === "simulation" ? "ri-cpu-line" : "ri-git-branch-line"}></i>
+                            <span className="mode-label">{effectiveViewMode === "simulation" ? "Circuit" : "Schematic"}</span>
                         </button>
                     </div>
 
@@ -650,61 +984,267 @@ function TopFloatingBar({
                 {showInspector && (
                     <motion.div 
                         key={selectedComponent?.id ? `${selectedComponent.type}-${selectedComponent.id}` : (isWireMode ? "wire-mode" : "wire-sel")}
-                        className="context-property-bar"
+                        className="context-property-bar compact-two-row-bar"
                         initial={{ opacity: 0, y: -6, scale: 0.97 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
                     >
-                        {/* USER-BASED NAMING: Editable Component Reference Designator Pill */}
-                        {selectedComponent && (
-                            <div className="inspector-subgroup name-edit-subgroup">
-                                <div className="inspector-designator-pill" title="Click or type to rename component">
-                                    <i className="ri-price-tag-3-line"></i>
-                                    <input
-                                        type="text"
-                                        className="inspector-designator-input"
-                                        value={editingCompName !== null ? editingCompName : (selectedComponent.designator || selectedComponent.name || "")}
-                                        onFocus={() => setEditingCompName(selectedComponent.designator || selectedComponent.name || "")}
-                                        onChange={(e) => setEditingCompName(e.target.value)}
-                                        onBlur={() => {
-                                            if (editingCompName !== null && editingCompName.trim()) {
-                                                const trimmed = editingCompName.trim();
+                        {selectedComponent ? (
+                            <div className="inspector-two-rows">
+                                {/* ROW 1: Component Type Badge, Editable Name Box, and Quick Actions */}
+                                <div className="inspector-row-top">
+                                    <div className="inspector-type-badge">
+                                        <i className={COMPONENT_META[selectedComponent.type]?.icon || "ri-cpu-line"}></i>
+                                        <span>{COMPONENT_META[selectedComponent.type]?.label || "Component"}</span>
+                                    </div>
+
+                                    <div className="inspector-name-edit-wrap">
+                                        <span className="name-prefix">Name</span>
+                                        <input
+                                            type="text"
+                                            className="compact-name-input"
+                                            value={editingCompName !== null ? editingCompName : (selectedComponent.designator || selectedComponent.name || "")}
+                                            onFocus={() => setEditingCompName(selectedComponent.designator || selectedComponent.name || "")}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setEditingCompName(val);
                                                 onUpdateComponent && onUpdateComponent(selectedComponent.id, {
-                                                    designator: trimmed,
-                                                    name: trimmed
+                                                    designator: val,
+                                                    name: val
                                                 });
-                                            }
-                                            setEditingCompName(null);
-                                        }}
-                                        onKeyDown={(e) => {
-                                            e.stopPropagation();
-                                            if (e.key === "Enter") {
-                                                e.target.blur();
-                                            } else if (e.key === "Escape") {
+                                            }}
+                                            onBlur={() => {
                                                 setEditingCompName(null);
-                                            }
-                                        }}
-                                        title="Rename component (e.g. R1, LED1, R_PULLUP)"
-                                        placeholder="Name..."
-                                    />
-                                    <i className="ri-edit-line edit-pencil-icon"></i>
+                                            }}
+                                            onKeyDown={(e) => {
+                                                e.stopPropagation();
+                                                if (e.key === "Enter") {
+                                                    e.target.blur();
+                                                } else if (e.key === "Escape") {
+                                                    setEditingCompName(null);
+                                                }
+                                            }}
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            onClick={(e) => e.stopPropagation()}
+                                            placeholder="1"
+                                            title="Click to rename component"
+                                        />
+                                    </div>
+
+                                    <div className="inspector-quick-actions">
+                                        {onRotate && (
+                                            <button
+                                                type="button"
+                                                className="inspector-action-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onRotate(selectedComponent.id);
+                                                }}
+                                                title="Rotate 90° (R)"
+                                            >
+                                                <i className="ri-anticlockwise-2-line"></i>
+                                            </button>
+                                        )}
+                                        {onDelete && (
+                                            <button
+                                                type="button"
+                                                className="inspector-action-btn delete-action"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onDelete(selectedComponent.id);
+                                                }}
+                                                title="Delete (Del)"
+                                            >
+                                                <i className="ri-delete-bin-line"></i>
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="inspector-divider" />
+
+                                {/* ROW 2: Values & Properties with Manual Writing, Value Dropdowns & Unit Dropdowns */}
+                                <div className="inspector-row-bottom">
+                                    {/* Resistor */}
+                                    {selectedComponent.type === "resistor" && (
+                                        <ResistorValueControl 
+                                            component={selectedComponent} 
+                                            onUpdate={onUpdateComponent} 
+                                        />
+                                    )}
+
+                                    {/* Capacitor */}
+                                    {selectedComponent.type === "capacitor-ceramic" && (
+                                        <CapacitorValueControl 
+                                            component={selectedComponent} 
+                                            onUpdate={onUpdateComponent} 
+                                        />
+                                    )}
+
+                                    {/* Battery */}
+                                    {selectedComponent.type === "battery-9v" && (
+                                        <BatteryValueControl 
+                                            component={selectedComponent} 
+                                            onUpdate={onUpdateComponent} 
+                                        />
+                                    )}
+
+                                    {/* LED */}
+                                    {selectedComponent.type === "led" && (
+                                        <div className="inspector-led-controls">
+                                            <div className="inspector-label-inline">Color</div>
+                                            <div className="wire-color-swatches compact-swatches">
+                                                {[
+                                                    { name: "Red", color: "#ef4444" },
+                                                    { name: "Green", color: "#10b981" },
+                                                    { name: "Blue", color: "#3b82f6" },
+                                                    { name: "Yellow", color: "#eab308" },
+                                                    { name: "Orange", color: "#f97316" },
+                                                    { name: "White", color: "#ffffff" }
+                                                ].map((c) => (
+                                                    <button
+                                                        key={c.name}
+                                                        type="button"
+                                                        className={`color-swatch-btn ${(selectedComponent.color === c.color) ? "active" : ""}`}
+                                                        style={{ "--swatch-color": c.color }}
+                                                        onClick={() => {
+                                                            onUpdateComponent && onUpdateComponent(selectedComponent.id, {
+                                                                color: c.color,
+                                                                name: `5mm LED (${c.name})`
+                                                            });
+                                                        }}
+                                                        title={c.name}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <span className="specs-subtext">2.05V • 25mA</span>
+                                        </div>
+                                    )}
+
+                                    {/* Slide Switch */}
+                                    {(selectedComponent.type === "switch-spdt" || selectedComponent.type === "slide-switch") && (
+                                        <div className="inspector-switch-controls">
+                                            <div className="switch-toggle-pill">
+                                                <button 
+                                                    type="button"
+                                                    className={`switch-side-btn ${selectedComponent.switchState !== "right" ? "active" : ""}`}
+                                                    onClick={() => onUpdateComponent && onUpdateComponent(selectedComponent.id, { switchState: "left" })}
+                                                >
+                                                    Left (1 - C)
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    className={`switch-side-btn ${selectedComponent.switchState === "right" ? "active" : ""}`}
+                                                    onClick={() => onUpdateComponent && onUpdateComponent(selectedComponent.id, { switchState: "right" })}
+                                                >
+                                                    Right (2 - C)
+                                                </button>
+                                            </div>
+                                            <span className="specs-subtext">SPDT</span>
+                                        </div>
+                                    )}
+
+                                    {/* Potentiometer */}
+                                    {selectedComponent.type === "potentiometer" && (
+                                        <PotentiometerValueControl 
+                                            component={selectedComponent} 
+                                            onUpdate={onUpdateComponent} 
+                                        />
+                                    )}
+
+                                    {/* Buzzer */}
+                                    {selectedComponent.type === "buzzer" && (
+                                        <div className="inspector-simple-badge-row">
+                                            <i className="ri-volume-up-line"></i>
+                                            <span>3V-12V • 2.4kHz Active Audio</span>
+                                        </div>
+                                    )}
+
+                                    {/* Pushbutton */}
+                                    {(selectedComponent.type === "button" || selectedComponent.type === "pushbutton") && (
+                                        <div className="inspector-simple-badge-row">
+                                            <i className="ri-radio-button-line"></i>
+                                            <span>Tactile Momentary SPST</span>
+                                        </div>
+                                    )}
+
+                                    {/* Breadboard Tint (Close to White Shades) */}
+                                    {selectedComponent.type?.startsWith("breadboard") && (
+                                        <div className="inspector-bb-controls">
+                                            <div className="inspector-label-inline">
+                                                <i className="ri-palette-line"></i>
+                                                <span>Body Tint</span>
+                                            </div>
+                                            <div className="wire-color-swatches compact-swatches bb-color-swatches">
+                                                {BREADBOARD_COLORS.map((c) => (
+                                                    <button
+                                                        key={c.name}
+                                                        type="button"
+                                                        className={`color-swatch-btn ${((selectedComponent.color || "#f1f3f6") === c.color) ? "active" : ""}`}
+                                                        style={{ 
+                                                            "--swatch-color": c.color,
+                                                            border: `1.5px solid ${c.border}`
+                                                        }}
+                                                        onClick={() => {
+                                                            onUpdateComponent && onUpdateComponent(selectedComponent.id, {
+                                                                color: c.color
+                                                            });
+                                                        }}
+                                                        title={`${c.name} (${c.color})`}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <span className="specs-subtext">
+                                                {selectedComponent.type === "breadboard-mini" ? "170 Tie-Points • No Rails" :
+                                                 selectedComponent.type === "breadboard-full" ? "830 Tie-Points • Dual Bus" :
+                                                 "400 Tie-Points • Solderless"}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {/* Multimeter */}
+                                    {selectedComponent.type === "multimeter" && (
+                                        <div className="inspector-simple-badge-row">
+                                            <i className="ri-dashboard-3-line"></i>
+                                            <span>Auto-Range • True RMS Probes</span>
+                                        </div>
+                                    )}
+
+                                    {/* MCU */}
+                                    {(selectedComponent.type?.startsWith("arduino") || selectedComponent.type?.startsWith("esp32")) && (
+                                        <div className="inspector-mcu-row">
+                                            <span className="specs-subtext">
+                                                {selectedComponent.type === "arduino-mega" ? "ATmega2560 • 54 I/O • 16 Analog" :
+                                                 selectedComponent.type === "arduino-nano" ? "ATmega328P DIP-30 • 5V" :
+                                                 selectedComponent.type === "esp32" || selectedComponent.type === "esp32-devkit" || selectedComponent.type === "esp32-s3" ? "ESP32-S3 Dual-Core • 3.3V" :
+                                                 "ATmega328P • 5V Logic"}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                className="edit-firmware-pill-btn"
+                                                onClick={onToggleCodeEditor}
+                                                title="Open Firmware Editor for this MCU"
+                                            >
+                                                <i className="ri-code-s-slash-line"></i>
+                                                <span>Edit Code</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        )}
-                        {/* A. WIRE PROPERTIES: Displayed ONLY when no component is selected */}
-                        {(!selectedComponent && (isWireMode || !!selectedWire)) && (
-                            <div className="inspector-group wire-group">
-                                <div className="inspector-subgroup">
-                                    <div className="inspector-label">
+                        ) : (
+                            /* WIRE PROPERTIES: 2 Rows */
+                            <div className="inspector-two-rows wire-two-rows">
+                                {/* Row 1: Wire Color & Delete Wire */}
+                                <div className="inspector-row-top wire-color-row">
+                                    <div className="inspector-label-inline">
                                         <i className="ri-palette-line"></i>
                                         <span>Color</span>
                                     </div>
-                                    <div className="wire-color-swatches">
+                                    <div className="wire-color-swatches compact-swatches">
                                         {WIRE_COLORS.map((item) => (
                                             <button
                                                 key={item.name}
+                                                type="button"
                                                 className={`color-swatch-btn ${((selectedWire?.color || wireColor) === item.color) ? "active" : ""}`}
                                                 style={{ "--swatch-color": item.color }}
                                                 onClick={() => {
@@ -713,21 +1253,25 @@ function TopFloatingBar({
                                                         onUpdateWire(selectedWire.id, { color: item.color });
                                                     }
                                                 }}
-                                                title={`[Key ${item.key}] ${item.name} Wire`}
+                                                title={`[Key ${item.key}] ${item.name}`}
                                             />
                                         ))}
                                     </div>
+                                    {selectedWire && onDeleteWire && (
+                                        <button
+                                            type="button"
+                                            className="inspector-action-btn delete-action"
+                                            onClick={() => onDeleteWire(selectedWire.id)}
+                                            title="Delete Wire (Del)"
+                                        >
+                                            <i className="ri-delete-bin-line"></i>
+                                        </button>
+                                    )}
                                 </div>
 
-                                <div className="inspector-divider" />
-
-                                <div className="inspector-subgroup routing-subgroup">
-                                    <div className="inspector-label">
-                                        <i className="ri-git-branch-line"></i>
-                                        <span>Routing</span>
-                                    </div>
-                                    <div className="routing-segmented-control" role="group" aria-label="Wire Routing Mode">
-                                        {/* 1. Curved Wire Button */}
+                                {/* Row 2: Wire Routing & Hint */}
+                                <div className="inspector-row-bottom wire-routing-row">
+                                    <div className="routing-segmented-control compact-routing" role="group" aria-label="Wire Routing Mode">
                                         <button
                                             type="button"
                                             className={`routing-mode-btn ${(selectedWire?.routingMode || routingMode) === "curved" ? "active" : ""}`}
@@ -737,7 +1281,7 @@ function TopFloatingBar({
                                                     onUpdateWire(selectedWire.id, { routingMode: "curved" });
                                                 }
                                             }}
-                                            aria-label="Curve"
+                                            title="Curve"
                                         >
                                             <svg className="routing-svg" viewBox="0 0 20 20" fill="none" stroke="currentColor">
                                                 <path d="M3 14 C 7 14, 9 6, 17 6" strokeWidth="2.2" strokeLinecap="round" />
@@ -747,7 +1291,6 @@ function TopFloatingBar({
                                             <span className="routing-hover-label">Curve</span>
                                         </button>
 
-                                        {/* 2. 90-Degree Manhattan Wire Button */}
                                         <button
                                             type="button"
                                             className={`routing-mode-btn ${(selectedWire?.routingMode || routingMode) === "manhattan" ? "active" : ""}`}
@@ -757,17 +1300,16 @@ function TopFloatingBar({
                                                     onUpdateWire(selectedWire.id, { routingMode: "manhattan" });
                                                 }
                                             }}
-                                            aria-label="90° Manhattan"
+                                            title="90° Manhattan"
                                         >
                                             <svg className="routing-svg" viewBox="0 0 20 20" fill="none" stroke="currentColor">
                                                 <path d="M3 14 H 10 V 6 H 17" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                                                 <circle cx="3" cy="14" r="2" fill="currentColor" />
                                                 <circle cx="17" cy="6" r="2" fill="currentColor" />
                                             </svg>
-                                            <span className="routing-hover-label">90° Manhattan</span>
+                                            <span className="routing-hover-label">90°</span>
                                         </button>
 
-                                        {/* 3. Straight Wire Button */}
                                         <button
                                             type="button"
                                             className={`routing-mode-btn ${(selectedWire?.routingMode || routingMode) === "straight" ? "active" : ""}`}
@@ -777,7 +1319,7 @@ function TopFloatingBar({
                                                     onUpdateWire(selectedWire.id, { routingMode: "straight" });
                                                 }
                                             }}
-                                            aria-label="Straight"
+                                            title="Straight"
                                         >
                                             <svg className="routing-svg" viewBox="0 0 20 20" fill="none" stroke="currentColor">
                                                 <path d="M3 14 L 17 6" strokeWidth="2.2" strokeLinecap="round" />
@@ -787,227 +1329,9 @@ function TopFloatingBar({
                                             <span className="routing-hover-label">Straight</span>
                                         </button>
                                     </div>
+
+                                    <span className="compact-shortcut-hint">Keys 1-9 • Esc</span>
                                 </div>
-
-                                <div className="inspector-divider" />
-
-                                <span className="inspector-hint">
-                                    {isWireMode ? "Keys 1-9 recolor • Click terminal to connect • Esc exits" : "Selected Wire • Keys 1-9 to recolor"}
-                                </span>
-                            </div>
-                        )}
-
-                        {/* B. RESISTOR PROPERTIES: Resistance Value & Units */}
-                        {selectedComponent?.type === "resistor" && (() => {
-                            const curNumeric = selectedComponent.resistance != null 
-                                ? Number(selectedComponent.resistance)
-                                : parseResistanceValue(selectedComponent.name?.match(/\(([^)]+)\)/)?.[1] || "220");
-
-                            const displayValue = curNumeric >= 1000000 
-                                ? `${+(curNumeric / 1000000).toFixed(2)}MΩ` 
-                                : curNumeric >= 1000 
-                                    ? `${+(curNumeric / 1000).toFixed(2)}kΩ` 
-                                    : `${curNumeric}Ω`;
-
-                            return (
-                                <div className="inspector-group resistor-group">
-                                    <div className="inspector-label">
-                                        <i className="ri-pulse-line"></i>
-                                        <span>Resistance</span>
-                                    </div>
-                                    <div className="preset-pill-group">
-                                        {RESISTOR_PRESETS.map((val) => {
-                                            const targetNumeric = parseResistanceValue(val);
-                                            // Exact numerical match avoids "100" matching "100k" or substring collisions
-                                            const isActive = Math.abs(curNumeric - targetNumeric) < 0.001;
-
-                                            return (
-                                                <button 
-                                                    key={val}
-                                                    className={`preset-pill ${isActive ? "active" : ""}`}
-                                                    onClick={() => {
-                                                        onUpdateComponent && onUpdateComponent(selectedComponent.id, {
-                                                            resistance: targetNumeric,
-                                                            name: `Resistor (${val}Ω)`
-                                                        });
-                                                    }}
-                                                    title={`Set to ${val}Ω`}
-                                                >
-                                                    {val}Ω
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                    <span className="inspector-specs-badge">{displayValue} • 1/4W Metal Film</span>
-                                </div>
-                            );
-                        })()}
-
-                        {/* C. LED PROPERTIES: Color & Forward Specs */}
-                        {selectedComponent?.type === "led" && (
-                            <div className="inspector-group led-group">
-                                <div className="inspector-label">
-                                    <i className="ri-lightbulb-line"></i>
-                                    <span>LED Color</span>
-                                </div>
-                                <div className="wire-color-swatches">
-                                    {[
-                                        { name: "Red", color: "#ef4444" },
-                                        { name: "Green", color: "#10b981" },
-                                        { name: "Blue", color: "#3b82f6" },
-                                        { name: "Yellow", color: "#eab308" },
-                                        { name: "Orange", color: "#f97316" },
-                                        { name: "White", color: "#ffffff" }
-                                    ].map((c) => (
-                                        <button
-                                            key={c.name}
-                                            className={`color-swatch-btn ${(selectedComponent.color === c.color) ? "active" : ""}`}
-                                            style={{ "--swatch-color": c.color }}
-                                            onClick={() => {
-                                                onUpdateComponent && onUpdateComponent(selectedComponent.id, {
-                                                    color: c.color,
-                                                    name: `5mm LED (${c.name})`
-                                                });
-                                            }}
-                                            title={c.name}
-                                        />
-                                    ))}
-                                </div>
-                                <span className="inspector-specs-badge">Vf: 2.05V • Max 25mA</span>
-                            </div>
-                        )}
-
-                        {/* D. BATTERY PROPERTIES: Voltage Selector */}
-                        {selectedComponent?.type === "battery-9v" && (
-                            <div className="inspector-group battery-group">
-                                <div className="inspector-label">
-                                    <i className="ri-battery-charge-line"></i>
-                                    <span>DC Voltage</span>
-                                </div>
-                                <div className="preset-pill-group">
-                                    {VOLTAGE_PRESETS.map((v) => {
-                                        const curVolt = selectedComponent.voltage != null ? parseFloat(selectedComponent.voltage) : 9;
-                                        const isActive = parseFloat(v) === curVolt;
-                                        return (
-                                            <button
-                                                key={v}
-                                                className={`preset-pill ${isActive ? "active" : ""}`}
-                                                onClick={() => {
-                                                    onUpdateComponent && onUpdateComponent(selectedComponent.id, {
-                                                        voltage: parseFloat(v),
-                                                        name: `Battery (${v})`
-                                                    });
-                                                }}
-                                            >
-                                                {v}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                                <span className="inspector-specs-badge">DC Power Supply</span>
-                            </div>
-                        )}
-
-                        {/* E. CAPACITOR PROPERTIES: Capacitance Selector */}
-                        {selectedComponent?.type === "capacitor-ceramic" && (
-                            <div className="inspector-group cap-group">
-                                <div className="inspector-label">
-                                    <i className="ri-contrast-2-line"></i>
-                                    <span>Capacitance</span>
-                                </div>
-                                <div className="preset-pill-group">
-                                    {CAPACITOR_PRESETS.map((c) => (
-                                        <button
-                                            key={c}
-                                            className={`preset-pill ${c === (selectedComponent.capacitance || "100nF") ? "active" : ""}`}
-                                            onClick={() => {
-                                                onUpdateComponent && onUpdateComponent(selectedComponent.id, {
-                                                    capacitance: c,
-                                                    name: `Ceramic Cap (${c})`
-                                                });
-                                            }}
-                                        >
-                                            {c}
-                                        </button>
-                                    ))}
-                                </div>
-                                <span className="inspector-specs-badge">50V Ceramic Disk</span>
-                            </div>
-                        )}
-
-                        {/* F. POTENTIOMETER PROPERTIES: Max Resistance & Wiper */}
-                        {selectedComponent?.type === "potentiometer" && (
-                            <div className="inspector-group pot-group">
-                                <div className="inspector-label">
-                                    <i className="ri-equalizer-line"></i>
-                                    <span>Potentiometer</span>
-                                </div>
-                                <span className="inspector-specs-badge">10kΩ • Linear Wiper 0 - 100%</span>
-                            </div>
-                        )}
-
-                        {/* G. BUZZER PROPERTIES */}
-                        {selectedComponent?.type === "buzzer" && (
-                            <div className="inspector-group buzzer-group">
-                                <div className="inspector-label">
-                                    <i className="ri-volume-up-line"></i>
-                                    <span>Piezo Buzzer</span>
-                                </div>
-                                <span className="inspector-specs-badge">3V-12V • 2.4kHz Active Audio</span>
-                            </div>
-                        )}
-
-                        {/* H. BUTTON PROPERTIES */}
-                        {(selectedComponent?.type === "button" || selectedComponent?.type === "pushbutton") && (
-                            <div className="inspector-group button-group">
-                                <div className="inspector-label">
-                                    <i className="ri-radio-button-line"></i>
-                                    <span>Pushbutton</span>
-                                </div>
-                                <span className="inspector-specs-badge">Tactile Momentary SPST (NO)</span>
-                            </div>
-                        )}
-
-                        {/* I. SWITCH PROPERTIES */}
-                        {(selectedComponent?.type === "switch-spdt" || selectedComponent?.type === "slide-switch") && (
-                            <div className="inspector-group switch-group">
-                                <div className="inspector-label">
-                                    <i className="ri-toggle-line"></i>
-                                    <span>Slide Switch</span>
-                                </div>
-                                <span className="inspector-specs-badge">SPDT Dual-Throw Selector</span>
-                            </div>
-                        )}
-
-                        {/* J. MULTIMETER PROPERTIES */}
-                        {selectedComponent?.type === "multimeter" && (
-                            <div className="inspector-group multimeter-group">
-                                <div className="inspector-label">
-                                    <i className="ri-dashboard-3-line"></i>
-                                    <span>Digital Multimeter</span>
-                                </div>
-                                <span className="inspector-specs-badge">Auto-Range • True RMS Probes</span>
-                            </div>
-                        )}
-
-                        {/* K. MCU BOARD PROPERTIES */}
-                        {(selectedComponent?.type === "arduino-uno" || selectedComponent?.type === "esp32" || selectedComponent?.type === "esp32-devkit") && (
-                            <div className="inspector-group mcu-group">
-                                <div className="inspector-label">
-                                    <i className="ri-cpu-line"></i>
-                                    <span>{selectedComponent.type === "arduino-uno" ? "Arduino Uno R3" : "ESP32 DevKit V1"}</span>
-                                </div>
-                                <span className="inspector-specs-badge">
-                                    {selectedComponent.type === "arduino-uno" ? "16MHz ATmega328P • 5V / 3.3V Logic" : "240MHz Dual-Core • 3.3V / Wi-Fi"}
-                                </span>
-                                <button
-                                    className="edit-firmware-pill-btn"
-                                    onClick={onToggleCodeEditor}
-                                    title="Open Firmware Editor for this MCU"
-                                >
-                                    <i className="ri-code-s-slash-line"></i>
-                                    <span>Edit Code</span>
-                                </button>
                             </div>
                         )}
                     </motion.div>

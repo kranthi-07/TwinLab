@@ -23,8 +23,8 @@
 /* Meter Holster Body */
 .dmm-body-case {
     position: absolute;
-    width: 120px;
-    height: 184px;
+    width: 124px;
+    height: 206px;
     background: #eab308; /* Classic safety yellow multimeter rubber holster */
     border-radius: 12px;
     border: 3px solid #ca8a04;
@@ -103,6 +103,94 @@
     font-size: 11px;
     font-weight: 900;
     color: #4ade80;
+}
+
+/* Dedicated Mode Selection Keypad */
+.dmm-function-keypad {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    margin: 4px 0 2px 0;
+    padding: 3px;
+    background: #0f172a;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.dmm-fn-key {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 3px 2px;
+    background: #1e293b;
+    border: 1px solid #475569;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.dmm-fn-key:hover {
+    background: #334155;
+    border-color: #64748b;
+    transform: translateY(-1px);
+}
+
+.dmm-fn-key:active {
+    transform: translateY(0.5px);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.fn-led-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #475569;
+    box-shadow: none;
+    transition: all 0.2s ease;
+}
+
+.fn-key-label {
+    font-size: 8px;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', -apple-system, BlinkMacSystemFont, monospace;
+    color: #94a3b8;
+    line-height: 1;
+}
+
+/* Active Mode Button Styling */
+.dmm-fn-key.active {
+    background: #020617;
+    border-color: #38bdf8;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8), 0 0 8px rgba(56, 189, 248, 0.25);
+}
+
+.dmm-fn-key.active .fn-key-label {
+    color: #f8fafc;
+    font-weight: 900;
+}
+
+.dmm-fn-key.fn-voltage.active .fn-led-dot {
+    background: #38bdf8;
+    box-shadow: 0 0 6px #38bdf8, 0 0 10px rgba(56, 189, 248, 0.8);
+}
+
+.dmm-fn-key.fn-current.active .fn-led-dot {
+    background: #10b981;
+    box-shadow: 0 0 6px #10b981, 0 0 10px rgba(16, 185, 129, 0.8);
+}
+
+.dmm-fn-key.fn-resistance.active .fn-led-dot {
+    background: #f59e0b;
+    box-shadow: 0 0 6px #f59e0b, 0 0 10px rgba(245, 158, 11, 0.8);
+}
+
+.dmm-fn-key.fn-continuity.active .fn-led-dot {
+    background: #ec4899;
+    box-shadow: 0 0 6px #ec4899, 0 0 10px rgba(236, 72, 153, 0.8);
 }
 
 /* Rotary Mode Selector Dial */
@@ -226,75 +314,78 @@
 
 /* ============================================================
    MOVABLE SHARP TEST PROBE PENS
+   The probe needle tip sits EXACTLY at (0, 0) of the probe coordinate
 ============================================================ */
 .dmm-probe-pen {
     position: absolute;
     width: 14px;
-    height: 48px;
+    height: 60px;
     pointer-events: auto;
     cursor: grab;
     z-index: 25;
     user-select: none;
+    transform: translate(-50%, 0);
     transition: filter 0.15s ease;
 }
 
 .dmm-probe-pen:hover,
 .dmm-probe-pen.dragging {
-    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8));
+    filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.9));
     cursor: grabbing;
 }
 
 .probe-needle-point {
     position: absolute;
-    top: -12px;
-    left: 5px;
-    width: 4px;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
     height: 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
-.needle-metal {
-    width: 2px;
-    height: 10px;
-    background: linear-gradient(180deg, #f8fafc, #94a3b8);
-    border-radius: 1px;
-}
-
 .probe-contact-tip {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: #38bdf8;
     box-shadow: 0 0 6px #38bdf8;
     position: absolute;
-    top: -4px;
-    left: -2px;
+    top: -3px;
+    left: 0;
     cursor: crosshair;
+}
+
+.needle-metal {
+    width: 2px;
+    height: 12px;
+    background: linear-gradient(180deg, #f8fafc 0%, #94a3b8 60%, #64748b 100%);
+    border-radius: 1px;
 }
 
 .probe-barrel {
     position: absolute;
-    top: 0;
+    top: 12px;
     left: 0;
     width: 14px;
-    height: 48px;
-    border-radius: 3px;
+    height: 46px;
+    border-radius: 4px 4px 6px 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.35);
 }
 
 .red-barrel {
-    background: linear-gradient(180deg, #ef4444, #b91c1c);
-    border: 1px solid #f87171;
+    background: linear-gradient(180deg, #ef4444, #991b1b);
+    border: 1.5px solid #dc2626;
 }
 
 .black-barrel {
     background: linear-gradient(180deg, #334155, #0f172a);
-    border: 1px solid #475569;
+    border: 1.5px solid #1e293b;
 }
 
 .probe-plus-sign {

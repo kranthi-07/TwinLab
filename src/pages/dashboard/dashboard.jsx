@@ -145,9 +145,96 @@ function Dashboard({ onOpenWorkspace }) {
     const handleCreateProject = ({ name, template, color }) => {
         const templateObj = STARTER_TEMPLATES.find(t => t.id === template) || STARTER_TEMPLATES[0];
         const finalName = name?.trim() || suggestedName;
+        const now = Date.now();
+
+        let initialComponents = [];
+        let initialWires = [];
+
+        if (template === "esp32") {
+            initialComponents = [
+                {
+                    id: `esp32-${now}`,
+                    type: "esp32-devkit",
+                    name: "ESP32 DevKit V1",
+                    x: 240,
+                    y: 140,
+                    rotation: 0
+                },
+                {
+                    id: `breadboard-${now + 1}`,
+                    type: "breadboard-half",
+                    name: "Breadboard (Half-Size)",
+                    x: 200,
+                    y: 350,
+                    rotation: 0
+                },
+                {
+                    id: `led-${now + 2}`,
+                    type: "led",
+                    name: "5mm LED (Blue)",
+                    color: "#3b82f6",
+                    x: 340,
+                    y: 414,
+                    rotation: 0
+                }
+            ];
+        } else if (template === "arduino") {
+            const ardId = `arduino-${now}`;
+            const bbId = `breadboard-${now + 1}`;
+            const ledId = `led-${now + 2}`;
+            const resId = `res-${now + 3}`;
+
+            initialComponents = [
+                {
+                    id: ardId,
+                    type: "arduino-uno",
+                    name: "Arduino Uno R3",
+                    x: 160,
+                    y: 160,
+                    rotation: 0
+                },
+                {
+                    id: bbId,
+                    type: "breadboard-half",
+                    name: "Breadboard (Half-Size)",
+                    x: 520,
+                    y: 160,
+                    rotation: 0
+                },
+                {
+                    id: resId,
+                    type: "resistor",
+                    name: "Resistor (220Ω)",
+                    resistance: 220,
+                    x: 640,
+                    y: 224,
+                    rotation: 0
+                },
+                {
+                    id: ledId,
+                    type: "led",
+                    name: "5mm LED (Red)",
+                    color: "#ef4444",
+                    x: 720,
+                    y: 224,
+                    rotation: 0
+                }
+            ];
+        } else if (template === "pi") {
+            initialComponents = [
+                {
+                    id: `breadboard-${now}`,
+                    type: "breadboard-full",
+                    name: "Breadboard (Full-Size)",
+                    x: 180,
+                    y: 200,
+                    rotation: 0
+                }
+            ];
+        }
 
         const newProject = {
-            id: `proj-${Date.now()}`,
+            id: `proj-${now}`,
             name: finalName,
             template: templateObj.id,
             chip: templateObj.chip,
@@ -156,8 +243,8 @@ function Dashboard({ onOpenWorkspace }) {
             status: "Active",
             lastEdited: "Just now",
             updatedAt: new Date().toISOString(),
-            components: [],
-            wires: []
+            components: initialComponents,
+            wires: initialWires
         };
 
         const updated = [newProject, ...projects];

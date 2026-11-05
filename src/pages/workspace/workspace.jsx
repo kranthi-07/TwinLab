@@ -10,6 +10,8 @@ import RightSidebar from "../../components/workspace/RightSidebar/RightSidebar";
 import BottomConsole from "../../components/code/BottomConsole/BottomConsole";
 import CodeEditor from "../../components/workspace/CodeEditor/CodeEditor";
 import Minimap from "../../components/workspace/Minimap/Minimap";
+import SchematicView from "../../components/workspace/SchematicView/SchematicView";
+import Oscilloscope from "../../components/workspace/Instruments/Oscilloscope";
 import { McuExecutionSession, DEFAULT_SKETCHES } from "../../simulation/mcuRuntime";
 
 const STORAGE_KEY = "twinlab_active_project";
@@ -95,6 +97,8 @@ function Workspace({ onBackToHome }) {
     const [isZoomLocked, setIsZoomLocked] = useState(false);
     const [isFocusMode, setIsFocusMode] = useState(false);
     const [isSimulating, setIsSimulating] = useState(false);
+    const [viewMode, setViewMode] = useState("simulation"); // "simulation" | "schematic"
+    const [isOscilloscopeOpen, setIsOscilloscopeOpen] = useState(false);
 
     // MCU Boards & Firmware Execution
     const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false);
@@ -108,7 +112,7 @@ function Workspace({ onBackToHome }) {
 
     // Available MCU boards on canvas
     const availableMcuBoards = useMemo(() => {
-        return components.filter(c => c.type === "arduino-uno" || c.type === "esp32-devkit" || c.type === "esp32");
+        return components.filter(c => ["arduino-uno", "arduino-mega", "arduino-nano", "esp32-devkit", "esp32", "esp32-s3"].includes(c.type));
     }, [components]);
 
     const activeTargetBoard = availableMcuBoards.find(b => b.id === targetMcuId) || availableMcuBoards[0] || null;
@@ -399,6 +403,18 @@ function Workspace({ onBackToHome }) {
 
     // Copy action (Ctrl+C)
     const handleCopy = useCallback(() => {
+        if (selectedId === "all" || selectedWireId === "all") {
+            clipboardRef.current = {
+                type: "all",
+                data: {
+                    components: JSON.parse(JSON.stringify(components)),
+                    wires: JSON.parse(JSON.stringify(wires))
+                }
+            };
+            setToastMessage(`📋 Copied All ${components.length} Components & ${wires.length} Wires (Ctrl+C)`);
+            setTimeout(() => setToastMessage(""), 1800);
+            return;
+        }
         if (selectedComponent) {
             clipboardRef.current = { type: "component", data: JSON.parse(JSON.stringify(selectedComponent)) };
             setToastMessage(`📋 Copied "${selectedComponent.name || 'Component'}" (Ctrl+C)`);
@@ -413,10 +429,28 @@ function Workspace({ onBackToHome }) {
                 setTimeout(() => setToastMessage(""), 1800);
             }
         }
-    }, [selectedComponent, selectedWireId, wires]);
+    }, [selectedComponent, selectedWireId, selectedId, components, wires]);
 
     // Cut action (Ctrl+X)
     const handleCut = useCallback(() => {
+        if (selectedId === "all" || selectedWireId === "all") {
+            recordSnapshot();
+            clipboardRef.current = {
+                type: "all",
+                data: {
+                    components: JSON.parse(JSON.stringify(components)),
+                    wires: JSON.parse(JSON.stringify(wires))
+                }
+            };
+            setComponents([]);
+            setWires([]);
+            setSelectedId(null);
+            setSelectedWireId(null);
+            setIsUnsaved(true);
+            setToastMessage("✂ Cut All (Ctrl+X)");
+            setTimeout(() => setToastMessage(""), 1800);
+            return;
+        }
         if (selectedComponent) {
             recordSnapshot();
             clipboardRef.current = { type: "component", data: JSON.parse(JSON.stringify(selectedComponent)) };
@@ -441,7 +475,7 @@ function Workspace({ onBackToHome }) {
                 setTimeout(() => setToastMessage(""), 1800);
             }
         }
-    }, [selectedComponent, selectedWireId, selectedId, wires, recordSnapshot]);
+    }, [selectedComponent, selectedWireId, selectedId, components, wires, recordSnapshot]);
 
     // Paste action (Ctrl+V)
     const handlePaste = useCallback(() => {
@@ -452,6 +486,28 @@ function Workspace({ onBackToHome }) {
         }
         recordSnapshot();
         const offset = 32;
+        if (clipboardRef.current.type === "all") {
+            const data = clipboardRef.current.data;
+            const pastedComps = (data.components || []).map(c => ({
+                ...c,
+                id: `${c.type}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+                x: (c.x || 100) + offset,
+                y: (c.y || 100) + offset
+            }));
+            const pastedWires = (data.wires || []).map(w => ({
+                ...w,
+                id: `wire-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+                points: w.points ? w.points.map(p => ({ x: p.x + offset, y: p.y + offset })) : []
+            }));
+            setComponents(prev => [...prev, ...pastedComps]);
+            setWires(prev => [...prev, ...pastedWires]);
+            setSelectedId("all");
+            setSelectedWireId("all");
+            setIsUnsaved(true);
+            setToastMessage("📋 Pasted All (Ctrl+V)");
+            setTimeout(() => setToastMessage(""), 1800);
+            return;
+        }
         if (clipboardRef.current.type === "component") {
             const original = clipboardRef.current.data;
             const newId = `${original.type}-${Date.now()}`;
@@ -536,6 +592,16 @@ function Workspace({ onBackToHome }) {
                 return;
             }
 
+            // SELECT ALL: Ctrl+A / Cmd+A
+            if (isCtrl && (e.key === "a" || e.key === "A")) {
+                e.preventDefault();
+                setSelectedId("all");
+                setSelectedWireId("all");
+                setToastMessage(`✓ Selected All (${components.length} components, ${wires.length} wires)`);
+                setTimeout(() => setToastMessage(""), 1600);
+                return;
+            }
+
             // 2. UNDO: Ctrl+Z / Cmd+Z (without Shift)
             if (isCtrl && !e.shiftKey && (e.key === "z" || e.key === "Z")) {
                 e.preventDefault();
@@ -580,6 +646,18 @@ function Workspace({ onBackToHome }) {
 
             // 8. DELETE: Delete or Backspace
             if (e.key === "Delete" || e.key === "Backspace") {
+                if (selectedId === "all" || selectedWireId === "all") {
+                    e.preventDefault();
+                    recordSnapshot();
+                    setComponents([]);
+                    setWires([]);
+                    setSelectedId(null);
+                    setSelectedWireId(null);
+                    setIsUnsaved(true);
+                    setToastMessage("Deleted All (Del)");
+                    setTimeout(() => setToastMessage(""), 1600);
+                    return;
+                }
                 if (selectedId) {
                     e.preventDefault();
                     recordSnapshot();
@@ -952,36 +1030,48 @@ function Workspace({ onBackToHome }) {
                 "--project-accent-border": `${projectMeta.accent || "#FF8A00"}45`
             }}
         >
-            {/* Interactive Simulation Canvas with Infinite Grid, Pan, Zoom, Drop & Free Drag */}
-            <Canvas
-                components={components}
-                wires={wires}
-                simulationResult={simulationResult}
-                onAddComponent={handleAddComponent}
-                onUpdateComponent={handleUpdateComponent}
-                onDeleteComponent={handleDeleteComponent}
-                onAddWire={handleAddWire}
-                onDeleteWire={handleDeleteWire}
-                onBatchUpdateWires={handleBatchUpdateWires}
-                onUpdateAllComponentsAndWires={handleUpdateAllComponentsAndWires}
-                selectedId={selectedId}
-                onSelectComponent={handleSelectComponent}
-                selectedWireId={selectedWireId}
-                onSelectWire={handleSelectWire}
-                isWireMode={isWireMode}
-                onDeactivateWireMode={() => setIsWireMode(false)}
-                wireColor={wireColor}
-                routingMode={routingMode}
-                onNotifyChange={() => setIsUnsaved(true)}
-                viewport={viewport}
-                onUpdateViewport={setViewport}
-                placingComponent={placingComponent}
-                onCommitPlacingComponent={handleCommitPlacingComponent}
-                onCancelPlacingComponent={handleCancelPlacingComponent}
-                isZoomLocked={isZoomLocked}
-                isFocusMode={isFocusMode}
-                onToggleFocusMode={() => setIsFocusMode(!isFocusMode)}
-            />
+            {/* View Mode Toggle: Interactive Canvas vs IEEE Schematic Diagram */}
+            {viewMode === "schematic" ? (
+                <SchematicView
+                    components={components}
+                    wires={wires}
+                    simulationResult={simulationResult}
+                    selectedId={selectedId}
+                    onSelectComponent={handleSelectComponent}
+                    projectName={projectMeta.name || "Project - 1"}
+                    onClose={() => setViewMode("simulation")}
+                />
+            ) : (
+                <Canvas
+                    components={components}
+                    wires={wires}
+                    simulationResult={simulationResult}
+                    onAddComponent={handleAddComponent}
+                    onUpdateComponent={handleUpdateComponent}
+                    onDeleteComponent={handleDeleteComponent}
+                    onAddWire={handleAddWire}
+                    onDeleteWire={handleDeleteWire}
+                    onBatchUpdateWires={handleBatchUpdateWires}
+                    onUpdateAllComponentsAndWires={handleUpdateAllComponentsAndWires}
+                    selectedId={selectedId}
+                    onSelectComponent={handleSelectComponent}
+                    selectedWireId={selectedWireId}
+                    onSelectWire={handleSelectWire}
+                    isWireMode={isWireMode}
+                    onDeactivateWireMode={() => setIsWireMode(false)}
+                    wireColor={wireColor}
+                    routingMode={routingMode}
+                    onNotifyChange={() => setIsUnsaved(true)}
+                    viewport={viewport}
+                    onUpdateViewport={setViewport}
+                    placingComponent={placingComponent}
+                    onCommitPlacingComponent={handleCommitPlacingComponent}
+                    onCancelPlacingComponent={handleCancelPlacingComponent}
+                    isZoomLocked={isZoomLocked}
+                    isFocusMode={isFocusMode}
+                    onToggleFocusMode={() => setIsFocusMode(!isFocusMode)}
+                />
+            )}
 
             {/* Minimap (Smoothly animated in Focus Mode per user request) */}
             <AnimatePresence>
@@ -1004,25 +1094,24 @@ function Workspace({ onBackToHome }) {
                 )}
             </AnimatePresence>
 
-            {/* ACTIVATED FOCUS BUTTON (Smoothly animated floating control) */}
+            {/* ACTIVATED FOCUS BUTTON (Minimalist top center icon button) */}
             <AnimatePresence>
                 {isFocusMode && (
                     <motion.div 
                         className="focus-mode-floating-control"
-                        initial={{ opacity: 0, y: -16, scale: 0.92 }}
+                        initial={{ opacity: 0, y: -16, scale: 0.88 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -16, scale: 0.92 }}
-                        transition={{ duration: 0.25, ease: "easeOut" }}
+                        exit={{ opacity: 0, y: -16, scale: 0.88 }}
+                        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                     >
                         <button
                             type="button"
-                            className="activated-focus-btn active"
+                            className="focus-exit-minimal-btn"
                             onClick={() => setIsFocusMode(false)}
-                            title="Focus Mode is Active • Click to Exit and show all bars"
+                            title="Exit Focus Mode (F or Esc)"
+                            aria-label="Exit Focus Mode"
                         >
-                            <i className="ri-focus-3-line"></i>
-                            <span>Focus Mode Active</span>
-                            <span className="focus-exit-chip">Exit Focus</span>
+                            <i className="ri-fullscreen-exit-line"></i>
                         </button>
                     </motion.div>
                 )}
@@ -1034,6 +1123,10 @@ function Workspace({ onBackToHome }) {
                 projectAccent={projectMeta.accent || "#FF8A00"}
                 onRenameProject={handleRenameProject}
                 onBackToHome={handleBackClick} 
+                onUndo={handleUndo}
+                onRedo={handleRedo}
+                canUndo={historyRef.current.past.length > 0}
+                canRedo={historyRef.current.future.length > 0}
                 selectedComponent={selectedComponent}
                 onUpdateComponent={handleUpdateComponent}
                 selectedWire={wires.find(w => w.id === selectedWireId)}
@@ -1070,19 +1163,42 @@ function Workspace({ onBackToHome }) {
                 }}
                 isCodeOpen={isCodeEditorOpen}
                 onToggleCodeEditor={() => setIsCodeEditorOpen(prev => !prev)}
+                viewMode={viewMode}
+                onChangeViewMode={(mode) => setViewMode(mode)}
             />
 
             {/* Left Sidebar: Seamlessly fades out & in via CSS transitions */}
             <LeftSidebar onAddComponent={handleAddComponent} />
 
             {/* Right Sidebar: Seamlessly fades out & in via CSS transitions */}
-            <RightSidebar />
+            <RightSidebar 
+                onOpenOscilloscope={() => setIsOscilloscopeOpen(true)}
+                onOpenSerial={() => setIsSerialOpen(prev => !prev)}
+                onOpenMultimeter={() => {
+                    const dmm = components.find(c => c.type === "multimeter");
+                    if (dmm) {
+                        handleSelectComponent(dmm.id);
+                    } else {
+                        handleAddComponent({ type: "multimeter", x: 260, y: 320 });
+                    }
+                }}
+                selectedComponent={selectedComponent}
+                components={components}
+                onSelectComponent={handleSelectComponent}
+                onUpdateComponent={handleUpdateComponent}
+                onDeleteComponent={handleDeleteComponent}
+                onRotateComponent={handleRotateSelected}
+                onAddComponent={handleAddComponent}
+                simulationResult={simulationResult}
+            />
 
             {/* Bottom Console: Seamlessly fades out & in via CSS transitions */}
             <BottomConsole 
                 logs={combinedLogs} 
                 isSimulating={isSimulating} 
                 supplyVoltage={simulationResult.supplyVoltage}
+                isOpen={isSerialOpen}
+                onToggleOpen={() => setIsSerialOpen(prev => !prev)}
             />
 
             {/* Embedded MCU Firmware Code Studio */}
@@ -1101,6 +1217,19 @@ function Workspace({ onBackToHome }) {
                         isSerialOpen={isSerialOpen}
                         baudRate={baudRate}
                         onChangeBaudRate={setBaudRate}
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Dual-Trace Digital Oscilloscope Virtual Instrument */}
+            <AnimatePresence>
+                {isOscilloscopeOpen && (
+                    <Oscilloscope
+                        isOpen={isOscilloscopeOpen}
+                        onClose={() => setIsOscilloscopeOpen(false)}
+                        isSimulating={isSimulating}
+                        mcuStates={mcuRuntimeStates}
+                        components={components}
                     />
                 )}
             </AnimatePresence>

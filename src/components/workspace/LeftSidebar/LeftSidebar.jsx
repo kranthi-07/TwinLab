@@ -2,6 +2,338 @@ import "./LeftSidebar.css";
 import { useState, useRef, useEffect } from "react";
 import { COMPONENTS_CATALOG } from "../../../data/componentsCatalog";
 
+function ComponentCatalogThumbnail({ component }) {
+    const type = component.type || component.id;
+    const color = component.color || "#ef4444";
+
+    if (type === "arduino-uno") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <rect x="8" y="4" width="64" height="48" rx="4" fill="#008184" stroke="#005c5e" strokeWidth="1.5" />
+                <rect x="4" y="8" width="12" height="14" rx="1.5" fill="#94a3b8" stroke="#475569" strokeWidth="1" />
+                <rect x="4" y="32" width="14" height="16" rx="2" fill="#0f172a" />
+                <rect x="28" y="24" width="28" height="10" rx="1" fill="#1e293b" />
+                <circle cx="30" cy="29" r="1.5" fill="#475569" />
+                <rect x="22" y="6" width="46" height="5" rx="1" fill="#0f172a" />
+                <rect x="22" y="45" width="46" height="5" rx="1" fill="#0f172a" />
+                {[...Array(8)].map((_, i) => (
+                    <circle key={`t-${i}`} cx={25 + i * 5.5} cy={8.5} r="1" fill="#fbbf24" />
+                ))}
+                {[...Array(8)].map((_, i) => (
+                    <circle key={`b-${i}`} cx={25 + i * 5.5} cy={47.5} r="1" fill="#fbbf24" />
+                ))}
+                <circle cx="16" cy="24" r="2.5" fill="#ef4444" />
+            </svg>
+        );
+    }
+
+    if (type === "arduino-mega") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <rect x="2" y="6" width="76" height="44" rx="3.5" fill="#005c5e" stroke="#00383a" strokeWidth="1.5" />
+                {/* USB-B & DC Jack */}
+                <rect x="1" y="10" width="10" height="13" rx="1.5" fill="#94a3b8" />
+                <rect x="1" y="31" width="12" height="15" rx="1.5" fill="#0f172a" />
+                {/* ATmega2560 Quad Flat Pack rotated */}
+                <rect x="34" y="20" width="14" height="14" rx="1" fill="#09090b" stroke="#27272a" strokeWidth="0.8" transform="rotate(45 41 27)" />
+                {/* Extended Dual-Row Right Header */}
+                <rect x="71" y="10" width="5" height="36" rx="1" fill="#0f172a" />
+                {[...Array(6)].map((_, i) => (
+                    <circle key={`rh-${i}`} cx={73.5} cy={13 + i * 6} r="0.8" fill="#fbbf24" />
+                ))}
+                {/* Top Headers */}
+                <rect x="14" y="8" width="54" height="4.5" rx="1" fill="#0f172a" />
+                {/* Bottom Headers */}
+                <rect x="14" y="43.5" width="54" height="4.5" rx="1" fill="#0f172a" />
+                <text x="40" y="41" fill="#a1a1aa" fontSize="4.5" fontWeight="bold" textAnchor="middle">MEGA 2560</text>
+            </svg>
+        );
+    }
+
+    if (type === "arduino-nano") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                {/* Horizontal DIP-30 Board */}
+                <rect x="8" y="14" width="64" height="28" rx="3" fill="#0284c7" stroke="#0369a1" strokeWidth="1.5" />
+                {/* Mini-USB on left */}
+                <rect x="6" y="22" width="7" height="12" rx="1" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="0.8" />
+                {/* Reset button center */}
+                <rect x="37" y="25" width="6" height="6" rx="1" fill="#334155" />
+                <circle cx="40" cy="28" r="1.5" fill="#ef4444" />
+                {/* ATmega328P QFP */}
+                <rect x="22" y="23" width="9" height="9" rx="0.8" fill="#09090b" transform="rotate(45 26.5 27.5)" />
+                {/* Top 15-pin Header */}
+                <rect x="15" y="15.5" width="53" height="3.5" rx="0.8" fill="#0f172a" />
+                {[...Array(9)].map((_, i) => (
+                    <circle key={`nt-${i}`} cx={18 + i * 5.8} cy={17.2} r="0.8" fill="#fbbf24" />
+                ))}
+                {/* Bottom 15-pin Header */}
+                <rect x="15" y="37" width="53" height="3.5" rx="0.8" fill="#0f172a" />
+                {[...Array(9)].map((_, i) => (
+                    <circle key={`nb-${i}`} cx={18 + i * 5.8} cy={38.8} r="0.8" fill="#fbbf24" />
+                ))}
+                <text x="56" y="29.5" fill="#ffffff" fontSize="4.8" fontWeight="bold">NANO</text>
+            </svg>
+        );
+    }
+
+    if (type === "esp32" || type === "esp32-devkit" || type === "esp32-s3") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <rect x="16" y="4" width="48" height="48" rx="3" fill="#1e293b" stroke="#0f172a" strokeWidth="1.5" />
+                <rect x="24" y="16" width="32" height="24" rx="2" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1" />
+                <text x="40" y="30" fill="#475569" fontSize="5.5" fontWeight="bold" textAnchor="middle">ESP32</text>
+                <path d="M 28 8 L 32 8 L 32 12 L 36 12 L 36 8 L 40 8 L 40 12 L 44 12 L 44 8 L 48 8 L 48 12 L 52 12 L 52 8" fill="none" stroke="#eab308" strokeWidth="1.5" />
+                <rect x="34" y="48" width="12" height="5" rx="1" fill="#94a3b8" />
+                <rect x="17" y="8" width="4.5" height="40" rx="1" fill="#0f172a" />
+                <rect x="58.5" y="8" width="4.5" height="40" rx="1" fill="#0f172a" />
+            </svg>
+        );
+    }
+
+    // Full-Size Breadboard (830 Tie Points) - Wide layout
+    if (type === "breadboard-full") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <rect x="3" y="10" width="74" height="36" rx="3.5" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.5" />
+                {/* Extended Dual Rails */}
+                <line x1="8" y1="14" x2="72" y2="14" stroke="#ef4444" strokeWidth="1" />
+                <line x1="8" y1="17.5" x2="72" y2="17.5" stroke="#3b82f6" strokeWidth="1" />
+                <line x1="8" y1="38.5" x2="72" y2="38.5" stroke="#3b82f6" strokeWidth="1" />
+                <line x1="8" y1="42" x2="72" y2="42" stroke="#ef4444" strokeWidth="1" />
+                {/* Center Trench */}
+                <line x1="6" y1="28" x2="74" y2="28" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3 2" />
+                {/* Dense columns */}
+                {[...Array(4)].map((_, r) => (
+                    <g key={r}>
+                        {[...Array(12)].map((_, c) => (
+                            <rect key={c} x={10 + c * 5} y={20 + (r < 2 ? r * 3 : 8 + (r - 2) * 3)} width="1.6" height="1.6" rx="0.3" fill="#64748b" />
+                        ))}
+                    </g>
+                ))}
+            </svg>
+        );
+    }
+
+    // Mini Breadboard (170 Tie Points) - Compact layout with NO power rails
+    if (type === "breadboard-mini") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <rect x="18" y="11" width="44" height="34" rx="4" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1.5" />
+                {/* No Power Rails! Only Center Divider Trench */}
+                <line x1="20" y1="28" x2="60" y2="28" stroke="#94a3b8" strokeWidth="1.2" strokeDasharray="2 2" />
+                {[...Array(4)].map((_, r) => (
+                    <g key={r}>
+                        {[...Array(6)].map((_, c) => (
+                            <rect key={c} x={24 + c * 5.8} y={16 + (r < 2 ? r * 4.5 : 9 + (r - 2) * 4.5)} width="2" height="2" rx="0.4" fill="#64748b" />
+                        ))}
+                    </g>
+                ))}
+            </svg>
+        );
+    }
+
+    // Standard Half Breadboard (400 Tie Points)
+    if (type?.startsWith("breadboard")) {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <rect x="8" y="8" width="64" height="40" rx="4" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.5" />
+                <line x1="14" y1="13" x2="66" y2="13" stroke="#ef4444" strokeWidth="1" />
+                <line x1="14" y1="17" x2="66" y2="17" stroke="#3b82f6" strokeWidth="1" />
+                <line x1="14" y1="39" x2="66" y2="39" stroke="#3b82f6" strokeWidth="1" />
+                <line x1="14" y1="43" x2="66" y2="43" stroke="#ef4444" strokeWidth="1" />
+                <line x1="12" y1="28" x2="68" y2="28" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3 2" />
+                {[...Array(5)].map((_, r) => (
+                    <g key={r}>
+                        {[...Array(8)].map((_, c) => (
+                            <rect key={c} x={18 + c * 6} y={20 + (r < 2 ? r * 3 : 8 + (r - 2) * 3)} width="1.8" height="1.8" rx="0.3" fill="#64748b" />
+                        ))}
+                    </g>
+                ))}
+            </svg>
+        );
+    }
+
+    if (type === "resistor") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <line x1="8" y1="28" x2="26" y2="28" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" />
+                <line x1="54" y1="28" x2="72" y2="28" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" />
+                <rect x="24" y="20" width="32" height="16" rx="4" fill="#d4a373" stroke="#bc6c25" strokeWidth="1" />
+                <rect x="29" y="20" width="3.5" height="16" fill="#dc2626" />
+                <rect x="36" y="20" width="3.5" height="16" fill="#dc2626" />
+                <rect x="43" y="20" width="3.5" height="16" fill="#78350f" />
+                <rect x="50" y="20" width="3.5" height="16" fill="#eab308" />
+            </svg>
+        );
+    }
+
+    if (type === "led" || component.id?.startsWith("led")) {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <line x1="36" y1="36" x2="36" y2="52" stroke="#94a3b8" strokeWidth="2" />
+                <line x1="44" y1="36" x2="44" y2="52" stroke="#94a3b8" strokeWidth="2" />
+                <rect x="32" y="34" width="16" height="4" rx="1.5" fill={color} stroke="#000" strokeOpacity="0.2" />
+                <path d="M 33 34 C 33 16, 47 16, 47 34 Z" fill={color} />
+                <ellipse cx="37" cy="25" rx="2" ry="5" fill="#ffffff" fillOpacity="0.45" />
+            </svg>
+        );
+    }
+
+    if (type === "button" || type === "push-button") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <line x1="22" y1="18" x2="16" y2="18" stroke="#94a3b8" strokeWidth="2.5" />
+                <line x1="22" y1="38" x2="16" y2="38" stroke="#94a3b8" strokeWidth="2.5" />
+                <line x1="58" y1="18" x2="64" y2="18" stroke="#94a3b8" strokeWidth="2.5" />
+                <line x1="58" y1="38" x2="64" y2="38" stroke="#94a3b8" strokeWidth="2.5" />
+                <rect x="22" y="14" width="36" height="28" rx="4" fill="#1e293b" stroke="#0f172a" strokeWidth="1.5" />
+                <circle cx="26" cy="18" r="1.5" fill="#94a3b8" />
+                <circle cx="54" cy="18" r="1.5" fill="#94a3b8" />
+                <circle cx="26" cy="38" r="1.5" fill="#94a3b8" />
+                <circle cx="54" cy="38" r="1.5" fill="#94a3b8" />
+                <circle cx="40" cy="28" r="8" fill="#0f172a" stroke="#334155" strokeWidth="1" />
+                <circle cx="40" cy="28" r="5.5" fill="#3b82f6" />
+            </svg>
+        );
+    }
+
+    if (type === "potentiometer") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <line x1="32" y1="42" x2="32" y2="52" stroke="#94a3b8" strokeWidth="2" />
+                <line x1="40" y1="42" x2="40" y2="52" stroke="#94a3b8" strokeWidth="2" />
+                <line x1="48" y1="42" x2="48" y2="52" stroke="#94a3b8" strokeWidth="2" />
+                <circle cx="40" cy="25" r="17" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
+                <circle cx="40" cy="25" r="11" fill="#0284c7" />
+                <line x1="40" y1="25" x2="40" y2="16" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+        );
+    }
+
+    if (type === "slide-switch" || type === "switch-spdt") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <line x1="30" y1="36" x2="30" y2="50" stroke="#94a3b8" strokeWidth="2" />
+                <line x1="40" y1="36" x2="40" y2="50" stroke="#94a3b8" strokeWidth="2" />
+                <line x1="50" y1="36" x2="50" y2="50" stroke="#94a3b8" strokeWidth="2" />
+                <rect x="22" y="16" width="36" height="20" rx="2" fill="#475569" stroke="#334155" strokeWidth="1" />
+                <rect x="26" y="24" width="28" height="4" rx="1" fill="#0f172a" />
+                <rect x="36" y="12" width="8" height="16" rx="2" fill="#0f172a" stroke="#64748b" strokeWidth="1" />
+            </svg>
+        );
+    }
+
+    if (type === "battery-9v") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <rect x="26" y="14" width="28" height="38" rx="3" fill="#1e293b" stroke="#0f172a" strokeWidth="1" />
+                <rect x="26" y="14" width="28" height="10" rx="1" fill="#f97316" />
+                <rect x="30" y="8" width="6" height="6" rx="1" fill="#cbd5e1" stroke="#64748b" strokeWidth="1" />
+                <circle cx="48" cy="11" r="3" fill="#cbd5e1" stroke="#64748b" strokeWidth="1" />
+                <text x="40" y="38" fill="#e2e8f0" fontSize="7" fontWeight="bold" textAnchor="middle">9V</text>
+            </svg>
+        );
+    }
+
+    if (type === "battery-coin") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <circle cx="40" cy="28" r="18" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="2" />
+                <circle cx="40" cy="28" r="15" fill="#f1f5f9" />
+                <text x="40" y="26" fill="#334155" fontSize="8" fontWeight="bold" textAnchor="middle">+</text>
+                <text x="40" y="34" fill="#64748b" fontSize="5" fontWeight="bold" textAnchor="middle">3V</text>
+            </svg>
+        );
+    }
+
+    if (type === "buzzer") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <line x1="34" y1="42" x2="34" y2="52" stroke="#dc2626" strokeWidth="2" />
+                <line x1="46" y1="42" x2="46" y2="52" stroke="#0f172a" strokeWidth="2" />
+                <circle cx="40" cy="26" r="16" fill="#0f172a" stroke="#334155" strokeWidth="1.5" />
+                <circle cx="40" cy="26" r="5" fill="#1e293b" stroke="#475569" strokeWidth="1" />
+                <path d="M 60 20 A 8 8 0 0 1 60 32" fill="none" stroke="#38bdf8" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+        );
+    }
+
+    if (type === "multimeter") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <rect x="26" y="6" width="28" height="44" rx="4" fill="#eab308" stroke="#ca8a04" strokeWidth="1.5" />
+                <rect x="30" y="10" width="20" height="10" rx="1.5" fill="#1e2d24" stroke="#14532d" strokeWidth="1" />
+                <text x="40" y="17.5" fill="#4ade80" fontSize="5.5" fontWeight="bold" textAnchor="middle">0.00</text>
+                <circle cx="40" cy="30" r="6" fill="#0f172a" />
+                <line x1="40" y1="30" x2="40" y2="25" stroke="#f8fafc" strokeWidth="1.5" strokeLinecap="round" />
+                <circle cx="34" cy="44" r="2" fill="#0f172a" />
+                <circle cx="46" cy="44" r="2" fill="#dc2626" />
+            </svg>
+        );
+    }
+
+    if (type === "photoresistor") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <line x1="36" y1="38" x2="36" y2="52" stroke="#94a3b8" strokeWidth="2" />
+                <line x1="44" y1="38" x2="44" y2="52" stroke="#94a3b8" strokeWidth="2" />
+                <circle cx="40" cy="24" r="14" fill="#fed7aa" stroke="#fb923c" strokeWidth="1.5" />
+                <path d="M 32 20 C 36 20, 36 24, 40 24 C 44 24, 44 28, 48 28" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+        );
+    }
+
+    if (type === "capacitor-ceramic") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <line x1="36" y1="36" x2="36" y2="52" stroke="#94a3b8" strokeWidth="2" />
+                <line x1="44" y1="36" x2="44" y2="52" stroke="#94a3b8" strokeWidth="2" />
+                <circle cx="40" cy="24" r="12" fill="#ea580c" stroke="#c2410c" strokeWidth="1" />
+                <text x="40" y="27" fill="#ffffff" fontSize="6" fontWeight="bold" textAnchor="middle">104</text>
+            </svg>
+        );
+    }
+
+    if (type === "capacitor-electrolytic") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <line x1="36" y1="40" x2="36" y2="52" stroke="#94a3b8" strokeWidth="2" />
+                <line x1="44" y1="40" x2="44" y2="52" stroke="#94a3b8" strokeWidth="2" />
+                <rect x="32" y="12" width="16" height="28" rx="2" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1" />
+                <rect x="42" y="12" width="4" height="28" fill="#e2e8f0" />
+                <text x="44" y="24" fill="#0f172a" fontSize="5" fontWeight="bold" textAnchor="middle">-</text>
+            </svg>
+        );
+    }
+
+    if (type?.startsWith("starter")) {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <rect x="16" y="8" width="48" height="40" rx="6" fill="rgba(255, 138, 0, 0.15)" stroke="#f97316" strokeWidth="1.5" />
+                <circle cx="32" cy="28" r="7" fill="#f97316" />
+                <rect x="44" y="24" width="12" height="8" rx="2" fill="#38bdf8" />
+                <line x1="32" y1="28" x2="44" y2="28" stroke="#f8fafc" strokeWidth="1.5" />
+            </svg>
+        );
+    }
+
+    // Default microchip fallback
+    return (
+        <svg viewBox="0 0 80 56" className="catalog-svg-art">
+            <rect x="22" y="10" width="36" height="36" rx="4" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
+            <circle cx="28" cy="16" r="2" fill="#475569" />
+            <text x="40" y="32" fill="#94a3b8" fontSize="6" fontWeight="bold" textAnchor="middle">IC</text>
+            {[...Array(4)].map((_, i) => (
+                <g key={i}>
+                    <line x1="16" y1="16 + i * 8" x2="22" y2="16 + i * 8" stroke="#94a3b8" strokeWidth="2" />
+                    <line x1="58" y1="16 + i * 8" x2="64" y2="16 + i * 8" stroke="#94a3b8" strokeWidth="2" />
+                </g>
+            ))}
+        </svg>
+    );
+}
+
 function LeftSidebar({ onAddComponent }) {
     const [open, setOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("all");
@@ -81,21 +413,11 @@ function LeftSidebar({ onAddComponent }) {
         } catch {}
     };
 
-    // Filter out basic passives that are already in the top-left components bar palette
-    const BASIC_PALETTE_TYPES = new Set([
-        "resistor",
-        "led",
-        "capacitor-ceramic",
-        "button",
-        "potentiometer",
-        "battery-9v",
-        "battery-coin",
-        "buzzer",
-        "wire"
-    ]);
+    // Filter out wire tool (wire is drawn interactively between points)
+    const EXCLUDED_TYPES = new Set(["wire", "wire-tool"]);
 
     const filteredComponents = COMPONENTS_CATALOG.filter((comp) => {
-        if (BASIC_PALETTE_TYPES.has(comp.type) || BASIC_PALETTE_TYPES.has(comp.id)) {
+        if (EXCLUDED_TYPES.has(comp.type) || EXCLUDED_TYPES.has(comp.id)) {
             return false;
         }
         const matchesTab = activeTab === "all" ? true : comp.category === activeTab;
@@ -233,9 +555,7 @@ function LeftSidebar({ onAddComponent }) {
                                             draggable={false}
                                         />
                                     ) : (
-                                        <div className="component-icon-placeholder">
-                                            <i className={component.icon || "ri-cpu-line"}></i>
-                                        </div>
+                                        <ComponentCatalogThumbnail component={component} />
                                     )}
                                     <span className="drag-pill">Drag</span>
                                 </div>

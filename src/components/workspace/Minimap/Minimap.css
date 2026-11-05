@@ -5,7 +5,8 @@
 .workspace-minimap {
     position: absolute;
     top: 76px;
-    left: 96px;
+    right: 80px;
+    left: auto;
     width: 224px;
     background: rgba(18, 23, 31, 0.88);
     backdrop-filter: blur(20px);

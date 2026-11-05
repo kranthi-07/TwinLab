@@ -92,13 +92,28 @@ function CodeEditor({
 
     if (!isOpen) return null;
 
-    const boardDisplay = targetBoard
-        ? (targetBoard.type === "esp32" || targetBoard.type === "esp32-devkit" ? "ESP32 DevKit V1" : "Arduino Uno R3")
-        : "Arduino Uno R3 (Virtual)";
+    const getBoardInfo = (board) => {
+        if (!board) return { name: "Arduino Uno R3", type: "arduino-uno", port: "COM3", arch: "ATmega328P 16MHz" };
+        switch (board.type) {
+            case "arduino-mega":
+                return { name: board.name || "Arduino Mega 2560", type: "arduino-mega", port: "COM4", arch: "ATmega2560 16MHz" };
+            case "arduino-nano":
+                return { name: board.name || "Arduino Nano V3", type: "arduino-nano", port: "COM5", arch: "ATmega328P DIP-30" };
+            case "esp32":
+            case "esp32-devkit":
+            case "esp32-s3":
+                return { name: board.name || "ESP32-S3 DevKit", type: "esp32", port: "COM8", arch: "Xtensa Dual-Core 240MHz" };
+            case "arduino-uno":
+            default:
+                return { name: board.name || "Arduino Uno R3", type: "arduino-uno", port: "COM3", arch: "ATmega328P 16MHz" };
+        }
+    };
+
+    const currentBoard = getBoardInfo(targetBoard);
 
     return (
         <motion.div 
-            className="code-editor-dock"
+            className="code-editor-dock studio-dark-theme"
             initial={{ x: 500, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 500, opacity: 0 }}
@@ -115,21 +130,30 @@ function CodeEditor({
 
                     {/* Target Board Badge / Selector */}
                     {availableBoards.length > 1 ? (
-                        <select 
-                            className="board-selector-dropdown"
-                            value={targetBoard?.id || ""}
-                            onChange={(e) => onSelectTargetBoard && onSelectTargetBoard(e.target.value)}
-                        >
-                            {availableBoards.map(b => (
-                                <option key={b.id} value={b.id}>
-                                    {b.name || (b.type === "arduino-uno" ? "Arduino Uno" : "ESP32 DevKit")}
-                                </option>
-                            ))}
-                        </select>
+                        <div className="board-selector-wrap">
+                            <i className="ri-cpu-line board-sel-icon"></i>
+                            <select 
+                                className="board-selector-dropdown"
+                                value={targetBoard?.id || ""}
+                                onChange={(e) => onSelectTargetBoard && onSelectTargetBoard(e.target.value)}
+                                title="Switch target microcontroller"
+                            >
+                                {availableBoards.map(b => {
+                                    const info = getBoardInfo(b);
+                                    return (
+                                        <option key={b.id} value={b.id}>
+                                            {info.name} ({info.port})
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                        </div>
                     ) : (
-                        <div className="board-badge" title="Active Target Microcontroller">
+                        <div className="board-badge" title={`Active Target: ${currentBoard.name} (${currentBoard.arch})`}>
+                            <span className="board-status-dot pulse"></span>
                             <i className="ri-cpu-line"></i>
-                            <span>{boardDisplay}</span>
+                            <span>{currentBoard.name}</span>
+                            <small className="board-port-chip">{currentBoard.port}</small>
                         </div>
                     )}
                 </div>
@@ -158,7 +182,7 @@ function CodeEditor({
                         onClick={handleUpload}
                         title="Compile C++ Sketch and Flash to Microcontroller"
                     >
-                        <i className="ri-play-circle-fill"></i>
+                        <i className={isExecuting ? "ri-restart-line" : "ri-play-circle-fill"}></i>
                         <span>{isExecuting ? "Re-Flash" : "Upload & Run"}</span>
                     </button>
 
@@ -182,6 +206,18 @@ function CodeEditor({
                     >
                         <i className="ri-close-line"></i>
                     </button>
+                </div>
+            </div>
+
+            {/* IDE File Tab Bar */}
+            <div className="editor-tabs-bar">
+                <div className="active-file-tab">
+                    <span className="tab-ino-icon">ino</span>
+                    <span className="tab-filename">sketch.ino</span>
+                    <span className="tab-clean-dot"></span>
+                </div>
+                <div className="tab-board-info">
+                    <span>{currentBoard.arch}</span>
                 </div>
             </div>
 
@@ -235,7 +271,7 @@ function CodeEditor({
                 <div className="footer-status-left">
                     <span className={`status-indicator-dot ${isExecuting ? "running" : "idle"}`}></span>
                     <span className="status-text">{uploadStatus}</span>
-                    <span className="com-port-tag">USB /dev/ttyACM0</span>
+                    <span className="com-port-tag">USB {currentBoard.port}</span>
                 </div>
 
                 <div className="footer-status-right">

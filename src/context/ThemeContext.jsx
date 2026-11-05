@@ -6,7 +6,7 @@ export function ThemeProvider({ children }) {
     const [theme, setTheme] = useState(() => {
         try {
             const saved = localStorage.getItem("twinlab_theme");
-            if (saved === "light" || saved === "dark") return saved;
+            if (saved) return saved;
         } catch (e) {}
         return "dark"; // Default is premium dark
     });
@@ -14,7 +14,8 @@ export function ThemeProvider({ children }) {
     useEffect(() => {
         try {
             document.documentElement.setAttribute("data-theme", theme);
-            document.documentElement.style.colorScheme = theme;
+            document.documentElement.className = `theme-${theme}`;
+            document.documentElement.style.colorScheme = theme === "light" ? "light" : "dark";
             localStorage.setItem("twinlab_theme", theme);
         } catch (e) {}
     }, [theme]);
@@ -24,7 +25,13 @@ export function ThemeProvider({ children }) {
     };
 
     return (
-        <ThemeContext.Provider value={{ theme, toggleTheme, isDark: theme === "dark" }}>
+        <ThemeContext.Provider value={{ 
+            theme, 
+            setTheme, 
+            toggleTheme, 
+            isDark: theme !== "light",
+            isGlass: theme === "glassmorphism"
+        }}>
             {children}
         </ThemeContext.Provider>
     );

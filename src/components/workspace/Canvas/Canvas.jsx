@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Breadboard from "../components/Breadboard";
 import SmallComponent from "../components/SmallComponent";
 import Multimeter from "../components/Multimeter";
-import McuBoard from "../components/McuBoard";
+import McuBoard, { ARDUINO_PINS, ARDUINO_MEGA_PINS, ARDUINO_NANO_PINS, ESP32_PINS } from "../components/McuBoard";
 import WireLayer from "../components/WireLayer";
 import { ECE_MOTIVATIONAL_QUOTES } from "../../../data/motivationalQuotes";
 
@@ -107,6 +107,36 @@ function Canvas({
             setPlacingRotation(0);
         }
     }, [placingComponent, pan.x, pan.y, zoom]);
+
+    // Real-Time High-FPS Mouse Tracker for Component Placement Preview
+    useEffect(() => {
+        if (!placingComponent) return;
+
+        let rafId = null;
+        let lastX = null;
+        let lastY = null;
+
+        const handlePlacingMouseMove = (e) => {
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(() => {
+                const { worldX, worldY } = screenToWorld(e.clientX, e.clientY);
+                const snappedX = snapToGrid(worldX);
+                const snappedY = snapToGrid(worldY);
+
+                if (snappedX !== lastX || snappedY !== lastY) {
+                    lastX = snappedX;
+                    lastY = snappedY;
+                    setPlacingPos({ x: snappedX, y: snappedY });
+                }
+            });
+        };
+
+        window.addEventListener("mousemove", handlePlacingMouseMove, { passive: true });
+        return () => {
+            if (rafId) cancelAnimationFrame(rafId);
+            window.removeEventListener("mousemove", handlePlacingMouseMove);
+        };
+    }, [placingComponent, screenToWorld]);
 
     // Global Click-to-Place capture handler: Allows placing component freely anywhere on canvas or breadboard
     useEffect(() => {
@@ -224,6 +254,60 @@ function Canvas({
                     if (d < minD) { minD = d; bestTarget = pt; }
                 });
             }
+            // Arduino Uno R3 Header Pins (Full 32 pins)
+            else if (c.type === "arduino-uno") {
+                const allArdPins = [
+                    ...(ARDUINO_PINS?.digitalHigh || []),
+                    ...(ARDUINO_PINS?.digitalLow || []),
+                    ...(ARDUINO_PINS?.power || []),
+                    ...(ARDUINO_PINS?.analog || [])
+                ];
+                allArdPins.forEach(pin => {
+                    const pt = toWorld(pin.x, pin.y);
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // Arduino Mega 2560 Header Pins (Full 70+ pins)
+            else if (c.type === "arduino-mega") {
+                const allMegaPins = [
+                    ...(ARDUINO_MEGA_PINS?.digitalHigh || []),
+                    ...(ARDUINO_MEGA_PINS?.digitalLow || []),
+                    ...(ARDUINO_MEGA_PINS?.communication || []),
+                    ...(ARDUINO_MEGA_PINS?.power || []),
+                    ...(ARDUINO_MEGA_PINS?.analog || []),
+                    ...(ARDUINO_MEGA_PINS?.dualDigital || [])
+                ];
+                allMegaPins.forEach(pin => {
+                    const pt = toWorld(pin.x, pin.y);
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // Arduino Nano Header Pins (DIP-30 pins)
+            else if (c.type === "arduino-nano") {
+                const allNanoPins = [
+                    ...(ARDUINO_NANO_PINS?.topRow || []),
+                    ...(ARDUINO_NANO_PINS?.botRow || [])
+                ];
+                allNanoPins.forEach(pin => {
+                    const pt = toWorld(pin.x, pin.y);
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // ESP32 DevKit V1 Header Pins (Full 30 pins)
+            else if (c.type === "esp32" || c.type === "esp32-devkit" || c.type === "esp32-s3") {
+                const allEspPins = [
+                    ...(ESP32_PINS?.leftCol || []),
+                    ...(ESP32_PINS?.rightCol || [])
+                ];
+                allEspPins.forEach(pin => {
+                    const pt = toWorld(pin.x, pin.y);
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
             // Multimeter Probes
             else if (c.type === "multimeter") {
                 const pRed = c.probeRed || { x: c.x + 160, y: c.y + 48 };
@@ -233,15 +317,22 @@ function Canvas({
                     if (d < minD) { minD = d; bestTarget = pt; }
                 });
             }
-            // Breadboard (Holes on 16px grid)
+            // Breadboard (Holes on 16px grid: Mini 17-col, Half 30-col, Full 60-col)
             else if (c.type?.startsWith("breadboard")) {
+                const isMini = c.type === "breadboard-mini";
+                const isFull = c.type === "breadboard-full";
+                const cols = isMini ? 17 : isFull ? 60 : 30;
+                const maxW = isMini ? 336 : isFull ? 1024 : 524;
+                const maxH = isMini ? 200 : 280;
                 const localX = wx - c.x;
                 const localY = wy - c.y;
-                if (localX >= 36 && localX <= 524 && localY >= 8 && localY <= 280) {
+                if (localX >= 36 && localX <= maxW && localY >= 8 && localY <= maxH) {
                     const snapCol = Math.round((localX - 48) / 16);
-                    if (snapCol >= 0 && snapCol < 30) {
+                    if (snapCol >= 0 && snapCol < cols) {
                         const holeX = c.x + 48 + snapCol * 16;
-                        const validYs = [16, 32, 64, 80, 96, 112, 128, 160, 176, 192, 208, 224, 256, 272];
+                        const validYs = isMini 
+                            ? [16, 32, 48, 64, 80, 112, 128, 144, 160, 176]
+                            : [16, 32, 64, 80, 96, 112, 128, 160, 176, 192, 208, 224, 256, 272];
                         let closestY = validYs[0];
                         let minYDist = 999;
                         validYs.forEach(vy => {
@@ -422,9 +513,16 @@ function Canvas({
         };
     }, []);
 
-    // DRAGGING PLACED COMPONENTS & BREADBOARDS
+    // DRAGGING PLACED COMPONENTS & BREADBOARDS WITH HIGH-FRAMERATE rAF SMOOTHING
     useEffect(() => {
-        const handleMouseMove = (e) => {
+        let animFrameId = null;
+        let latestMoveEvt = null;
+        const lastPlacingPos = { x: null, y: null };
+
+        const processMouseMove = () => {
+            const e = latestMoveEvt;
+            if (!e) return;
+
             // 0. Active Component Placement Mode: Cursor-Following
             if (placingComponentRef.current) {
                 draggingRef.current = null;
@@ -432,7 +530,11 @@ function Canvas({
                 const { worldX, worldY } = screenToWorld(e.clientX, e.clientY);
                 const snappedX = snapToGrid(worldX);
                 const snappedY = snapToGrid(worldY);
-                setPlacingPos({ x: snappedX, y: snappedY });
+                if (lastPlacingPos.x !== snappedX || lastPlacingPos.y !== snappedY) {
+                    lastPlacingPos.x = snappedX;
+                    lastPlacingPos.y = snappedY;
+                    setPlacingPos({ x: snappedX, y: snappedY });
+                }
                 return;
             }
 
@@ -501,6 +603,13 @@ function Canvas({
             const deltaX = snappedX - dragData.initialCompX;
             const deltaY = snappedY - dragData.initialCompY;
 
+            // Skip redundant re-renders if position within snap grid hasn't changed
+            if (dragData.lastSnappedX === snappedX && dragData.lastSnappedY === snappedY) {
+                return;
+            }
+            dragData.lastSnappedX = snappedX;
+            dragData.lastSnappedY = snappedY;
+
             if (dragData.mode === "breadboard") {
                 // 1. Move breadboard
                 onUpdateComponent(dragData.id, { x: Math.max(0, snappedX), y: Math.max(0, snappedY) });
@@ -525,7 +634,21 @@ function Canvas({
             onNotifyChange && onNotifyChange();
         };
 
+        const handleMouseMove = (e) => {
+            latestMoveEvt = e;
+            if (!animFrameId) {
+                animFrameId = requestAnimationFrame(() => {
+                    animFrameId = null;
+                    processMouseMove();
+                });
+            }
+        };
+
         const handleMouseUp = () => {
+            if (animFrameId) {
+                cancelAnimationFrame(animFrameId);
+                animFrameId = null;
+            }
             if (draggingRef.current && draggingRef.current.mode === "single") {
                 const draggedId = draggingRef.current.id;
                 const comp = componentsRef.current?.find(c => c.id === draggedId);
@@ -545,9 +668,10 @@ function Canvas({
             doubleTapDragRef.current = null;
         };
 
-        window.addEventListener("mousemove", handleMouseMove);
+        window.addEventListener("mousemove", handleMouseMove, { passive: true });
         window.addEventListener("mouseup", handleMouseUp);
         return () => {
+            if (animFrameId) cancelAnimationFrame(animFrameId);
             window.removeEventListener("mousemove", handleMouseMove);
             window.removeEventListener("mouseup", handleMouseUp);
         };
@@ -766,7 +890,14 @@ function Canvas({
 
     // Start dragging placed components (Detects breadboard to carry mounted components & stretch wires)
     const handleStartDragPlaced = (e, id) => {
-        if (activeWireRef.current || isWireModeRef.current) return;
+        if (activeWireRef.current) return;
+
+        // Automatically select the clicked component and deselect wire & wire mode
+        onSelectComponent && onSelectComponent(id);
+        onSelectWire && onSelectWire(null);
+        if (isWireModeRef.current) {
+            onDeactivateWireMode && onDeactivateWireMode();
+        }
 
         const currentComps = componentsRef.current || components;
         const currentWires = wiresRef.current || wires;
@@ -973,16 +1104,19 @@ function Canvas({
                             <Breadboard
                                 key={comp.id}
                                 id={comp.id}
+                                type={comp.type}
+                                color={comp.color}
                                 x={comp.x}
                                 y={comp.y}
                                 rotation={comp.rotation || 0}
-                                isSelected={selectedId === comp.id}
+                                isSelected={selectedId === comp.id || selectedId === "all"}
                                 isWireMode={isWireMode}
                                 activeWire={activeWire}
                                 onStartWireAtPoint={handleConnectOrStartWire}
                                 onSelect={(id) => {
                                     onSelectComponent(id);
                                     onSelectWire(null);
+                                    onDeactivateWireMode && onDeactivateWireMode();
                                 }}
                                 onDelete={onDeleteComponent}
                                 onRotate={(id) => {
@@ -996,7 +1130,7 @@ function Canvas({
                         );
                     }
 
-                    if (comp.type === "arduino-uno" || comp.type === "esp32-devkit" || comp.type === "esp32") {
+                    if (["arduino-uno", "arduino-mega", "arduino-nano", "esp32", "esp32-devkit", "esp32-s3"].includes(comp.type)) {
                         return (
                             <McuBoard
                                 key={comp.id}
@@ -1006,10 +1140,11 @@ function Canvas({
                                 x={comp.x}
                                 y={comp.y}
                                 rotation={comp.rotation || 0}
-                                isSelected={selectedId === comp.id}
+                                isSelected={selectedId === comp.id || selectedId === "all"}
                                 onSelect={(id) => {
                                     onSelectComponent(id);
                                     onSelectWire(null);
+                                    onDeactivateWireMode && onDeactivateWireMode();
                                 }}
                                 onDelete={onDeleteComponent}
                                 onRotate={(id) => {
@@ -1038,15 +1173,18 @@ function Canvas({
                                 mode={comp.mode || "voltage"}
                                 probeRed={comp.probeRed}
                                 probeBlack={comp.probeBlack}
+                                zoom={zoom}
+                                findSnapTarget={findNearestConnectionTarget}
                                 onUpdate={(updates) => {
                                     onUpdateComponent(comp.id, updates);
                                     onNotifyChange && onNotifyChange();
                                 }}
                                 simState={simulationResult?.dmmStates?.[comp.id]}
-                                isSelected={selectedId === comp.id}
+                                isSelected={selectedId === comp.id || selectedId === "all"}
                                 onSelect={(id) => {
                                     onSelectComponent(id);
                                     onSelectWire(null);
+                                    onDeactivateWireMode && onDeactivateWireMode();
                                 }}
                                 onDelete={onDeleteComponent}
                                 onMouseDown={handleStartDragPlaced}
@@ -1084,13 +1222,14 @@ function Canvas({
                                 comp.type === "buzzer" ? simulationResult?.buzzerStates?.[comp.id] :
                                 simulationResult?.ledStates?.[comp.id]
                             }
-                            isSelected={selectedId === comp.id}
+                            isSelected={selectedId === comp.id || selectedId === "all"}
                             isWireMode={isWireMode}
                             activeWire={activeWire}
                             onStartWireAtPoint={handleConnectOrStartWire}
                             onSelect={(id) => {
                                 onSelectComponent(id);
                                 onSelectWire(null);
+                                onDeactivateWireMode && onDeactivateWireMode();
                             }}
                             onDelete={onDeleteComponent}
                             onRotate={(id) => {
@@ -1157,7 +1296,7 @@ function Canvas({
                                 isSelected={true}
                             />
                         )}
-                        {(placingComponent.type === "arduino-uno" || placingComponent.type === "esp32-devkit" || placingComponent.type === "esp32") && (
+                        {["arduino-uno", "arduino-mega", "arduino-nano", "esp32", "esp32-devkit", "esp32-s3"].includes(placingComponent.type) && (
                             <McuBoard
                                 id="placing-ghost-preview"
                                 type={placingComponent.type}

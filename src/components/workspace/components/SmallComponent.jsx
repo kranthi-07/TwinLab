@@ -167,7 +167,6 @@ function SmallComponent({
             }}
             onMouseLeave={() => setHoveredTerminal(null)}
             onMouseDown={(e) => {
-                if (isWireMode) return;
                 onSelect && onSelect(id);
                 onMouseDown && onMouseDown(e, id);
             }}
@@ -183,10 +182,9 @@ function SmallComponent({
                         : `${curResistance}Ω`;
 
                 return (
-                    <div className="resistor-container" title={`Resistor: ${rLabel}`}>
+                    <div className="resistor-container">
                         <span 
                             className={`terminal-pin pin-1 ${hoveredTerminal === "r1" ? "targeted" : ""}`}
-                            title="Lead 1 (0, 0)"
                             onMouseEnter={() => setHoveredTerminal("r1")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "r1", 0, 0)}
@@ -194,6 +192,11 @@ function SmallComponent({
                             onDoubleClick={(e) => { e.stopPropagation(); handleTerminalAction(e, 0, 0); }}
                             onClick={(e) => handleTerminalPress(e, "r1", 0, 0)}
                         />
+                        {hoveredTerminal === "r1" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 0, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Terminal 1
+                            </div>
+                        )}
                         <div className="resistor-wire-track"></div>
                         <div className="resistor-ceramic-body">
                             <span className="band" style={{ backgroundColor: bands[0] }}></span>
@@ -203,7 +206,6 @@ function SmallComponent({
                         </div>
                         <span 
                             className={`terminal-pin pin-2 ${hoveredTerminal === "r2" ? "targeted" : ""}`}
-                            title="Lead 2 (64, 0)"
                             onMouseEnter={() => setHoveredTerminal("r2")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "r2", 64, 0)}
@@ -211,6 +213,11 @@ function SmallComponent({
                             onDoubleClick={(e) => { e.stopPropagation(); handleTerminalAction(e, 64, 0); }}
                             onClick={(e) => handleTerminalPress(e, "r2", 64, 0)}
                         />
+                        {hoveredTerminal === "r2" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 64, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Terminal 2
+                            </div>
+                        )}
                     </div>
                 );
             })()}
@@ -243,7 +250,6 @@ function SmallComponent({
                                     onMouseDown && onMouseDown(e, id);
                                 }
                             }}
-                            title={name || `5mm LED (${isDim ? "Dim light" : isLit ? "Bright light" : simState?.status || "Off"})`}
                         />
 
                         <svg 
@@ -398,22 +404,19 @@ function SmallComponent({
 
                         {/* Hover Tooltips explicitly mentioning Anode and Cathode */}
                         {hoveredTerminal === "anode" && (
-                            <div className="terminal-hover-tooltip anode-tip">
-                                <span className="tip-sign">+</span>
-                                <span>Anode</span>
+                            <div className="terminal-hover-tooltip" style={{ left: 0, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Anode (+)
                             </div>
                         )}
                         {hoveredTerminal === "cathode" && (
-                            <div className="terminal-hover-tooltip cathode-tip">
-                                <span className="tip-sign">−</span>
-                                <span>Cathode</span>
+                            <div className="terminal-hover-tooltip" style={{ left: 16, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Cathode (−)
                             </div>
                         )}
 
                         {/* Accurate Terminal Pins directly at (0, 0) and (16, 0) with Polarity Badges */}
                         <span 
                             className={`terminal-pin pin-anode ${hoveredTerminal === "anode" ? "targeted" : ""}`}
-                            title="Anode (+ Positive)"
                             onMouseEnter={() => setHoveredTerminal("anode")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "anode", 0, 0)}
@@ -425,7 +428,6 @@ function SmallComponent({
                         </span>
                         <span 
                             className={`terminal-pin pin-cathode ${hoveredTerminal === "cathode" ? "targeted" : ""}`}
-                            title="Cathode (- Negative)"
                             onMouseEnter={() => setHoveredTerminal("cathode")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "cathode", 16, 0)}
@@ -449,7 +451,6 @@ function SmallComponent({
                     </div>
                     <span 
                         className={`terminal-pin pin-1 ${hoveredTerminal === "cap1" ? "targeted" : ""}`}
-                        title="Terminal 1"
                         onMouseEnter={() => setHoveredTerminal("cap1")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "cap1", 0, 16)}
@@ -457,9 +458,13 @@ function SmallComponent({
                         onDoubleClick={(e) => { e.stopPropagation(); handleTerminalAction(e, 0, 16); }}
                         onClick={(e) => handleTerminalPress(e, "cap1", 0, 16)}
                     />
+                    {hoveredTerminal === "cap1" && (
+                        <div className="terminal-hover-tooltip" style={{ left: 0, top: 16, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                            Terminal 1
+                        </div>
+                    )}
                     <span 
                         className={`terminal-pin pin-2 ${hoveredTerminal === "cap2" ? "targeted" : ""}`}
-                        title="Terminal 2"
                         onMouseEnter={() => setHoveredTerminal("cap2")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "cap2", 16, 16)}
@@ -467,6 +472,11 @@ function SmallComponent({
                         onDoubleClick={(e) => { e.stopPropagation(); handleTerminalAction(e, 16, 16); }}
                         onClick={(e) => handleTerminalPress(e, "cap2", 16, 16)}
                     />
+                    {hoveredTerminal === "cap2" && (
+                        <div className="terminal-hover-tooltip" style={{ left: 16, top: 16, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                            Terminal 2
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -476,7 +486,6 @@ function SmallComponent({
                     <div className="tactile-case-body">
                         <div 
                             className="tactile-round-actuator"
-                            title="Click and hold to press button"
                             onMouseDown={(e) => {
                                 e.stopPropagation();
                                 if (isWireMode) return;
@@ -493,7 +502,6 @@ function SmallComponent({
                     </div>
                     <span 
                         className={`terminal-pin pin-tl ${hoveredTerminal === "btn1" ? "targeted" : ""}`}
-                        title="Terminal 1a"
                         onMouseEnter={() => setHoveredTerminal("btn1")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "btn1", 0, 0)}
@@ -501,9 +509,13 @@ function SmallComponent({
                         onDoubleClick={(e) => { e.stopPropagation(); handleTerminalAction(e, 0, 0); }}
                         onClick={(e) => handleTerminalPress(e, "btn1", 0, 0)}
                     />
+                    {hoveredTerminal === "btn1" && (
+                        <div className="terminal-hover-tooltip" style={{ left: 0, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                            Terminal 1a
+                        </div>
+                    )}
                     <span 
                         className={`terminal-pin pin-tr ${hoveredTerminal === "btn2" ? "targeted" : ""}`}
-                        title="Terminal 1b"
                         onMouseEnter={() => setHoveredTerminal("btn2")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "btn2", 32, 0)}
@@ -511,9 +523,13 @@ function SmallComponent({
                         onDoubleClick={(e) => { e.stopPropagation(); handleTerminalAction(e, 32, 0); }}
                         onClick={(e) => handleTerminalPress(e, "btn2", 32, 0)}
                     />
+                    {hoveredTerminal === "btn2" && (
+                        <div className="terminal-hover-tooltip" style={{ left: 32, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                            Terminal 1b
+                        </div>
+                    )}
                     <span 
                         className={`terminal-pin pin-bl ${hoveredTerminal === "btn3" ? "targeted" : ""}`}
-                        title="Terminal 2a"
                         onMouseEnter={() => setHoveredTerminal("btn3")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "btn3", 0, 32)}
@@ -521,9 +537,13 @@ function SmallComponent({
                         onDoubleClick={(e) => { e.stopPropagation(); handleTerminalAction(e, 0, 32); }}
                         onClick={(e) => handleTerminalPress(e, "btn3", 0, 32)}
                     />
+                    {hoveredTerminal === "btn3" && (
+                        <div className="terminal-hover-tooltip" style={{ left: 0, top: 32, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                            Terminal 2a
+                        </div>
+                    )}
                     <span 
                         className={`terminal-pin pin-br ${hoveredTerminal === "btn4" ? "targeted" : ""}`}
-                        title="Terminal 2b"
                         onMouseEnter={() => setHoveredTerminal("btn4")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "btn4", 32, 32)}
@@ -531,6 +551,11 @@ function SmallComponent({
                         onDoubleClick={(e) => { e.stopPropagation(); handleTerminalAction(e, 32, 32); }}
                         onClick={(e) => handleTerminalPress(e, "btn4", 32, 32)}
                     />
+                    {hoveredTerminal === "btn4" && (
+                        <div className="terminal-hover-tooltip" style={{ left: 32, top: 32, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                            Terminal 2b
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -569,7 +594,6 @@ function SmallComponent({
                                 className="pot-knob-dial"
                                 style={{ transform: `rotate(${curAngle}deg)` }}
                                 onMouseDown={handleDialMouseDown}
-                                title={`Drag up/down to adjust resistance: ${resistanceK} kΩ`}
                             >
                                 <div className="knob-indicator-dot"></div>
                             </div>
@@ -584,7 +608,6 @@ function SmallComponent({
                         </div>
                         <span 
                             className={`terminal-pin pin-t1 ${hoveredTerminal === "pot1" ? "targeted" : ""}`}
-                            title="Terminal 1"
                             onMouseEnter={() => setHoveredTerminal("pot1")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "pot1", 0, 48)}
@@ -592,9 +615,13 @@ function SmallComponent({
                             onDoubleClick={(e) => { e.stopPropagation(); handleTerminalAction(e, 0, 48); }}
                             onClick={(e) => handleTerminalPress(e, "pot1", 0, 48)}
                         />
+                        {hoveredTerminal === "pot1" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 0, top: 48, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Terminal 1
+                            </div>
+                        )}
                         <span 
                             className={`terminal-pin pin-wiper ${hoveredTerminal === "potW" ? "targeted" : ""}`}
-                            title="Wiper (Output)"
                             onMouseEnter={() => setHoveredTerminal("potW")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "potW", 16, 48)}
@@ -602,9 +629,13 @@ function SmallComponent({
                             onDoubleClick={(e) => { e.stopPropagation(); handleTerminalAction(e, 16, 48); }}
                             onClick={(e) => handleTerminalPress(e, "potW", 16, 48)}
                         />
+                        {hoveredTerminal === "potW" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 16, top: 48, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Wiper
+                            </div>
+                        )}
                         <span 
                             className={`terminal-pin pin-t2 ${hoveredTerminal === "pot2" ? "targeted" : ""}`}
-                            title="Terminal 2"
                             onMouseEnter={() => setHoveredTerminal("pot2")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "pot2", 32, 48)}
@@ -612,6 +643,11 @@ function SmallComponent({
                             onDoubleClick={(e) => { e.stopPropagation(); handleTerminalAction(e, 32, 48); }}
                             onClick={(e) => handleTerminalPress(e, "pot2", 32, 48)}
                         />
+                        {hoveredTerminal === "pot2" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 32, top: 48, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Terminal 2
+                            </div>
+                        )}
                     </div>
                 );
             })()}
@@ -632,7 +668,6 @@ function SmallComponent({
                                 <div 
                                     className="switch-knob-handle"
                                     onClick={handleToggle}
-                                    title={`Click to switch (Currently: ${isRight ? "Right" : "Left"})`}
                                 >
                                     <div className="handle-ridges"></div>
                                 </div>
@@ -645,7 +680,6 @@ function SmallComponent({
                         </div>
                         <span 
                             className={`terminal-pin pin-sw1 ${hoveredTerminal === "sw1" ? "targeted" : ""}`}
-                            title="Terminal 1 (Left)"
                             onMouseEnter={() => setHoveredTerminal("sw1")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "sw1", 0, 16)}
@@ -653,9 +687,13 @@ function SmallComponent({
                             onDoubleClick={(e) => { e.stopPropagation(); handleTerminalAction(e, 0, 16); }}
                             onClick={(e) => handleTerminalPress(e, "sw1", 0, 16)}
                         />
+                        {hoveredTerminal === "sw1" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 0, top: 16, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Terminal 1
+                            </div>
+                        )}
                         <span 
                             className={`terminal-pin pin-swcom ${hoveredTerminal === "swcom" ? "targeted" : ""}`}
-                            title="Common (Center)"
                             onMouseEnter={() => setHoveredTerminal("swcom")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "swcom", 16, 16)}
@@ -663,9 +701,13 @@ function SmallComponent({
                             onDoubleClick={(e) => { e.stopPropagation(); handleTerminalAction(e, 16, 16); }}
                             onClick={(e) => handleTerminalPress(e, "swcom", 16, 16)}
                         />
+                        {hoveredTerminal === "swcom" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 16, top: 16, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Common
+                            </div>
+                        )}
                         <span 
                             className={`terminal-pin pin-sw2 ${hoveredTerminal === "sw2" ? "targeted" : ""}`}
-                            title="Terminal 2 (Right)"
                             onMouseEnter={() => setHoveredTerminal("sw2")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "sw2", 32, 16)}
@@ -673,6 +715,11 @@ function SmallComponent({
                             onDoubleClick={(e) => { e.stopPropagation(); handleTerminalAction(e, 32, 16); }}
                             onClick={(e) => handleTerminalPress(e, "sw2", 32, 16)}
                         />
+                        {hoveredTerminal === "sw2" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 32, top: 16, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Terminal 2
+                            </div>
+                        )}
                     </div>
                 );
             })()}
@@ -694,7 +741,6 @@ function SmallComponent({
                                 handleTerminalAction(e, 24, -14);
                             }}
                             onClick={(e) => handleTerminalPress(e, "batNeg", 24, -14)}
-                            title="GND (-)"
                         >
                             <div className="terminal-post-pillar"></div>
                             <div className="terminal-collar neg-collar"></div>
@@ -704,7 +750,9 @@ function SmallComponent({
 
                             {/* Clean Minimal Badge */}
                             {hoveredTerminal === "neg" && (
-                                <div className="terminal-simple-pill">GND (-)</div>
+                                <div className="terminal-hover-tooltip" style={{ left: 24, top: -14, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                    Negative (−)
+                                </div>
                             )}
                         </div>
 
@@ -720,7 +768,6 @@ function SmallComponent({
                                 handleTerminalAction(e, 72, -14);
                             }}
                             onClick={(e) => handleTerminalPress(e, "batPos", 72, -14)}
-                            title="Voltage (+)"
                         >
                             <div className="terminal-post-pillar"></div>
                             <div className="terminal-collar pos-collar"></div>
@@ -730,7 +777,9 @@ function SmallComponent({
 
                             {/* Clean Minimal Badge */}
                             {hoveredTerminal === "pos" && (
-                                <div className="terminal-simple-pill">Voltage (+)</div>
+                                <div className="terminal-hover-tooltip" style={{ left: 72, top: -14, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                    Positive (+)
+                                </div>
                             )}
                         </div>
                     </div>
@@ -791,7 +840,6 @@ function SmallComponent({
                     </div>
                     <span 
                         className={`terminal-pin pin-pos ${hoveredTerminal === "buzzerPos" ? "targeted" : ""}`}
-                        title="Positive (+)"
                         onMouseEnter={() => setHoveredTerminal("buzzerPos")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "buzPos", 0, 32)}
@@ -799,9 +847,13 @@ function SmallComponent({
                         onDoubleClick={(e) => { e.stopPropagation(); handleTerminalAction(e, 0, 32); }}
                         onClick={(e) => handleTerminalPress(e, "buzPos", 0, 32)}
                     />
+                    {hoveredTerminal === "buzzerPos" && (
+                        <div className="terminal-hover-tooltip" style={{ left: 0, top: 32, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                            Positive (+)
+                        </div>
+                    )}
                     <span 
                         className={`terminal-pin pin-neg ${hoveredTerminal === "buzzerNeg" ? "targeted" : ""}`}
-                        title="Negative (-)"
                         onMouseEnter={() => setHoveredTerminal("buzzerNeg")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "buzNeg", 16, 32)}
@@ -809,6 +861,11 @@ function SmallComponent({
                         onDoubleClick={(e) => { e.stopPropagation(); handleTerminalAction(e, 16, 32); }}
                         onClick={(e) => handleTerminalPress(e, "buzNeg", 16, 32)}
                     />
+                    {hoveredTerminal === "buzzerNeg" && (
+                        <div className="terminal-hover-tooltip" style={{ left: 16, top: 32, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                            Negative (−)
+                        </div>
+                    )}
                 </div>
             )}
         </div>

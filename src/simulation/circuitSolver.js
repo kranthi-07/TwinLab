@@ -2,7 +2,7 @@
  * Real-Time Physics-Accurate SPICE/EDA Circuit Solver
  * Evaluates breadboard tracks, jumper wires, 9V batteries, resistors, and LEDs in real time.
  */
-import { ARDUINO_PINS, ESP32_PINS } from "../components/workspace/components/McuBoard";
+import { ARDUINO_PINS, ARDUINO_MEGA_PINS, ARDUINO_NANO_PINS, ESP32_PINS } from "../components/workspace/components/McuBoard";
 
 // Breadboard geometry constants (matching Breadboard.jsx 1:1)
 const COLUMNS = 30;
@@ -43,41 +43,52 @@ class DisjointSet {
  * Returns the breadboard tie-strip key for a world coordinate (wx, wy), or null if off-board
  */
 function getBreadboardNodeAt(breadboard, wx, wy) {
+    const isMini = breadboard.type === "breadboard-mini";
+    const isFull = breadboard.type === "breadboard-full";
+    const cols = isMini ? 17 : isFull ? 60 : 30;
+    const boardW = isMini ? 352 : isFull ? 1040 : 560;
+    const boardH = isMini ? 208 : 288;
+    const hasRails = !isMini;
+
     const localX = wx - breadboard.x;
     const localY = wy - breadboard.y;
 
-    if (localX < 0 || localX > 560 || localY < 0 || localY > 288) return null;
+    if (localX < 0 || localX > boardW || localY < 0 || localY > boardH) return null;
 
     const bbId = breadboard.id;
-    const tol = 6; // Strict 6px snap tolerance to prevent cross-row bleed (rows are 16px apart)
+    const tol = 6; // Strict 6px snap tolerance to prevent cross-row bleed
 
-    // 1. Top Power Rails (Full length bus across all 30 cols)
-    if (Math.abs(localY - Y_RAIL_TOP_PLUS) <= tol && localX >= X_START - tol && localX <= X_START + (COLUMNS - 1) * GRID_STEP + tol) {
-        return `bb_${bbId}_rail_top_plus`;
-    }
-    if (Math.abs(localY - Y_RAIL_TOP_MINUS) <= tol && localX >= X_START - tol && localX <= X_START + (COLUMNS - 1) * GRID_STEP + tol) {
-        return `bb_${bbId}_rail_top_minus`;
-    }
+    // 1. Top Power Rails (Full & Half boards only)
+    if (hasRails) {
+        if (Math.abs(localY - Y_RAIL_TOP_PLUS) <= tol && localX >= X_START - tol && localX <= X_START + (cols - 1) * GRID_STEP + tol) {
+            return `bb_${bbId}_rail_top_plus`;
+        }
+        if (Math.abs(localY - Y_RAIL_TOP_MINUS) <= tol && localX >= X_START - tol && localX <= X_START + (cols - 1) * GRID_STEP + tol) {
+            return `bb_${bbId}_rail_top_minus`;
+        }
 
-    // 2. Bottom Power Rails
-    if (Math.abs(localY - Y_RAIL_BOT_MINUS) <= tol && localX >= X_START - tol && localX <= X_START + (COLUMNS - 1) * GRID_STEP + tol) {
-        return `bb_${bbId}_rail_bot_minus`;
-    }
-    if (Math.abs(localY - Y_RAIL_BOT_PLUS) <= tol && localX >= X_START - tol && localX <= X_START + (COLUMNS - 1) * GRID_STEP + tol) {
-        return `bb_${bbId}_rail_bot_plus`;
+        // 2. Bottom Power Rails
+        if (Math.abs(localY - Y_RAIL_BOT_MINUS) <= tol && localX >= X_START - tol && localX <= X_START + (cols - 1) * GRID_STEP + tol) {
+            return `bb_${bbId}_rail_bot_minus`;
+        }
+        if (Math.abs(localY - Y_RAIL_BOT_PLUS) <= tol && localX >= X_START - tol && localX <= X_START + (cols - 1) * GRID_STEP + tol) {
+            return `bb_${bbId}_rail_bot_plus`;
+        }
     }
 
     // 3. Terminal Strips: 5-hole vertical columns
     const colIdx = Math.round((localX - X_START) / GRID_STEP);
-    if (colIdx >= 0 && colIdx < COLUMNS && Math.abs(localX - (X_START + colIdx * GRID_STEP)) <= tol) {
+    if (colIdx >= 0 && colIdx < cols && Math.abs(localX - (X_START + colIdx * GRID_STEP)) <= tol) {
+        const upperRows = isMini ? [16, 32, 48, 64, 80] : Y_UPPER_ROWS;
+        const lowerRows = isMini ? [112, 128, 144, 160, 176] : Y_LOWER_ROWS;
         // Upper bank: rows a, b, c, d, e
-        for (const ry of Y_UPPER_ROWS) {
+        for (const ry of upperRows) {
             if (Math.abs(localY - ry) <= tol) {
                 return `bb_${bbId}_upper_col_${colIdx}`;
             }
         }
         // Lower bank: rows f, g, h, i, j
-        for (const ry of Y_LOWER_ROWS) {
+        for (const ry of lowerRows) {
             if (Math.abs(localY - ry) <= tol) {
                 return `bb_${bbId}_lower_col_${colIdx}`;
             }
@@ -91,67 +102,6 @@ function getBreadboardNodeAt(breadboard, wx, wy) {
  * Solves circuit connectivity and component operating points
  */
 export function solveCircuit({ components = [], wires = [], isSimulating = false, mcuStates = {} }) {
-    if (!isSimulating) {
-        // Simulation is stopped: everything is dull & unpowered
-        const ledStates = {};
-        const batteryStates = {};
-        const buzzerStates = {};
-        const dmmStates = {};
-        const initialMcuStates = {};
-        components.forEach((c) => {
-            if (c.type === "led") {
-                ledStates[c.id] = {
-                    isOn: false,
-                    isDim: false,
-                    isOverloaded: false,
-                    voltage: 0,
-                    currentMa: 0,
-                    brightness: 0,
-                    status: "off"
-                };
-            }
-            if (c.type === "buzzer") {
-                buzzerStates[c.id] = {
-                    isBeeping: false,
-                    voltage: 0,
-                    currentMa: 0
-                };
-            }
-            if (c.type === "battery-9v") {
-                batteryStates[c.id] = {
-                    isDischarging: false,
-                    currentMa: 0,
-                    isShortCircuit: false,
-                    voltage: c.voltage != null ? Number(c.voltage) : 9.0
-                };
-            }
-            if (c.type === "multimeter") {
-                dmmStates[c.id] = {
-                    readout: c.mode === "resistance" || c.mode === "continuity" ? "0.L" : "0.00",
-                    unit: c.mode === "voltage" ? "V" : c.mode === "current" ? "mA" : "Ω",
-                    isContinuityBeep: false
-                };
-            }
-            if (c.type === "arduino-uno" || c.type === "esp32-devkit" || c.type === "esp32") {
-                initialMcuStates[c.id] = {
-                    isPowered: false,
-                    d13High: false,
-                    d2High: false,
-                    pins: {}
-                };
-            }
-        });
-        return {
-            isSimulating: false,
-            ledStates,
-            batteryStates,
-            buzzerStates,
-            dmmStates,
-            mcuStates: initialMcuStates,
-            logs: [{ time: "0.00s", type: "info", text: "Simulation standby. Click Play in the topbar to run simulation." }]
-        };
-    }
-
     const dsu = new DisjointSet();
     const pointToNode = (pt) => {
         const key = `pt_${Math.round(pt.x / 4) * 4}_${Math.round(pt.y / 4) * 4}`;
@@ -160,8 +110,8 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
 
     const breadboards = components.filter(c => c.type?.startsWith("breadboard"));
     const batteries = components.filter(c => c.type === "battery-9v");
-    const arduinoBoards = components.filter(c => c.type === "arduino-uno");
-    const esp32Boards = components.filter(c => c.type === "esp32-devkit" || c.type === "esp32");
+    const arduinoBoards = components.filter(c => ["arduino-uno", "arduino-mega", "arduino-nano"].includes(c.type));
+    const esp32Boards = components.filter(c => c.type === "esp32-devkit" || c.type === "esp32" || c.type === "esp32-s3");
 
     // Function to get the electrical node for a physical point
     const getElectricalNode = (x, y) => {
@@ -210,7 +160,17 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const cos = Math.cos(rot);
             const sin = Math.sin(rot);
 
-            const allArdPins = [
+            const allArdPins = b.type === "arduino-mega" ? [
+                ...ARDUINO_MEGA_PINS.digitalHigh,
+                ...ARDUINO_MEGA_PINS.digitalLow,
+                ...ARDUINO_MEGA_PINS.communication,
+                ...ARDUINO_MEGA_PINS.power,
+                ...ARDUINO_MEGA_PINS.analog,
+                ...ARDUINO_MEGA_PINS.dualDigital
+            ] : b.type === "arduino-nano" ? [
+                ...ARDUINO_NANO_PINS.topRow,
+                ...ARDUINO_NANO_PINS.botRow
+            ] : [
                 ...ARDUINO_PINS.digitalHigh,
                 ...ARDUINO_PINS.digitalLow,
                 ...ARDUINO_PINS.power,
@@ -1035,13 +995,48 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             let nodeRed = getElectricalNode(probeRed.x, probeRed.y);
             let nodeBlack = getElectricalNode(probeBlack.x, probeBlack.y);
 
-            // Connect nearby wire endpoints if any wire terminates at probe tips (12px snap)
+            // Connect nearby wire endpoints if any wire terminates at probe tips (20px snap)
             wires.forEach(w => {
                 if (!w.points || w.points.length < 2) return;
                 [w.points[0], w.points[w.points.length - 1]].forEach(p => {
-                    if (Math.hypot(p.x - probeRed.x, p.y - probeRed.y) <= 12) dsu.union(getElectricalNode(p.x, p.y), nodeRed);
-                    if (Math.hypot(p.x - probeBlack.x, p.y - probeBlack.y) <= 12) dsu.union(getElectricalNode(p.x, p.y), nodeBlack);
+                    if (Math.hypot(p.x - probeRed.x, p.y - probeRed.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), nodeRed);
+                    if (Math.hypot(p.x - probeBlack.x, p.y - probeBlack.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), nodeBlack);
                 });
+            });
+
+            // Connect directly to component terminal leads within 20px
+            components.forEach(comp => {
+                const rotRad = ((comp.rotation || 0) * Math.PI) / 180;
+                const cos = Math.cos(rotRad);
+                const sin = Math.sin(rotRad);
+                const toWorld = (lx, ly) => ({
+                    x: Math.round(comp.x + lx * cos - ly * sin),
+                    y: Math.round(comp.y + lx * sin + ly * cos)
+                });
+
+                if (comp.type === "resistor") {
+                    const p1 = toWorld(0, 0);
+                    const p2 = toWorld(64, 0);
+                    if (Math.hypot(p1.x - probeRed.x, p1.y - probeRed.y) <= 20) dsu.union(getElectricalNode(p1.x, p1.y), nodeRed);
+                    if (Math.hypot(p2.x - probeRed.x, p2.y - probeRed.y) <= 20) dsu.union(getElectricalNode(p2.x, p2.y), nodeRed);
+                    if (Math.hypot(p1.x - probeBlack.x, p1.y - probeBlack.y) <= 20) dsu.union(getElectricalNode(p1.x, p1.y), nodeBlack);
+                    if (Math.hypot(p2.x - probeBlack.x, p2.y - probeBlack.y) <= 20) dsu.union(getElectricalNode(p2.x, p2.y), nodeBlack);
+                } else if (comp.type === "led") {
+                    const p1 = toWorld(0, 0);
+                    const p2 = toWorld(16, 0);
+                    if (Math.hypot(p1.x - probeRed.x, p1.y - probeRed.y) <= 20) dsu.union(getElectricalNode(p1.x, p1.y), nodeRed);
+                    if (Math.hypot(p2.x - probeRed.x, p2.y - probeRed.y) <= 20) dsu.union(getElectricalNode(p2.x, p2.y), nodeRed);
+                    if (Math.hypot(p1.x - probeBlack.x, p1.y - probeBlack.y) <= 20) dsu.union(getElectricalNode(p1.x, p1.y), nodeBlack);
+                    if (Math.hypot(p2.x - probeBlack.x, p2.y - probeBlack.y) <= 20) dsu.union(getElectricalNode(p2.x, p2.y), nodeBlack);
+                } else if (comp.type === "potentiometer") {
+                    const p1 = toWorld(0, 48);
+                    const pW = toWorld(16, 48);
+                    const p2 = toWorld(32, 48);
+                    [p1, pW, p2].forEach(p => {
+                        if (Math.hypot(p.x - probeRed.x, p.y - probeRed.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), nodeRed);
+                        if (Math.hypot(p.x - probeBlack.x, p.y - probeBlack.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), nodeBlack);
+                    });
+                }
             });
 
             nodeRed = dsu.find(nodeRed);
@@ -1050,70 +1045,229 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const mode = c.mode || "voltage";
 
             if (mode === "voltage") {
-                if (posNodes.length === 0 || gndNodes.length === 0) {
+                if (!isSimulating) {
                     dmmStates[c.id] = { readout: "0.00", unit: "V", isContinuityBeep: false };
                     return;
                 }
-                const activePosRoot = dsu.find(posNodes[0]);
-                const activeGndRoot = dsu.find(gndNodes[0]);
-                const vSupply = batteries[0]?.voltage != null ? Number(batteries[0].voltage) : 9.0;
 
-                // Red on POS, Black on GND
+                const activePosRoot = posNodes.length > 0 ? dsu.find(posNodes[0]) : null;
+                const activeGndRoot = gndNodes.length > 0 ? dsu.find(gndNodes[0]) : null;
+                const vSupply = batteries[0]?.voltage != null 
+                    ? Number(batteries[0].voltage) 
+                    : (arduinoBoards.length > 0 ? 5.0 : (esp32Boards.length > 0 ? 3.3 : 9.0));
+
+                if (!activePosRoot || !activeGndRoot || nodeRed === nodeBlack) {
+                    dmmStates[c.id] = { readout: "0.00", unit: "V", isContinuityBeep: false };
+                    return;
+                }
+
+                // 1. Red on Supply (+), Black on Ground (-)
                 if (nodeRed === activePosRoot && nodeBlack === activeGndRoot) {
                     dmmStates[c.id] = { readout: vSupply.toFixed(2), unit: "V", isContinuityBeep: false };
                 }
-                // Black on POS, Red on GND (reversed polarity)
+                // 2. Reversed polarity (Black on +, Red on -)
                 else if (nodeBlack === activePosRoot && nodeRed === activeGndRoot) {
                     dmmStates[c.id] = { readout: `-${vSupply.toFixed(2)}`, unit: "V", isContinuityBeep: false };
                 }
-                // Measuring across resistor in active conducting loop
+                // 3. Measuring across an LED
                 else {
-                    let measuredV = 0;
-                    for (const res of resistors) {
-                        const rN1 = dsu.find(res.node1);
-                        const rN2 = dsu.find(res.node2);
-                        if ((nodeRed === rN1 && nodeBlack === rN2) || (nodeRed === rN2 && nodeBlack === rN1)) {
-                            const sign = (nodeRed === rN1) ? 1 : -1;
-                            for (const lId in ledStates) {
-                                const st = ledStates[lId];
-                                if (st && st.isOn && st.currentMa > 0) {
-                                    const vDrop = (st.currentMa / 1000) * res.resistance;
-                                    measuredV = sign * vDrop;
+                    let measuredV = null;
+
+                    // Check LED forward drops
+                    for (const led of leds) {
+                        const anRoot = dsu.find(led.nodeAnode);
+                        const caRoot = dsu.find(led.nodeCathode);
+                        if ((nodeRed === anRoot && nodeBlack === caRoot) || (nodeRed === caRoot && nodeBlack === anRoot)) {
+                            const sign = (nodeRed === anRoot) ? 1 : -1;
+                            const st = ledStates[led.id];
+                            const vf = (st && st.isOn) ? (st.isOverloaded ? vSupply : 2.05) : 0;
+                            measuredV = sign * vf;
+                            break;
+                        }
+                    }
+
+                    // Check Resistor drops
+                    if (measuredV == null) {
+                        for (const res of resistors) {
+                            const rN1 = dsu.find(res.node1);
+                            const rN2 = dsu.find(res.node2);
+                            if ((nodeRed === rN1 && nodeBlack === rN2) || (nodeRed === rN2 && nodeBlack === rN1)) {
+                                const sign = (nodeRed === rN1) ? 1 : -1;
+                                let vDrop = 0;
+                                // Check if in active conducting circuit with LED
+                                for (const lId in ledStates) {
+                                    const st = ledStates[lId];
+                                    if (st && st.isOn && st.currentMa > 0) {
+                                        vDrop = (st.currentMa / 1000) * res.resistance;
+                                        break;
+                                    }
+                                }
+                                // If direct connection across battery (no LED)
+                                if (vDrop === 0 && ((rN1 === activePosRoot && rN2 === activeGndRoot) || (rN2 === activePosRoot && rN1 === activeGndRoot))) {
+                                    vDrop = vSupply;
+                                }
+                                measuredV = sign * vDrop;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Check Buzzer drops
+                    if (measuredV == null) {
+                        for (const buz of buzzers) {
+                            const bPos = dsu.find(buz.nodePos);
+                            const bNeg = dsu.find(buz.nodeNeg);
+                            if ((nodeRed === bPos && nodeBlack === bNeg) || (nodeRed === bNeg && nodeBlack === bPos)) {
+                                const sign = (nodeRed === bPos) ? 1 : -1;
+                                const st = buzzerStates[buz.id];
+                                measuredV = sign * ((st && st.isBeeping) ? (st.voltage || vSupply) : 0);
+                                break;
+                            }
+                        }
+                    }
+
+                    // Relative to Ground or Supply
+                    if (measuredV == null) {
+                        if (nodeRed === activePosRoot && nodeBlack !== activeGndRoot) {
+                            measuredV = vSupply;
+                        } else if (nodeRed === activeGndRoot && nodeBlack !== activePosRoot) {
+                            measuredV = 0.00;
+                        } else {
+                            measuredV = 0.00;
+                        }
+                    }
+
+                    dmmStates[c.id] = { readout: measuredV.toFixed(2), unit: "V", isContinuityBeep: false };
+                }
+            } else if (mode === "resistance" || mode === "continuity") {
+                if (nodeRed === nodeBlack && nodeRed != null) {
+                    dmmStates[c.id] = { readout: "0.0", unit: "Ω", isContinuityBeep: mode === "continuity" };
+                } else {
+                    // 1. Direct Resistor check (works even when unpowered / simulator paused!)
+                    let directR = null;
+                    for (const r of resistors) {
+                        const r1 = dsu.find(r.node1);
+                        const r2 = dsu.find(r.node2);
+                        if ((nodeRed === r1 && nodeBlack === r2) || (nodeRed === r2 && nodeBlack === r1)) {
+                            directR = r.resistance;
+                            break;
+                        }
+                    }
+
+                    // Direct proximity fallback across resistor terminals
+                    if (directR == null) {
+                        for (const comp of components) {
+                            if (comp.type === "resistor") {
+                                const rotRad = ((comp.rotation || 0) * Math.PI) / 180;
+                                const cos = Math.cos(rotRad);
+                                const sin = Math.sin(rotRad);
+                                const p1 = { x: Math.round(comp.x), y: Math.round(comp.y) };
+                                const p2 = { x: Math.round(comp.x + 64 * cos), y: Math.round(comp.y + 64 * sin) };
+
+                                const dRed1 = Math.hypot(p1.x - probeRed.x, p1.y - probeRed.y);
+                                const dBlack2 = Math.hypot(p2.x - probeBlack.x, p2.y - probeBlack.y);
+                                const dRed2 = Math.hypot(p2.x - probeRed.x, p2.y - probeRed.y);
+                                const dBlack1 = Math.hypot(p1.x - probeBlack.x, p1.y - probeBlack.y);
+
+                                if ((dRed1 <= 24 && dBlack2 <= 24) || (dRed2 <= 24 && dBlack1 <= 24)) {
+                                    directR = comp.resistance || 220;
                                     break;
                                 }
                             }
                         }
                     }
-                    dmmStates[c.id] = { readout: measuredV.toFixed(2), unit: "V", isContinuityBeep: false };
-                }
-            } else if (mode === "resistance" || mode === "continuity") {
-                if (nodeRed === nodeBlack) {
-                    dmmStates[c.id] = { readout: "0.0", unit: "Ω", isContinuityBeep: mode === "continuity" };
-                } else {
-                    const path = findPathToNode(nodeRed, nodeBlack);
-                    if (path.connected && path.totalR > 0) {
-                        const isBeep = mode === "continuity" && path.totalR < 15;
-                        if (path.totalR >= 1000) {
-                            dmmStates[c.id] = { readout: (path.totalR / 1000).toFixed(2), unit: "kΩ", isContinuityBeep: isBeep };
+
+                    // Helper to check resistor path between nodes
+                    const findDmmPath = (startNode, targetNode) => {
+                        const s = dsu.find(startNode);
+                        const t = dsu.find(targetNode);
+                        if (!s || !t) return { connected: false, totalR: 0 };
+                        if (s === t) return { connected: true, totalR: 0 };
+
+                        const queue = [{ node: s, r: 0 }];
+                        const visited = new Set([s]);
+
+                        while (queue.length > 0) {
+                            const curr = queue.shift();
+                            if (curr.node === t) {
+                                return { connected: true, totalR: curr.r };
+                            }
+
+                            for (const res of resistors) {
+                                const rN1 = dsu.find(res.node1);
+                                const rN2 = dsu.find(res.node2);
+
+                                if (rN1 === curr.node && !visited.has(rN2)) {
+                                    visited.add(rN2);
+                                    queue.push({ node: rN2, r: curr.r + res.resistance });
+                                } else if (rN2 === curr.node && !visited.has(rN1)) {
+                                    visited.add(rN1);
+                                    queue.push({ node: rN1, r: curr.r + res.resistance });
+                                }
+                            }
+                        }
+                        return { connected: false, totalR: 0 };
+                    };
+
+                    const path = directR == null ? findDmmPath(nodeRed, nodeBlack) : { connected: true, totalR: directR };
+                    const measuredR = directR != null ? directR : (path.connected && path.totalR > 0 ? path.totalR : null);
+
+                    if (measuredR != null) {
+                        const isBeep = mode === "continuity" && measuredR < 25;
+                        if (measuredR >= 1000000) {
+                            dmmStates[c.id] = { readout: (measuredR / 1000000).toFixed(2), unit: "MΩ", isContinuityBeep: false };
+                        } else if (measuredR >= 1000) {
+                            dmmStates[c.id] = { readout: (measuredR / 1000).toFixed(2), unit: "kΩ", isContinuityBeep: isBeep };
                         } else {
-                            dmmStates[c.id] = { readout: path.totalR.toFixed(1), unit: "Ω", isContinuityBeep: isBeep };
+                            dmmStates[c.id] = { readout: measuredR.toFixed(1), unit: "Ω", isContinuityBeep: isBeep };
                         }
                     } else {
                         dmmStates[c.id] = { readout: "0.L", unit: "Ω", isContinuityBeep: false };
                     }
                 }
             } else if (mode === "current") {
-                let totalI = 0;
-                for (const lId in ledStates) {
-                    if (ledStates[lId]?.isOn) totalI += ledStates[lId].currentMa;
+                if (!isSimulating) {
+                    dmmStates[c.id] = { readout: "0.00", unit: "mA", isContinuityBeep: false };
+                } else {
+                    let totalI = 0;
+                    for (const lId in ledStates) {
+                        if (ledStates[lId]?.isOn) totalI += ledStates[lId].currentMa;
+                    }
+                    for (const bId in buzzerStates) {
+                        if (buzzerStates[bId]?.isBeeping) totalI += buzzerStates[bId].currentMa;
+                    }
+                    dmmStates[c.id] = { readout: totalI > 0 ? totalI.toFixed(1) : "0.00", unit: "mA", isContinuityBeep: false };
                 }
-                for (const bId in buzzerStates) {
-                    if (buzzerStates[bId]?.isBeeping) totalI += buzzerStates[bId].currentMa;
-                }
-                dmmStates[c.id] = { readout: totalI > 0 ? totalI.toFixed(1) : "0.00", unit: "mA", isContinuityBeep: false };
             }
         }
     });
+
+    // When simulator is not running: turn off output indicators, but preserve DMM readings
+    if (!isSimulating) {
+        Object.keys(ledStates).forEach(k => {
+            ledStates[k] = { isOn: false, isDim: false, isOverloaded: false, voltage: 0, currentMa: 0, brightness: 0, status: "off" };
+        });
+        Object.keys(buzzerStates).forEach(k => {
+            buzzerStates[k] = { isBeeping: false, voltage: 0, currentMa: 0 };
+        });
+        batteries.forEach(b => {
+            batteryStates[b.id] = { isDischarging: false, currentMa: 0, isShortCircuit: false, voltage: b.voltage != null ? Number(b.voltage) : 9.0 };
+        });
+        const standbyMcuStates = {};
+        arduinoBoards.forEach(b => { standbyMcuStates[b.id] = { isPowered: false, d13High: false, pins: {} }; });
+        esp32Boards.forEach(b => { standbyMcuStates[b.id] = { isPowered: false, d2High: false, pins: {} }; });
+
+        return {
+            isSimulating: false,
+            supplyVoltage: 0,
+            ledStates,
+            batteryStates,
+            buzzerStates,
+            dmmStates,
+            mcuStates: standbyMcuStates,
+            logs: [{ time: "0.00s", type: "info", text: "Simulation standby. Click Play in the topbar to run simulation." }]
+        };
+    }
 
     // 7. Solve MCU Boards (Arduino Uno & ESP32 DevKit)
     const resolvedMcuStates = {};

@@ -1,8 +1,7 @@
 import "./Breadboard.css";
 import { useState, useRef, useEffect } from "react";
 
-// Standard Half-Size Solderless Breadboard (30 Columns)
-const COLUMNS = 30;
+// Standard Solderless Breadboard Definitions
 const ROWS_UPPER = ["a", "b", "c", "d", "e"];
 const ROWS_LOWER = ["f", "g", "h", "i", "j"];
 
@@ -10,35 +9,22 @@ const ROWS_LOWER = ["f", "g", "h", "i", "j"];
 const GRID_STEP = 16;
 const X_START = 48; // 3 * 16px
 
-// Y coordinates for each pin row (all exact multiples of 16px)
-const Y_RAIL_TOP_PLUS = 16;  // 1 * 16
-const Y_RAIL_TOP_MINUS = 32; // 2 * 16
+// Y coordinates for Half & Full boards with power rails
+const STD_Y_RAIL_TOP_PLUS = 16;
+const STD_Y_RAIL_TOP_MINUS = 32;
+const STD_Y_UPPER_ROWS = { a: 64, b: 80, c: 96, d: 112, e: 128 };
+const STD_Y_LOWER_ROWS = { f: 160, g: 176, h: 192, i: 208, j: 224 };
+const STD_Y_RAIL_BOT_MINUS = 256;
+const STD_Y_RAIL_BOT_PLUS = 272;
 
-const Y_UPPER_ROWS = {
-    a: 64,  // 4 * 16
-    b: 80,  // 5 * 16
-    c: 96,  // 6 * 16
-    d: 112, // 7 * 16
-    e: 128  // 8 * 16
-};
-
-const Y_LOWER_ROWS = {
-    f: 160, // 10 * 16
-    g: 176, // 11 * 16
-    h: 192, // 12 * 16
-    i: 208, // 13 * 16
-    j: 224  // 14 * 16
-};
-
-const Y_RAIL_BOT_MINUS = 256; // 16 * 16
-const Y_RAIL_BOT_PLUS = 272;  // 17 * 16
-
-// Total dimensions: 560px x 288px (35 x 18 grid units)
-const BOARD_WIDTH = 560;
-const BOARD_HEIGHT = 288;
+// Y coordinates for Mini (170-point) board without power rails
+const MINI_Y_UPPER_ROWS = { a: 16, b: 32, c: 48, d: 64, e: 80 };
+const MINI_Y_LOWER_ROWS = { f: 112, g: 128, h: 144, i: 160, j: 176 };
 
 function Breadboard({ 
     id, 
+    type = "breadboard",
+    color = "#f1f3f6",
     x, 
     y, 
     rotation = 0, 
@@ -51,6 +37,19 @@ function Breadboard({
     isWireMode,
     activeWire
 }) {
+    const isMini = type === "breadboard-mini";
+    const isFull = type === "breadboard-full";
+    const COLUMNS = isMini ? 17 : isFull ? 60 : 30;
+    const hasPowerRails = !isMini;
+    const BOARD_WIDTH = isMini ? 352 : isFull ? 1040 : 560;
+    const BOARD_HEIGHT = isMini ? 208 : 288;
+
+    const Y_UPPER_ROWS = isMini ? MINI_Y_UPPER_ROWS : STD_Y_UPPER_ROWS;
+    const Y_LOWER_ROWS = isMini ? MINI_Y_LOWER_ROWS : STD_Y_LOWER_ROWS;
+    const Y_RAIL_TOP_PLUS = STD_Y_RAIL_TOP_PLUS;
+    const Y_RAIL_TOP_MINUS = STD_Y_RAIL_TOP_MINUS;
+    const Y_RAIL_BOT_MINUS = STD_Y_RAIL_BOT_MINUS;
+    const Y_RAIL_BOT_PLUS = STD_Y_RAIL_BOT_PLUS;
     // Current pointed pin state
     const [hoveredPin, setHoveredPin] = useState(null);
     const breadboardRef = useRef(null);
@@ -156,8 +155,6 @@ function Breadboard({
                 onClick={(e) => handleHolePress(e, key, { x: x + cx, y: y + cy })}
                 style={{ cursor: "default" }}
             >
-                <title>{title}</title>
-
                 {/* 1. Main pointed pin: Small, simple, elegant CAD highlight */}
                 {mode === "target" && (
                     <rect 
@@ -253,7 +250,6 @@ function Breadboard({
             onMouseLeave={() => setHoveredPin(null)}
             onPointerLeave={() => setHoveredPin(null)}
             onMouseDown={(e) => {
-                if (isWireMode) return;
                 onSelect && onSelect(id);
                 onMouseDown && onMouseDown(e, id);
             }}
@@ -277,11 +273,11 @@ function Breadboard({
                         <stop offset="100%" stopColor="#0b0e14" />
                     </radialGradient>
 
-                    <linearGradient id="body-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#fafafa" />
-                        <stop offset="5%" stopColor="#f1f3f6" />
-                        <stop offset="95%" stopColor="#e8ebef" />
-                        <stop offset="100%" stopColor="#dce0e6" />
+                    <linearGradient id={`body-gradient-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#ffffff" />
+                        <stop offset="6%" stopColor={color || "#f1f3f6"} />
+                        <stop offset="92%" stopColor={color || "#e8ebef"} />
+                        <stop offset="100%" stopColor="#cbd5e1" />
                     </linearGradient>
 
                     {/* Main Pointed Pin Highlight Filter */}
@@ -303,19 +299,19 @@ function Breadboard({
                 {/* Main Plastic Body with Interlocking Dovetail Tabs */}
                 <g filter="url(#breadboard-shadow)">
                     {/* Left Interlocking Notch */}
-                    <path d="M 6 112 L 0 112 L 0 176 L 6 176 Z" fill="#e8ebef" stroke="#cbd5e1" strokeWidth="1" />
+                    <path d={`M 6 ${isMini ? 80 : 112} L 0 ${isMini ? 80 : 112} L 0 ${isMini ? 128 : 176} L 6 ${isMini ? 128 : 176} Z`} fill="#e8ebef" stroke="#cbd5e1" strokeWidth="1" />
                     {/* Right Interlocking Peg */}
-                    <path d="M 554 116 L 560 116 L 560 172 L 554 172 Z" fill="#e8ebef" stroke="#cbd5e1" strokeWidth="1" />
+                    <path d={`M ${BOARD_WIDTH - 6} ${isMini ? 84 : 116} L ${BOARD_WIDTH} ${isMini ? 84 : 116} L ${BOARD_WIDTH} ${isMini ? 124 : 172} L ${BOARD_WIDTH - 6} ${isMini ? 124 : 172} Z`} fill="#e8ebef" stroke="#cbd5e1" strokeWidth="1" />
 
                     {/* Main Board Base */}
                     <rect 
                         x="6" 
                         y="4" 
-                        width="548" 
-                        height="280" 
+                        width={BOARD_WIDTH - 12} 
+                        height={BOARD_HEIGHT - 8} 
                         rx="12" 
                         ry="12" 
-                        fill="url(#body-gradient)" 
+                        fill={`url(#body-gradient-${id})`} 
                         stroke="#c4cbd4" 
                         strokeWidth="1.5"
                     />
@@ -324,8 +320,8 @@ function Breadboard({
                     <rect 
                         x="10" 
                         y="8" 
-                        width="540" 
-                        height="272" 
+                        width={BOARD_WIDTH - 20} 
+                        height={BOARD_HEIGHT - 16} 
                         rx="8" 
                         ry="8" 
                         fill="none" 
@@ -337,32 +333,37 @@ function Breadboard({
 
                 {/* ====================================================
                     POWER RAIL BUS LINES (+ Red and - Blue)
+                    (Rendered only on Full & Half boards with rails)
                 ==================================================== */}
-                {/* Top Power Rails */}
-                <line x1="44" y1="8" x2="516" y2="8" stroke="#ef4444" strokeWidth="1.6" strokeLinecap="round" />
-                <text x="30" y="12" fill="#ef4444" fontSize="13" fontWeight="700" fontFamily="monospace" textAnchor="middle">+</text>
-                <text x="530" y="12" fill="#ef4444" fontSize="13" fontWeight="700" fontFamily="monospace" textAnchor="middle">+</text>
+                {hasPowerRails && (
+                    <>
+                        {/* Top Power Rails */}
+                        <line x1="44" y1="8" x2={BOARD_WIDTH - 44} y2="8" stroke="#ef4444" strokeWidth="1.6" strokeLinecap="round" />
+                        <text x="30" y="12" fill="#ef4444" fontSize="13" fontWeight="700" fontFamily="monospace" textAnchor="middle">+</text>
+                        <text x={BOARD_WIDTH - 30} y="12" fill="#ef4444" fontSize="13" fontWeight="700" fontFamily="monospace" textAnchor="middle">+</text>
 
-                <line x1="44" y1="40" x2="516" y2="40" stroke="#3b82f6" strokeWidth="1.6" strokeLinecap="round" />
-                <text x="30" y="36" fill="#3b82f6" fontSize="15" fontWeight="700" fontFamily="monospace" textAnchor="middle">-</text>
-                <text x="530" y="36" fill="#3b82f6" fontSize="15" fontWeight="700" fontFamily="monospace" textAnchor="middle">-</text>
+                        <line x1="44" y1="40" x2={BOARD_WIDTH - 44} y2="40" stroke="#3b82f6" strokeWidth="1.6" strokeLinecap="round" />
+                        <text x="30" y="36" fill="#3b82f6" fontSize="15" fontWeight="700" fontFamily="monospace" textAnchor="middle">-</text>
+                        <text x={BOARD_WIDTH - 30} y="36" fill="#3b82f6" fontSize="15" fontWeight="700" fontFamily="monospace" textAnchor="middle">-</text>
 
-                {/* Bottom Power Rails */}
-                <line x1="44" y1="248" x2="516" y2="248" stroke="#3b82f6" strokeWidth="1.6" strokeLinecap="round" />
-                <text x="30" y="260" fill="#3b82f6" fontSize="15" fontWeight="700" fontFamily="monospace" textAnchor="middle">-</text>
-                <text x="530" y="260" fill="#3b82f6" fontSize="15" fontWeight="700" fontFamily="monospace" textAnchor="middle">-</text>
+                        {/* Bottom Power Rails */}
+                        <line x1="44" y1="248" x2={BOARD_WIDTH - 44} y2="248" stroke="#3b82f6" strokeWidth="1.6" strokeLinecap="round" />
+                        <text x="30" y="260" fill="#3b82f6" fontSize="15" fontWeight="700" fontFamily="monospace" textAnchor="middle">-</text>
+                        <text x={BOARD_WIDTH - 30} y="260" fill="#3b82f6" fontSize="15" fontWeight="700" fontFamily="monospace" textAnchor="middle">-</text>
 
-                <line x1="44" y1="280" x2="516" y2="280" stroke="#ef4444" strokeWidth="1.6" strokeLinecap="round" />
-                <text x="30" y="276" fill="#ef4444" fontSize="13" fontWeight="700" fontFamily="monospace" textAnchor="middle">+</text>
-                <text x="530" y="276" fill="#ef4444" fontSize="13" fontWeight="700" fontFamily="monospace" textAnchor="middle">+</text>
+                        <line x1="44" y1="280" x2={BOARD_WIDTH - 44} y2="280" stroke="#ef4444" strokeWidth="1.6" strokeLinecap="round" />
+                        <text x="30" y="276" fill="#ef4444" fontSize="13" fontWeight="700" fontFamily="monospace" textAnchor="middle">+</text>
+                        <text x={BOARD_WIDTH - 30} y="276" fill="#ef4444" fontSize="13" fontWeight="700" fontFamily="monospace" textAnchor="middle">+</text>
+                    </>
+                )}
 
                 {/* ====================================================
-                    COLUMN LABELS (1 to 30)
+                    COLUMN LABELS (1 to COLUMNS)
                 ==================================================== */}
                 {[...Array(COLUMNS)].map((_, c) => {
                     const colNum = c + 1;
                     const cx = X_START + c * GRID_STEP;
-                    const isMajor = colNum % 5 === 0 || colNum === 1;
+                    const isMajor = colNum % 5 === 0 || colNum === 1 || colNum === COLUMNS;
 
                     return (
                         <g key={`col-num-${colNum}`}>
@@ -370,7 +371,7 @@ function Breadboard({
                                 <>
                                     <text 
                                         x={cx} 
-                                        y="52" 
+                                        y={isMini ? "8" : "52"} 
                                         fill="#64748b" 
                                         fontSize="8.5" 
                                         fontWeight="600" 
@@ -381,7 +382,7 @@ function Breadboard({
                                     </text>
                                     <text 
                                         x={cx} 
-                                        y="238" 
+                                        y={isMini ? "200" : "238"} 
                                         fill="#64748b" 
                                         fontSize="8.5" 
                                         fontWeight="600" 
@@ -402,17 +403,26 @@ function Breadboard({
                 {ROWS_UPPER.map((r) => (
                     <g key={`row-u-${r}`}>
                         <text x="30" y={Y_UPPER_ROWS[r] + 3} fill="#64748b" fontSize="9" fontWeight="600" fontFamily="monospace" textAnchor="middle">{r}</text>
-                        <text x="530" y={Y_UPPER_ROWS[r] + 3} fill="#64748b" fontSize="9" fontWeight="600" fontFamily="monospace" textAnchor="middle">{r}</text>
+                        <text x={BOARD_WIDTH - 30} y={Y_UPPER_ROWS[r] + 3} fill="#64748b" fontSize="9" fontWeight="600" fontFamily="monospace" textAnchor="middle">{r}</text>
                     </g>
                 ))}
 
                 {/* Center DIP Valley Trough */}
-                <rect x="14" y="140" width="532" height="8" rx="2" fill="#d8dee6" stroke="#b4beca" strokeWidth="0.8" />
+                <rect 
+                    x="14" 
+                    y={isMini ? 92 : 140} 
+                    width={BOARD_WIDTH - 28} 
+                    height="8" 
+                    rx="2" 
+                    fill="#d8dee6" 
+                    stroke="#b4beca" 
+                    strokeWidth="0.8" 
+                />
 
                 {ROWS_LOWER.map((r) => (
                     <g key={`row-l-${r}`}>
                         <text x="30" y={Y_LOWER_ROWS[r] + 3} fill="#64748b" fontSize="9" fontWeight="600" fontFamily="monospace" textAnchor="middle">{r}</text>
-                        <text x="530" y={Y_LOWER_ROWS[r] + 3} fill="#64748b" fontSize="9" fontWeight="600" fontFamily="monospace" textAnchor="middle">{r}</text>
+                        <text x={BOARD_WIDTH - 30} y={Y_LOWER_ROWS[r] + 3} fill="#64748b" fontSize="9" fontWeight="600" fontFamily="monospace" textAnchor="middle">{r}</text>
                     </g>
                 ))}
 
@@ -420,8 +430,8 @@ function Breadboard({
                     INTERACTIVE TIE POINTS (WITH TINKERCAD/EDA HIGHLIGHTING)
                 ==================================================== */}
 
-                {/* TOP POWER RAIL HOLES */}
-                {[...Array(COLUMNS)].map((_, c) => {
+                {/* TOP POWER RAIL HOLES (Only on Half & Full boards) */}
+                {hasPowerRails && [...Array(COLUMNS)].map((_, c) => {
                     const cx = X_START + c * GRID_STEP;
                     const colNum = c + 1;
 
@@ -494,8 +504,8 @@ function Breadboard({
                     </g>
                 ))}
 
-                {/* BOTTOM POWER RAIL HOLES */}
-                {[...Array(COLUMNS)].map((_, c) => {
+                {/* BOTTOM POWER RAIL HOLES (Only on Half & Full boards) */}
+                {hasPowerRails && [...Array(COLUMNS)].map((_, c) => {
                     const cx = X_START + c * GRID_STEP;
                     const colNum = c + 1;
 
