@@ -73,9 +73,32 @@ export class ErrorBoundary extends Component {
                         <h2 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>
                             TwinLab Recovered from an Issue
                         </h2>
-                        <p style={{ fontSize: "13px", color: "#94a3b8", lineHeight: "1.6", marginBottom: "24px" }}>
-                            A component encountered a runtime issue. Your project data is saved in local storage.
+                        <p style={{ fontSize: "13px", color: "#94a3b8", lineHeight: "1.6", marginBottom: "16px" }}>
+                            A component encountered a runtime issue.
                         </p>
+                        {this.state.error && (
+                            <div style={{
+                                background: "rgba(0, 0, 0, 0.4)",
+                                border: "1px solid rgba(239, 68, 68, 0.25)",
+                                borderRadius: "8px",
+                                padding: "12px",
+                                margin: "0 0 20px",
+                                textAlign: "left",
+                                overflowX: "auto",
+                                maxHeight: "160px"
+                            }}>
+                                <code style={{
+                                    color: "#fca5a5",
+                                    fontSize: "11px",
+                                    fontFamily: "monospace",
+                                    whiteSpace: "pre-wrap",
+                                    wordBreak: "break-word"
+                                }}>
+                                    {this.state.error.toString()}
+                                    {this.state.errorInfo?.componentStack}
+                                </code>
+                            </div>
+                        )}
                         <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
                             <button
                                 onClick={this.handleReload}

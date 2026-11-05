@@ -407,15 +407,6 @@ function Workspace({ onBackToHome }) {
         setTimeout(() => setToastMessage(""), 1600);
     }, [components, wires, selectedId, selectedWireId]);
 
-    const handleOpenMultimeter = useCallback(() => {
-        const dmm = components.find(c => c.type === "multimeter");
-        if (dmm) {
-            handleSelectComponent(dmm.id);
-        } else {
-            handleAddComponent({ type: "multimeter", x: 260, y: 320 });
-        }
-    }, [components, handleSelectComponent, handleAddComponent]);
-
     // Copy action (Ctrl+C)
     const handleCopy = useCallback(() => {
         if (selectedId === "all" || selectedWireId === "all") {
@@ -899,6 +890,15 @@ function Workspace({ onBackToHome }) {
         setToastMessage(`Positioning ${designator}: Move cursor and click to place • [R] Rotate • [Esc] Cancel`);
         setTimeout(() => setToastMessage(""), 3500);
     };
+
+    const handleOpenMultimeter = useCallback(() => {
+        const dmm = components.find(c => c.type === "multimeter");
+        if (dmm) {
+            handleSelectComponent(dmm.id);
+        } else {
+            handleAddComponent({ type: "multimeter", x: 260, y: 320 });
+        }
+    }, [components, handleSelectComponent]);
 
     const handleCommitPlacingComponent = (placedComp) => {
         recordSnapshot();
