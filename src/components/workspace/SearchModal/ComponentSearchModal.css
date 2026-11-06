@@ -59,7 +59,7 @@
 
 .search-mag-icon {
     font-size: 20px;
-    color: #FF8A00;
+    color: var(--project-accent, #FF8A00);
     flex-shrink: 0;
 }
 
@@ -150,9 +150,9 @@
 }
 
 .cat-pill-btn.active {
-    background: rgba(255, 138, 0, 0.15);
-    border-color: rgba(255, 138, 0, 0.4);
-    color: #FF8A00;
+    background: var(--project-accent-subtle, rgba(255, 138, 0, 0.15));
+    border-color: var(--project-accent-border, rgba(255, 138, 0, 0.4));
+    color: var(--project-accent, #FF8A00);
 }
 
 [data-theme="light"] .cat-pill-btn {
@@ -283,9 +283,9 @@
     gap: 4px;
     padding: 5px 12px;
     border-radius: 7px;
-    background: rgba(255, 138, 0, 0.12);
-    border: 1px solid rgba(255, 138, 0, 0.3);
-    color: #FF8A00;
+    background: var(--project-accent-subtle, rgba(255, 138, 0, 0.12));
+    border: 1px solid var(--project-accent-border, rgba(255, 138, 0, 0.3));
+    color: var(--project-accent, #FF8A00);
     font-size: 11.5px;
     font-weight: 700;
     cursor: pointer;
@@ -294,9 +294,9 @@
 }
 
 .search-item-card:hover .item-add-action-btn {
-    background: #FF8A00;
+    background: var(--project-accent, #FF8A00);
     color: #ffffff;
-    box-shadow: 0 4px 12px rgba(255, 138, 0, 0.35);
+    box-shadow: 0 4px 12px var(--project-accent-glow, rgba(255, 138, 0, 0.35));
 }
 
 /* Empty State */

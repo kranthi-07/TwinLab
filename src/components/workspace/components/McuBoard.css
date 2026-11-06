@@ -27,10 +27,10 @@
     position: relative;
     width: 100%;
     height: 100%;
-    background: #0f766e; /* Classic Arduino Teal */
-    border-radius: 12px 16px 12px 12px;
-    border: 2px solid #115e59;
-    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.4);
+    background: radial-gradient(ellipse at 70% 35%, #009688 0%, #008784 45%, #00605d 100%);
+    border-radius: 12px 18px 12px 12px;
+    border: 2px solid #004d40;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3), inset 0 -3px 8px rgba(0, 0, 0, 0.5);
     overflow: hidden;
 }
 
@@ -422,33 +422,36 @@
 
 .mcu-socket-hole {
     position: absolute;
-    width: 12px;
-    height: 12px;
-    background: #09090b;
+    width: 13px;
+    height: 13px;
+    background: #18181b;
     border-radius: 2px;
-    border: 1px solid #27272a;
+    border: 1px solid #3f3f46;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: crosshair;
     pointer-events: auto;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 2px 4px rgba(0, 0, 0, 0.7);
     transition: transform 0.1s ease, border-color 0.15s ease;
+    z-index: 15;
 }
 
 .mcu-socket-hole:hover,
 .mcu-socket-hole.targeted {
     transform: scale(1.35);
     border-color: #38bdf8;
-    box-shadow: 0 0 8px #38bdf8;
+    box-shadow: 0 0 10px #38bdf8;
     z-index: 50;
 }
 
 .socket-inner-metal {
-    width: 6px;
-    height: 6px;
+    width: 6.5px;
+    height: 6.5px;
     border-radius: 1px;
-    background: #18181b;
-    border: 1px solid #ca8a04; /* Gold plated header contacts */
+    background: #000000;
+    border: 1.5px solid #ca8a04; /* Gold plated header contacts */
+    box-shadow: inset 0 0 2px #000000;
 }
 
 .socket-gnd .socket-inner-metal {
@@ -637,4 +640,189 @@
     left: 84px;
     display: flex;
     gap: 4px;
+}
+
+/* ============================================================
+   TINKERCAD-STYLE ANIMATED USB MODULE (PLUG-IN ON CODE RUN)
+============================================================ */
+.tinkercad-usb-cable {
+    position: absolute;
+    top: 26px;
+    left: -14px;
+    display: flex;
+    align-items: center;
+    z-index: 25;
+    pointer-events: none;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.7));
+    transition: transform 0.38s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.28s ease;
+}
+
+.tinkercad-usb-cable.unplugged {
+    transform: translateX(-36px);
+    opacity: 0;
+}
+
+.tinkercad-usb-cable.connected {
+    transform: translateX(0px);
+    opacity: 1;
+}
+
+/* Molded Rubber Strain Relief / Plug Grip */
+.usb-plug-strain-relief {
+    width: 12px;
+    height: 20px;
+    background: linear-gradient(180deg, #334155, #1e293b 50%, #0f172a);
+    border-radius: 3px 0 0 3px;
+    border-left: 2px solid #475569;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+/* Metallic USB Type-B Plug Housing */
+.usb-plug-metal-shell {
+    width: 24px;
+    height: 20px;
+    background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 45%, #94a3b8 100%);
+    border: 1px solid #94a3b8;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 3px;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.usb-plug-hole {
+    width: 4px;
+    height: 6px;
+    background: #1e293b;
+    border-radius: 1px;
+    border: 1px solid #0f172a;
+}
+
+/* Nano Specific USB Plug */
+.tinkercad-usb-cable.nano-cable {
+    top: 36px;
+    left: -8px;
+}
+
+.tinkercad-usb-cable.nano-cable .usb-plug-metal-shell.mini-shell {
+    width: 16px;
+    height: 14px;
+}
+
+/* ESP32 Specific Top-Mount USB Plug */
+.tinkercad-usb-cable.esp-cable {
+    top: -8px;
+    left: 68px;
+    flex-direction: column;
+}
+
+.tinkercad-usb-cable.esp-cable.unplugged {
+    transform: translateY(-36px);
+    opacity: 0;
+}
+
+.tinkercad-usb-cable.esp-cable.connected {
+    transform: translateY(0px);
+    opacity: 1;
+}
+
+.tinkercad-usb-cable.esp-cable .usb-plug-strain-relief {
+    width: 18px;
+    height: 10px;
+    border-radius: 3px 3px 0 0;
+}
+
+.usb-plug-metal-shell.micro-shell {
+    width: 16px;
+    height: 12px;
+}
+
+/* ============================================================
+   PERMANENT SILKSCREEN PIN LABELS
+============================================================ */
+.mcu-silkscreen-pin-label {
+    position: absolute;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    font-size: 7px;
+    font-weight: 800;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 0 1px #000000;
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+    opacity: 0.95;
+    line-height: 1;
+}
+
+/* Top header pins (label positioned below hole) */
+.mcu-silkscreen-pin-label.pin-label-bot {
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Bottom header pins (label positioned above hole) */
+.mcu-silkscreen-pin-label.pin-label-top {
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* ESP32 Left Column: positioned on the LEFT outer margin, away from center chip */
+.mcu-silkscreen-pin-label.pin-label-esp-left {
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 6.5px;
+    text-align: right;
+}
+
+/* ESP32 Right Column: positioned on the RIGHT outer margin, away from center chip */
+.mcu-silkscreen-pin-label.pin-label-esp-right {
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 6.5px;
+    text-align: left;
+}
+
+/* Header Plastic Shroud Strips (Base underneath individual socket pins) */
+.header-strip-shroud {
+    position: absolute;
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 2px;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.15), 0 2px 4px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+    z-index: 10;
+}
+
+.shroud-top-right {
+    left: 138px;
+    top: 10px;
+    width: 164px;
+    height: 12px;
+}
+
+.shroud-top-left {
+    left: 10px;
+    top: 10px;
+    width: 132px;
+    height: 12px;
+}
+
+.shroud-bot-left {
+    left: 42px;
+    top: 202px;
+    width: 132px;
+    height: 12px;
+}
+
+.shroud-bot-right {
+    left: 186px;
+    top: 202px;
+    width: 100px;
+    height: 12px;
 }

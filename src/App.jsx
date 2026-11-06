@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import WorkspaceLayout from "./layouts/WorkspaceLayout";
 import HomepageLayout from "./layouts/HomepageLayout";
 import ErrorBoundary from "./components/common/ErrorBoundary";
@@ -37,11 +38,31 @@ function App() {
 
     return (
         <ErrorBoundary>
-            {view === "workspace" ? (
-                <WorkspaceLayout onBackToHome={() => navigateTo("home")} />
-            ) : (
-                <HomepageLayout onOpenWorkspace={() => navigateTo("workspace")} />
-            )}
+            <AnimatePresence mode="wait">
+                {view === "workspace" ? (
+                    <motion.div
+                        key="workspace-view"
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.98 }}
+                        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                        style={{ width: "100%", height: "100%", overflow: "hidden" }}
+                    >
+                        <WorkspaceLayout onBackToHome={() => navigateTo("home")} />
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        key="home-view"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0, scale: 0.99 }}
+                        transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+                        style={{ width: "100%", height: "100%", overflow: "hidden" }}
+                    >
+                        <HomepageLayout onOpenWorkspace={() => navigateTo("workspace")} />
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </ErrorBoundary>
     );
 }

@@ -307,13 +307,130 @@ function ComponentCatalogThumbnail({ component }) {
         );
     }
 
-    if (type?.startsWith("starter")) {
+    if (type === "lcd-1602") {
         return (
             <svg viewBox="0 0 80 56" className="catalog-svg-art">
-                <rect x="16" y="8" width="48" height="40" rx="6" fill="rgba(255, 138, 0, 0.15)" stroke="#f97316" strokeWidth="1.5" />
-                <circle cx="32" cy="28" r="7" fill="#f97316" />
-                <rect x="44" y="24" width="12" height="8" rx="2" fill="#38bdf8" />
-                <line x1="32" y1="28" x2="44" y2="28" stroke="#f8fafc" strokeWidth="1.5" />
+                <rect x="8" y="10" width="64" height="36" rx="3" fill="#006644" stroke="#004d33" strokeWidth="1.5" />
+                <rect x="14" y="14" width="52" height="26" rx="2" fill="#0f172a" stroke="#1e293b" strokeWidth="1" />
+                <rect x="17" y="17" width="46" height="20" rx="1" fill="#0284c7" fillOpacity="0.35" />
+                <text x="20" y="26" fill="#38bdf8" fontSize="5" fontFamily="monospace" fontWeight="bold">TwinLab v2.4</text>
+                <text x="20" y="33" fill="#38bdf8" fontSize="5" fontFamily="monospace">Ready...</text>
+                {/* 4 I2C Backpack pins on left */}
+                <rect x="4" y="16" width="4" height="12" rx="0.5" fill="#18181b" />
+                <circle cx="6" cy="18" r="0.8" fill="#ca8a04" />
+                <circle cx="6" cy="21" r="0.8" fill="#ca8a04" />
+                <circle cx="6" cy="24" r="0.8" fill="#ca8a04" />
+                <circle cx="6" cy="27" r="0.8" fill="#ca8a04" />
+            </svg>
+        );
+    }
+
+    if (type === "battery-aa" || type === "battery-aaa") {
+        const isAA = type === "battery-aa";
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                {/* Black plastic enclosure */}
+                <rect x="12" y="10" width="56" height="36" rx="3" fill="#18181b" stroke="#27272a" strokeWidth="1.5" />
+                {/* 2 Cylindrical Cells */}
+                <rect x="16" y="14" width="48" height="12" rx="2" fill="#0284c7" stroke="#0369a1" strokeWidth="0.8" />
+                <rect x="58" y="16" width="3" height="8" rx="0.8" fill="#cbd5e1" />
+                <rect x="16" y="29" width="48" height="12" rx="2" fill="#0284c7" stroke="#0369a1" strokeWidth="0.8" />
+                <rect x="13" y="31" width="3" height="8" rx="0.8" fill="#cbd5e1" />
+                {/* Red and Black snap wires */}
+                <path d="M 68 18 Q 74 14 74 22" fill="none" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round" />
+                <path d="M 68 36 Q 74 40 74 32" fill="none" stroke="#09090b" strokeWidth="1.8" strokeLinecap="round" />
+                <text x="38" y="23" fill="#ffffff" fontSize="5" fontWeight="bold" textAnchor="middle">{isAA ? "AA 3V" : "AAA 3V"}</text>
+            </svg>
+        );
+    }
+
+    if (type === "switch-spst") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                <rect x="22" y="16" width="36" height="24" rx="3" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
+                <circle cx="40" cy="28" r="8" fill="#0f172a" stroke="#475569" strokeWidth="1" />
+                {/* Toggle bat lever */}
+                <line x1="40" y1="28" x2="48" y2="18" stroke="#cbd5e1" strokeWidth="3" strokeLinecap="round" />
+                <circle cx="48" cy="18" r="2.5" fill="#94a3b8" />
+                {/* 2 Solder Lugs */}
+                <rect x="16" y="26" width="6" height="4" rx="1" fill="#94a3b8" />
+                <rect x="58" y="26" width="6" height="4" rx="1" fill="#94a3b8" />
+            </svg>
+        );
+    }
+
+    if (type === "starter-led-resistor") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                {/* Mini breadboard base */}
+                <rect x="6" y="8" width="68" height="40" rx="3" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.2" />
+                <line x1="8" y1="13" x2="72" y2="13" stroke="#ef4444" strokeWidth="0.8" opacity="0.6" />
+                <line x1="8" y1="43" x2="72" y2="43" stroke="#3b82f6" strokeWidth="0.8" opacity="0.6" />
+                {/* Resistor placed */}
+                <rect x="16" y="24" width="22" height="6" rx="2" fill="#d97706" stroke="#b45309" strokeWidth="0.8" />
+                <line x1="12" y1="27" x2="16" y2="27" stroke="#64748b" strokeWidth="1.2" />
+                <line x1="38" y1="27" x2="44" y2="27" stroke="#64748b" strokeWidth="1.2" />
+                {/* 5mm LED placed */}
+                <circle cx="52" cy="27" r="7" fill="#ef4444" />
+                <circle cx="50" cy="25" r="2.5" fill="#fca5a5" opacity="0.8" />
+                <line x1="44" y1="27" x2="48" y2="27" stroke="#64748b" strokeWidth="1.2" />
+                <line x1="56" y1="27" x2="62" y2="27" stroke="#64748b" strokeWidth="1.2" />
+                {/* Circuit wire */}
+                <path d="M 62 27 Q 66 35 40 38" fill="none" stroke="#22c55e" strokeWidth="1.2" strokeLinecap="round" />
+            </svg>
+        );
+    }
+
+    if (type === "starter-battery-led") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                {/* 9V Battery */}
+                <rect x="8" y="14" width="22" height="28" rx="2" fill="#1e293b" stroke="#0f172a" strokeWidth="1" />
+                <rect x="8" y="14" width="22" height="7" rx="0.5" fill="#f97316" />
+                <rect x="11" y="10" width="4" height="4" rx="0.5" fill="#cbd5e1" />
+                <circle cx="23" cy="12" r="2" fill="#cbd5e1" />
+                {/* Resistor */}
+                <rect x="36" y="18" width="16" height="5" rx="1.5" fill="#d97706" />
+                {/* LED */}
+                <circle cx="62" cy="28" r="7" fill="#ef4444" />
+                <circle cx="60" cy="26" r="2" fill="#fca5a5" opacity="0.8" />
+                {/* Connecting leads */}
+                <path d="M 13 10 C 13 6, 36 6, 36 18" fill="none" stroke="#ef4444" strokeWidth="1.2" />
+                <line x1="52" y1="20.5" x2="57" y2="24" stroke="#64748b" strokeWidth="1.2" />
+                <path d="M 62 35 C 62 46, 23 46, 23 14" fill="none" stroke="#0f172a" strokeWidth="1.2" />
+            </svg>
+        );
+    }
+
+    if (type === "starter-pot-led") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                {/* Potentiometer */}
+                <circle cx="26" cy="28" r="14" fill="#1e293b" stroke="#334155" strokeWidth="1.2" />
+                <circle cx="26" cy="28" r="9" fill="#0284c7" />
+                <line x1="26" y1="28" x2="26" y2="20" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+                {/* Wire to LED */}
+                <path d="M 38 28 Q 46 22 54 28" fill="none" stroke="#38bdf8" strokeWidth="1.2" />
+                {/* LED */}
+                <circle cx="60" cy="28" r="7" fill="#ef4444" />
+                <circle cx="58" cy="26" r="2" fill="#fca5a5" opacity="0.8" />
+            </svg>
+        );
+    }
+
+    if (type === "starter-button-buzzer") {
+        return (
+            <svg viewBox="0 0 80 56" className="catalog-svg-art">
+                {/* Pushbutton */}
+                <rect x="12" y="18" width="22" height="20" rx="3" fill="#1e293b" stroke="#334155" strokeWidth="1" />
+                <circle cx="23" cy="28" r="5" fill="#3b82f6" />
+                {/* Connecting Wire */}
+                <path d="M 34 28 Q 44 20 52 28" fill="none" stroke="#eab308" strokeWidth="1.2" />
+                {/* Piezo Buzzer */}
+                <circle cx="60" cy="28" r="12" fill="#0f172a" stroke="#334155" strokeWidth="1.2" />
+                <circle cx="60" cy="28" r="4" fill="#1e293b" />
+                {/* Sound waves */}
+                <path d="M 72 23 A 6 6 0 0 1 72 33" fill="none" stroke="#38bdf8" strokeWidth="1.2" strokeLinecap="round" />
             </svg>
         );
     }
@@ -543,7 +660,10 @@ function LeftSidebar({ onAddComponent }) {
                                 className={`component-card card-${viewMode}`}
                                 draggable={true}
                                 onDragStart={(e) => handleDragStart(e, component)}
-                                onClick={() => onAddComponent && onAddComponent(component)}
+                                onClick={() => {
+                                    onAddComponent && onAddComponent(component);
+                                    setOpen(false);
+                                }}
                                 title={`Click or drag to add ${component.name}`}
                             >
                                 <div className="component-preview">
@@ -578,6 +698,7 @@ function LeftSidebar({ onAddComponent }) {
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             onAddComponent && onAddComponent(component);
+                                            setOpen(false);
                                         }}
                                         title="Quick Add"
                                     >

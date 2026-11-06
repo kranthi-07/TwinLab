@@ -61,10 +61,40 @@
 
 .wire-point-dot.is-endpoint:hover {
     filter: drop-shadow(0 0 6px #38bdf8);
+    r: 7px;
+}
+
+/* Intermediate Waypoints / Bend Nodes */
+.wire-point-dot.is-waypoint {
+    pointer-events: auto !important;
+    cursor: grab;
+    transition: r 0.15s ease, filter 0.15s ease;
+}
+
+.wire-point-dot.is-waypoint:hover {
+    r: 6.5px;
+    filter: drop-shadow(0 0 8px #FF8A00);
+}
+
+.wire-point-dot.is-waypoint:active {
+    cursor: grabbing;
 }
 
 .wire-group:hover .wire-point-dot {
-    r: 5px;
+    opacity: 1;
+}
+
+/* Real-Time Vibrant Yellow Glowing Electron / Current Flow Dots */
+.wire-electron-flow {
+    animation: wireElectronFlow 0.75s linear infinite;
+    filter: drop-shadow(0 0 4px #facc15) drop-shadow(0 0 8px #eab308);
+    pointer-events: none;
+}
+
+@keyframes wireElectronFlow {
+    to {
+        stroke-dashoffset: -34;
+    }
 }
 
 /* While routing an active wire, placed wire bodies do not intercept clicks, allowing clean multi-wire terminal wrapping */
@@ -76,7 +106,8 @@
     pointer-events: none;
 }
 
-.canvas-wires-layer.routing-active .wire-point-dot.is-endpoint {
+.canvas-wires-layer.routing-active .wire-point-dot.is-endpoint,
+.canvas-wires-layer.routing-active .wire-point-dot.is-waypoint {
     pointer-events: auto !important;
 }
 

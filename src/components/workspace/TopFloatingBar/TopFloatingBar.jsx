@@ -461,9 +461,9 @@ function TopFloatingBar({
     // Determine what Contextual Inspector bar should show (Mutually exclusive: component OR wire)
     const showInspector = selectedComponent 
         ? [
-            "resistor", "led", "battery-9v", "capacitor-ceramic", 
+            "resistor", "led", "battery-9v", "battery-aa", "battery-aaa", "capacitor-ceramic", 
             "potentiometer", "buzzer", "button", "pushbutton", 
-            "switch-spdt", "slide-switch", "multimeter", 
+            "switch-spdt", "slide-switch", "switch-spst", "lcd-1602", 
             "arduino-uno", "arduino-mega", "arduino-nano", "esp32", "esp32-devkit", "esp32-s3",
             "breadboard", "breadboard-half", "breadboard-full", "breadboard-mini"
           ].includes(selectedComponent.type) || selectedComponent.type?.startsWith("breadboard") || selectedComponent.type?.startsWith("arduino") || selectedComponent.type?.startsWith("esp32")
@@ -713,19 +713,64 @@ function TopFloatingBar({
                                             <span>Buzzer</span>
                                         </button>
 
-                                        {/* Digital Multimeter */}
+                                        {/* LCD 1602 Character Display */}
                                         <button
                                             className="palette-item"
                                             onClick={() => {
-                                                onAddComponent({ type: "multimeter", name: "Digital Multimeter" });
+                                                onAddComponent({ type: "lcd-1602", name: "16x2 LCD Display" });
                                                 setIsComponentsOpen(false);
                                             }}
-                                            title="Add Digital Multimeter"
+                                            title="Add 16x2 Character LCD Display (I2C)"
+                                        >
+                                            <div className="palette-item-miniature" style={{ background: "rgba(2, 132, 199, 0.2)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                <i className="ri-tv-line" style={{ color: "#38bdf8", fontSize: 16 }}></i>
+                                            </div>
+                                            <span>LCD 16x2</span>
+                                        </button>
+
+                                        {/* AA Battery Case (2x AA = 3.0V) */}
+                                        <button
+                                            className="palette-item"
+                                            onClick={() => {
+                                                onAddComponent({ type: "battery-aa", name: "AA Battery Case", cells: 2, voltage: 3 });
+                                                setIsComponentsOpen(false);
+                                            }}
+                                            title="Add 2× AA Battery Pack (3.0V)"
                                         >
                                             <div className="palette-item-miniature" style={{ background: "rgba(234, 179, 8, 0.15)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                <i className="ri-dashboard-3-line" style={{ color: "#facc15", fontSize: 16 }}></i>
+                                                <i className="ri-battery-2-charge-line" style={{ color: "#facc15", fontSize: 16 }}></i>
                                             </div>
-                                            <span>Multimeter</span>
+                                            <span>AA Pack</span>
+                                        </button>
+
+                                        {/* AAA Battery Case */}
+                                        <button
+                                            className="palette-item"
+                                            onClick={() => {
+                                                onAddComponent({ type: "battery-aaa", name: "AAA Battery Case", cells: 2, voltage: 3 });
+                                                setIsComponentsOpen(false);
+                                            }}
+                                            title="Add 2× AAA Battery Pack (3.0V)"
+                                        >
+                                            <div className="palette-item-miniature" style={{ background: "rgba(234, 179, 8, 0.15)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                <i className="ri-battery-line" style={{ color: "#facc15", fontSize: 16 }}></i>
+                                            </div>
+                                            <span>AAA Pack</span>
+                                        </button>
+
+                                        {/* Toggle Switch SPST */}
+                                        <button
+                                            className="palette-item"
+                                            onClick={() => {
+                                                onAddComponent({ type: "switch-spst", name: "Toggle Switch", isOn: false });
+                                                setIsComponentsOpen(false);
+                                            }}
+                                            title="Add SPST Toggle Switch"
+                                        >
+                                            <div className="palette-item-miniature" style={{ background: "rgba(220, 38, 38, 0.15)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                <i className="ri-switch-line" style={{ color: "#ef4444", fontSize: 16 }}></i>
+                                            </div>
+                                            <span>Switch</span>
                                         </button>
 
                                         {/* Slide Switch */}

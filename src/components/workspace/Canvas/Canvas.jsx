@@ -31,6 +31,7 @@ function Canvas({
     wireColor,
     routingMode = "curved",
     simulationResult,
+    isSimulating = false,
     onNotifyChange,
     viewport = { pan: { x: 0, y: 0 }, zoom: 1 },
     onUpdateViewport,
@@ -43,6 +44,7 @@ function Canvas({
 }) {
     const [isDragOver, setIsDragOver] = useState(false);
     const [activeWire, setActiveWire] = useState(null);
+    const [isMoveAllActive, setIsMoveAllActive] = useState(false);
     const [placingPos, setPlacingPos] = useState(null);
     const [placingRotation, setPlacingRotation] = useState(0);
 
@@ -61,6 +63,7 @@ function Canvas({
 
     const canvasRef = useRef(null);
     const draggingRef = useRef(null);
+    const draggingWirePointRef = useRef(null);
     const lastEmptyClickTimeRef = useRef(0);
     const lastWireFinishTimeRef = useRef(0);
     const doubleTapDragRef = useRef(null);
@@ -76,6 +79,12 @@ function Canvas({
 
     const isWireModeRef = useRef(isWireMode);
     isWireModeRef.current = isWireMode;
+
+    const handleStartDragWirePoint = useCallback((dragData) => {
+        draggingRef.current = null;
+        doubleTapDragRef.current = null;
+        draggingWirePointRef.current = dragData;
+    }, []);
 
     const { pan, zoom } = viewport;
 
@@ -562,6 +571,26 @@ function Canvas({
                 return;
             }
 
+            // A1. Live Wire Waypoint / Bend Point Dragging (Double-click in middle & drag)
+            if (draggingWirePointRef.current) {
+                draggingRef.current = null;
+                doubleTapDragRef.current = null;
+                const { wireId, pointIndex } = draggingWirePointRef.current;
+                const { snappedX, snappedY } = screenToWorld(e.clientX, e.clientY);
+                const wire = wiresRef.current.find(w => w.id === wireId);
+                if (wire && wire.points && wire.points[pointIndex]) {
+                    const currentPt = wire.points[pointIndex];
+                    if (currentPt.x !== snappedX || currentPt.y !== snappedY) {
+                        const updatedPoints = wire.points.map((pt, idx) => 
+                            idx === pointIndex ? { x: snappedX, y: snappedY } : pt
+                        );
+                        onUpdateWire && onUpdateWire(wireId, { points: updatedPoints });
+                        onNotifyChange && onNotifyChange();
+                    }
+                }
+                return;
+            }
+
             // B. Double-tap & drag on empty space: Move ALL components and wires together!
             if (doubleTapDragRef.current) {
                 const { initialMouseX, initialMouseY, initialComps, initialWires } = doubleTapDragRef.current;
@@ -666,6 +695,8 @@ function Canvas({
             }
             draggingRef.current = null;
             doubleTapDragRef.current = null;
+            draggingWirePointRef.current = null;
+            setIsMoveAllActive(false);
         };
 
         window.addEventListener("mousemove", handleMouseMove, { passive: true });
@@ -762,6 +793,7 @@ function Canvas({
                         points: w.points ? w.points.map(p => ({ ...p })) : []
                     }))
                 };
+                setIsMoveAllActive(true);
             }
             lastEmptyClickTimeRef.current = now;
         }
@@ -1018,6 +1050,14 @@ function Canvas({
             onClick={handleCanvasClick}
             onDoubleClick={handleCanvasDoubleClick}
         >
+            {/* Move All Circuit Active HUD Indicator */}
+            {isMoveAllActive && (
+                <div className="move-all-hud-badge">
+                    <i className="ri-drag-move-2-line"></i>
+                    <span>Move Entire Circuit Active — Drag mouse to reposition all parts & wires</span>
+                </div>
+            )}
+
             {/* TRANSFORMED INFINITE WORKSPACE VIEWPORT LAYER */}
             <div 
                 ref={viewportLayerRef}
@@ -1036,12 +1076,17 @@ function Canvas({
                     activeWire={activeWire}
                     selectedWireId={selectedWireId}
                     routingMode={routingMode}
+                    isSimulating={isSimulating}
+                    simulationResult={simulationResult}
                     onSelectWire={(id) => {
                         onSelectWire(id);
                         onSelectComponent(null);
                     }}
                     onDeleteWire={onDeleteWire}
                     onStartWireAtPoint={handleConnectOrStartWire}
+                    onUpdateWire={onUpdateWire}
+                    onStartDragWirePoint={handleStartDragWirePoint}
+                    screenToWorld={screenToWorld}
                 />
 
                 {/* Drop Target Indicator on hover */}
@@ -1158,6 +1203,7 @@ function Canvas({
                                 activeWire={activeWire}
                                 onStartWireAtPoint={handleConnectOrStartWire}
                                 simState={simulationResult?.mcuStates?.[comp.id]}
+                                isSimulating={isSimulating}
                             />
                         );
                     }

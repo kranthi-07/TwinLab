@@ -8,8 +8,8 @@
     top: 68px;
     right: 20px;
     bottom: 24px;
-    width: 620px;
-    max-width: calc(100vw - 40px);
+    width: 680px;
+    max-width: calc(100vw - 32px);
     background: rgba(10, 15, 29, 0.96);
     backdrop-filter: blur(28px) saturate(190%);
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -23,11 +23,11 @@
 }
 
 /* ------------------------------------------------------------
-   1. HEADER BAR
+   1. HEADER BAR (Title & Board Selector)
 ------------------------------------------------------------ */
 .code-editor-header {
-    height: 52px;
-    background: rgba(22, 30, 46, 0.85);
+    height: 44px;
+    background: rgba(22, 30, 46, 0.9);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     align-items: center;
@@ -41,6 +41,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
 }
 
 /* IDE Window Control Dots */
@@ -226,31 +227,47 @@
 }
 
 /* ------------------------------------------------------------
-   IDE FILE TAB BAR
+   2. IDE ACTION TOOLBAR (Tier 2 - Tabs, Presets, and Upload Button)
 ------------------------------------------------------------ */
-.editor-tabs-bar {
-    height: 32px;
-    background: rgba(14, 20, 32, 0.95);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+.editor-action-toolbar {
+    height: 44px;
+    background: rgba(14, 20, 32, 0.98);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 12px;
+    padding: 0 14px;
+    gap: 14px;
     user-select: none;
+}
+
+.toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+}
+
+.toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
 }
 
 .active-file-tab {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 12px;
+    padding: 5px 12px;
     background: #070a11;
-    border-radius: 6px 6px 0 0;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-bottom: none;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     font-size: 11.5px;
     font-weight: 600;
     color: #f1f5f9;
+    flex-shrink: 0;
 }
 
 .tab-ino-icon {
@@ -283,54 +300,54 @@
     font-size: 10.5px;
     font-family: monospace;
     color: #64748b;
-}
-
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    white-space: nowrap;
 }
 
 /* Action Buttons */
 .action-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
     font-size: 12px;
     font-weight: 700;
-    padding: 6px 14px;
+    padding: 7px 16px;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     outline: none;
     border: none;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .upload-btn {
     background: linear-gradient(135deg, #10b981, #059669);
     color: white;
-    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 3px 12px rgba(16, 185, 129, 0.35);
+    min-width: 120px;
+    justify-content: center;
 }
 
 .upload-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
+    box-shadow: 0 5px 16px rgba(16, 185, 129, 0.5);
+    background: linear-gradient(135deg, #34d399, #059669);
 }
 
 .upload-btn.active {
     background: linear-gradient(135deg, #0284c7, #0369a1);
-    box-shadow: 0 2px 10px rgba(2, 132, 199, 0.35);
+    box-shadow: 0 3px 12px rgba(2, 132, 199, 0.4);
 }
 
 .stop-btn {
     background: linear-gradient(135deg, #ef4444, #dc2626);
     color: white;
-    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 3px 12px rgba(239, 68, 68, 0.35);
 }
 
 .stop-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.45);
+    box-shadow: 0 5px 16px rgba(239, 68, 68, 0.5);
 }
 
 .close-panel-btn {

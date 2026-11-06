@@ -27,15 +27,15 @@ export const ARDUINO_PINS = {
         { name: "4", x: 64, y: 16, isGpio: true, pinNum: 4 },
         { name: "~3", x: 80, y: 16, isGpio: true, pinNum: 3 },
         { name: "2", x: 96, y: 16, isGpio: true, pinNum: 2 },
-        { name: "TX>1", x: 112, y: 16, isGpio: true, pinNum: 1 },
-        { name: "RX<0", x: 128, y: 16, isGpio: true, pinNum: 0 },
+        { name: "TX1", x: 112, y: 16, isGpio: true, pinNum: 1 },
+        { name: "RX0", x: 128, y: 16, isGpio: true, pinNum: 0 },
     ],
     // Bottom Power Header (8 pins, starting at local x: 48, y: 208)
     power: [
         { name: "NC", x: 48, y: 208, pinNum: "NC" },
-        { name: "IOREF", x: 64, y: 208, is5V: true, pinNum: "IOREF" },
-        { name: "RESET", x: 80, y: 208, pinNum: "RESET" },
-        { name: "3.3V", x: 96, y: 208, is3V3: true, pinNum: "3.3V" },
+        { name: "IO", x: 64, y: 208, is5V: true, pinNum: "IOREF" },
+        { name: "RST", x: 80, y: 208, pinNum: "RESET" },
+        { name: "3V3", x: 96, y: 208, is3V3: true, pinNum: "3.3V" },
         { name: "5V", x: 112, y: 208, is5V: true, pinNum: "5V" },
         { name: "GND", x: 128, y: 208, isGnd: true, pinNum: "GND" },
         { name: "GND", x: 144, y: 208, isGnd: true, pinNum: "GND" },
@@ -206,7 +206,7 @@ export const ESP32_PINS = {
 
 function McuBoard({
     id,
-    type, // "arduino-uno" | "esp32-devkit"
+    type, // "arduino-uno" | "arduino-mega" | "arduino-nano" | "esp32-devkit" | "esp32" | "esp32-s3"
     name,
     x,
     y,
@@ -219,33 +219,23 @@ function McuBoard({
     isWireMode,
     activeWire,
     onStartWireAtPoint,
-    simState
+    simState,
+    isSimulating = false
 }) {
     const [hoveredPin, setHoveredPin] = useState(null);
-    const lastMouseDownRef = useRef({ time: 0, key: "" });
 
     const getPinWorldCoords = (localX, localY) => {
         const rad = ((rotation || 0) * Math.PI) / 180;
         const worldX = Math.round(x + localX * Math.cos(rad) - localY * Math.sin(rad));
         const worldY = Math.round(y + localX * Math.sin(rad) + localY * Math.cos(rad));
-        return { worldX, worldY };
+        return { worldX, worldY, x: worldX, y: worldY };
     };
 
+    // Instant wire start from any board pin on click, mousedown or double-click
     const handlePinAction = (e, localX, localY) => {
         e && e.stopPropagation && e.stopPropagation();
         const pt = getPinWorldCoords(localX, localY);
-        onStartWireAtPoint && onStartWireAtPoint(pt);
-    };
-
-    const handlePinMouseDown = (e, pinKey, localX, localY) => {
-        e && e.stopPropagation && e.stopPropagation();
-        const now = Date.now();
-        const isDouble = (lastMouseDownRef.current.key === pinKey) && (now - lastMouseDownRef.current.time < 420);
-        lastMouseDownRef.current = { time: now, key: pinKey };
-
-        if (isDouble) {
-            handlePinAction(e, localX, localY);
-        }
+        onStartWireAtPoint && onStartWireAtPoint({ x: pt.x, y: pt.y });
     };
 
     const handlePinMouseUp = (e, localX, localY) => {
@@ -254,31 +244,50 @@ function McuBoard({
             const pt = getPinWorldCoords(localX, localY);
             const startPt = activeWire.points?.[0];
             if (startPt && (startPt.x !== pt.worldX || startPt.y !== pt.worldY)) {
-                onStartWireAtPoint({ x: pt.worldX, y: pt.worldY });
+                onStartWireAtPoint({ x: pt.x, y: pt.y });
             }
         }
     };
 
-    const renderPinSocket = (pin, keyPrefix) => {
+    /**
+     * Renders an individual pin header hole with permanent crisp silkscreen text label
+     */
+    const renderPinSocket = (pin, keyPrefix, labelPos = "auto") => {
         const pinKey = `${keyPrefix}_${pin.name}_${pin.x}_${pin.y}`;
         const isHovered = hoveredPin === pinKey;
+
+        // Position label cleanly beside the hole
+        let labelClass = "pin-label-bot";
+        if (labelPos === "top" || (labelPos === "auto" && pin.y > 100)) {
+            labelClass = "pin-label-top";
+        } else if (labelPos === "espLeft") {
+            labelClass = "pin-label-esp-left";
+        } else if (labelPos === "espRight") {
+            labelClass = "pin-label-esp-right";
+        } else if (labelPos === "right") {
+            labelClass = "pin-label-right";
+        } else if (labelPos === "left") {
+            labelClass = "pin-label-left";
+        }
 
         return (
             <div
                 key={pinKey}
                 className={`mcu-socket-hole ${pin.isGnd ? "socket-gnd" : pin.is5V ? "socket-5v" : pin.is3V3 ? "socket-3v3" : "socket-gpio"} ${isHovered ? "targeted" : ""}`}
-                style={{ left: pin.x - 6, top: pin.y - 6 }}
+                style={{ left: pin.x - 7, top: pin.y - 7 }}
                 onMouseEnter={() => setHoveredPin(pinKey)}
                 onMouseLeave={() => setHoveredPin(null)}
-                onMouseDown={(e) => handlePinMouseDown(e, pinKey, pin.x, pin.y)}
+                onMouseDown={(e) => handlePinAction(e, pin.x, pin.y)}
                 onMouseUp={(e) => handlePinMouseUp(e, pin.x, pin.y)}
+                onClick={(e) => handlePinAction(e, pin.x, pin.y)}
                 onDoubleClick={(e) => handlePinAction(e, pin.x, pin.y)}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    if (activeWire || isWireMode) handlePinAction(e, pin.x, pin.y);
-                }}
+                title={`Pin: ${pin.name} (Click to start wire)`}
             >
                 <div className="socket-inner-metal"></div>
+                {/* Permanent Silkscreen Pin Label directly beside the hole */}
+                <span className={`mcu-silkscreen-pin-label ${labelClass}`}>
+                    {pin.name}
+                </span>
                 {isHovered && (
                     <div className="mcu-pin-hover-badge">
                         {pin.name}
@@ -292,7 +301,7 @@ function McuBoard({
     // 1. ARDUINO UNO R3 RENDERER
     // ==========================================
     if (type === "arduino-uno") {
-        const isPowered = Boolean(simState?.isPowered);
+        const isPowered = Boolean(isSimulating || simState?.isPowered);
         const isD13Lit = Boolean(isPowered && simState?.d13High);
         const isTxRxActive = Boolean(isPowered && (simState?.txrxActive || simState?.serialActive));
 
@@ -308,20 +317,34 @@ function McuBoard({
                     onMouseDown && onMouseDown(e, id);
                 }}
             >
-                {/* Board PCB Silkscreen Artwork */}
+                {/* Tinkercad-Style Animated USB Module Plug-In (No awkward tail wire) */}
+                <div className={`tinkercad-usb-cable ${isPowered ? "connected" : "unplugged"}`}>
+                    <div className="usb-plug-strain-relief"></div>
+                    <div className="usb-plug-metal-shell">
+                        <div className="usb-plug-hole hole-1"></div>
+                        <div className="usb-plug-hole hole-2"></div>
+                    </div>
+                </div>
+
+                {/* Ultra-Realistic Italian Arduino Teal PCB */}
                 <div className="arduino-pcb-surface">
-                    {/* Metallic Silver USB-B Receptacle */}
+                    {/* Metallic Silver USB-B Port */}
                     <div className="arduino-usb-port">
-                        <div className="usb-shield-metallic"></div>
+                        <div className="usb-shield-metallic">
+                            <div className="usb-socket-opening"></div>
+                        </div>
                     </div>
 
-                    {/* DC Power Barrel Jack (Black casing with center pin) */}
+                    {/* DC Power Barrel Jack (Black with center pin) */}
                     <div className="arduino-dc-jack">
-                        <div className="barrel-inner-hole"></div>
+                        <div className="barrel-inner-hole">
+                            <div className="barrel-pin-metal"></div>
+                        </div>
                     </div>
 
-                    {/* Reset Button (Top left) */}
-                    <div className="arduino-reset-btn" title="Reset Button">
+                    {/* Reset Button (Top left) with red plunger & brass collar */}
+                    <div className="arduino-reset-btn" title="Reset Actuator">
+                        <div className="reset-brass-ring"></div>
                         <div className="reset-actuator"></div>
                     </div>
 
@@ -330,33 +353,42 @@ function McuBoard({
                         <span className="crystal-text">16.000</span>
                     </div>
 
+                    {/* ATmega16U2 USB-Serial Chip */}
+                    <div className="atmega16u2-chip"></div>
+
                     {/* ATmega328P DIP-28 Main Microcontroller IC */}
                     <div className="arduino-atmega-ic">
                         <div className="ic-notch"></div>
-                        <span className="ic-label">ATmega328P-PU</span>
+                        <span className="ic-label">ATMEGA328P-PU</span>
                         <div className="ic-pins-row top-pins"></div>
                         <div className="ic-pins-row bot-pins"></div>
                     </div>
 
-                    {/* Silkscreen Branding */}
+                    {/* Gold Ground Rings / Mounting Holes */}
+                    <div className="mcu-mount-hole hole-tl"></div>
+                    <div className="mcu-mount-hole hole-tr"></div>
+                    <div className="mcu-mount-hole hole-bl"></div>
+                    <div className="mcu-mount-hole hole-br"></div>
+
+                    {/* Silkscreen Italian Arduino Branding */}
                     <div className="arduino-silkscreen-labels">
+                        <div className="infinity-logo-svg">
+                            <span className="inf-sign">∞</span>
+                        </div>
                         <span className="board-title">ARDUINO</span>
                         <span className="board-subtitle">UNO</span>
                     </div>
 
-                    {/* Onboard Status LEDs */}
+                    {/* Onboard Status SMD LEDs */}
                     <div className="arduino-leds-cluster">
-                        {/* Power LED (ON) */}
                         <div className="status-led-item">
                             <span className={`micro-smd-led led-pwr ${isPowered ? "lit" : ""}`}></span>
                             <span className="smd-label">ON</span>
                         </div>
-                        {/* User Pin 13 LED (L) */}
                         <div className="status-led-item">
                             <span className={`micro-smd-led led-d13 ${isD13Lit ? "lit" : ""}`}></span>
                             <span className="smd-label">L</span>
                         </div>
-                        {/* TX / RX Activity LEDs */}
                         <div className="status-led-item">
                             <span className={`micro-smd-led led-tx ${isTxRxActive ? "pulse" : ""}`}></span>
                             <span className="smd-label">TX</span>
@@ -367,23 +399,24 @@ function McuBoard({
                         </div>
                     </div>
 
-                    {/* Silkscreen Header Labels */}
-                    <div className="header-legend digital-low-legend">DIGITAL (0-7)</div>
-                    <div className="header-legend digital-high-legend">DIGITAL (8-13, PWM)</div>
+                    {/* Silkscreen Section Header Brackets */}
+                    <div className="header-legend digital-high-legend">DIGITAL (PWM ~)</div>
                     <div className="header-legend power-legend">POWER</div>
                     <div className="header-legend analog-legend">ANALOG IN</div>
                 </div>
 
-                {/* Pin Socket Headers (Exact 16px Grid) */}
+                {/* Female Header Strips & Holes with permanent silkscreen labels */}
                 <div className="mcu-pin-sockets-layer">
-                    {/* Top Digital High (Pins 8 to SCL) */}
-                    {ARDUINO_PINS.digitalHigh.map((p) => renderPinSocket(p, "digHigh"))}
-                    {/* Top Digital Low (Pins 0 to 7) */}
-                    {ARDUINO_PINS.digitalLow.map((p) => renderPinSocket(p, "digLow"))}
-                    {/* Bottom Power (IOREF, 3.3V, 5V, GND, VIN) */}
-                    {ARDUINO_PINS.power.map((p) => renderPinSocket(p, "pwr"))}
-                    {/* Bottom Analog (A0 to A5) */}
-                    {ARDUINO_PINS.analog.map((p) => renderPinSocket(p, "ana"))}
+                    {/* Header Plastic Shroud Bases */}
+                    <div className="header-strip-shroud shroud-top-right"></div>
+                    <div className="header-strip-shroud shroud-top-left"></div>
+                    <div className="header-strip-shroud shroud-bot-left"></div>
+                    <div className="header-strip-shroud shroud-bot-right"></div>
+
+                    {ARDUINO_PINS.digitalHigh.map((p) => renderPinSocket(p, "digHigh", "bot"))}
+                    {ARDUINO_PINS.digitalLow.map((p) => renderPinSocket(p, "digLow", "bot"))}
+                    {ARDUINO_PINS.power.map((p) => renderPinSocket(p, "pwr", "top"))}
+                    {ARDUINO_PINS.analog.map((p) => renderPinSocket(p, "ana", "top"))}
                 </div>
             </div>
         );
@@ -393,7 +426,7 @@ function McuBoard({
     // 2. ARDUINO MEGA 2560 RENDERER
     // ==========================================
     if (type === "arduino-mega") {
-        const isPowered = Boolean(simState?.isPowered);
+        const isPowered = Boolean(isSimulating || simState?.isPowered);
         const isD13Lit = Boolean(isPowered && simState?.d13High);
         const isTxRxActive = Boolean(isPowered && (simState?.txrxActive || simState?.serialActive));
 
@@ -409,39 +442,36 @@ function McuBoard({
                     onMouseDown && onMouseDown(e, id);
                 }}
             >
+                {/* Tinkercad USB Plug Module */}
+                <div className={`tinkercad-usb-cable ${isPowered ? "connected" : "unplugged"}`}>
+                    <div className="usb-plug-strain-relief"></div>
+                    <div className="usb-plug-metal-shell"></div>
+                </div>
+
                 <div className="arduino-pcb-surface mega-pcb-surface">
-                    {/* Metallic Silver USB-B Receptacle */}
                     <div className="arduino-usb-port">
                         <div className="usb-shield-metallic"></div>
                     </div>
-
-                    {/* DC Power Barrel Jack */}
                     <div className="arduino-dc-jack">
                         <div className="barrel-inner-hole"></div>
                     </div>
-
-                    {/* Reset Button */}
                     <div className="arduino-reset-btn" title="Reset Button">
                         <div className="reset-actuator"></div>
                     </div>
-
-                    {/* 16MHz Crystal Oscillator */}
                     <div className="arduino-crystal">
                         <span className="crystal-text">16.000</span>
                     </div>
 
-                    {/* ATmega2560 Quad Flat Pack Main IC */}
+                    {/* ATmega2560 Quad Flat Pack 45° Main IC */}
                     <div className="arduino-mega-ic">
-                        <span className="mega-ic-label">ATMEGA2560</span>
+                        <span className="mega-ic-label">MEGA 2560</span>
                     </div>
 
-                    {/* Silkscreen Branding */}
                     <div className="arduino-silkscreen-labels" style={{ left: 144, top: 56 }}>
                         <span className="board-title">ARDUINO</span>
                         <span className="board-subtitle">MEGA 2560</span>
                     </div>
 
-                    {/* Onboard Status LEDs */}
                     <div className="arduino-leds-cluster" style={{ left: 240, top: 54 }}>
                         <div className="status-led-item">
                             <span className={`micro-smd-led led-pwr ${isPowered ? "lit" : ""}`}></span>
@@ -461,23 +491,19 @@ function McuBoard({
                         </div>
                     </div>
 
-                    {/* Silkscreen Header Labels */}
-                    <div className="header-legend digital-low-legend">DIGITAL (0-7)</div>
-                    <div className="header-legend digital-high-legend">DIGITAL (8-13, PWM)</div>
+                    <div className="header-legend digital-high-legend">DIGITAL (PWM ~)</div>
                     <div className="header-legend mega-comm-legend">COMMUNICATION (14-21)</div>
                     <div className="header-legend power-legend">POWER</div>
-                    <div className="header-legend mega-analog-legend">ANALOG IN (A0 - A15)</div>
-                    <div className="header-legend mega-dual-legend">DIGITAL 22-53</div>
+                    <div className="header-legend mega-analog-legend">ANALOG IN (A0-A15)</div>
                 </div>
 
-                {/* Pin Socket Headers (Exact 16px Grid) */}
                 <div className="mcu-pin-sockets-layer">
-                    {ARDUINO_MEGA_PINS.digitalHigh.map((p) => renderPinSocket(p, "megaDigHigh"))}
-                    {ARDUINO_MEGA_PINS.digitalLow.map((p) => renderPinSocket(p, "megaDigLow"))}
-                    {ARDUINO_MEGA_PINS.communication.map((p) => renderPinSocket(p, "megaComm"))}
-                    {ARDUINO_MEGA_PINS.power.map((p) => renderPinSocket(p, "megaPwr"))}
-                    {ARDUINO_MEGA_PINS.analog.map((p) => renderPinSocket(p, "megaAna"))}
-                    {ARDUINO_MEGA_PINS.dualDigital.map((p) => renderPinSocket(p, "megaDual"))}
+                    {ARDUINO_MEGA_PINS.digitalHigh.map((p) => renderPinSocket(p, "megaDigHigh", "bot"))}
+                    {ARDUINO_MEGA_PINS.digitalLow.map((p) => renderPinSocket(p, "megaDigLow", "bot"))}
+                    {ARDUINO_MEGA_PINS.communication.map((p) => renderPinSocket(p, "megaComm", "bot"))}
+                    {ARDUINO_MEGA_PINS.power.map((p) => renderPinSocket(p, "megaPwr", "top"))}
+                    {ARDUINO_MEGA_PINS.analog.map((p) => renderPinSocket(p, "megaAna", "top"))}
+                    {ARDUINO_MEGA_PINS.dualDigital.map((p) => renderPinSocket(p, "megaDual", "left"))}
                 </div>
             </div>
         );
@@ -487,7 +513,7 @@ function McuBoard({
     // 3. ARDUINO NANO RENDERER
     // ==========================================
     if (type === "arduino-nano") {
-        const isPowered = Boolean(simState?.isPowered);
+        const isPowered = Boolean(isSimulating || simState?.isPowered);
         const isD13Lit = Boolean(isPowered && simState?.d13High);
         const isTxRxActive = Boolean(isPowered && (simState?.txrxActive || simState?.serialActive));
 
@@ -503,27 +529,25 @@ function McuBoard({
                     onMouseDown && onMouseDown(e, id);
                 }}
             >
+                {/* Tinkercad USB Plug Module */}
+                <div className={`tinkercad-usb-cable nano-cable ${isPowered ? "connected" : "unplugged"}`}>
+                    <div className="usb-plug-strain-relief"></div>
+                    <div className="usb-plug-metal-shell mini-shell"></div>
+                </div>
+
                 <div className="nano-pcb-surface">
-                    {/* Mini-USB Port */}
                     <div className="nano-usb-port">
                         <div className="usb-shield-metallic"></div>
                     </div>
-
-                    {/* Reset Button */}
                     <div className="nano-reset-btn" title="Reset Button">
                         <div className="reset-actuator"></div>
                     </div>
-
-                    {/* ATmega328P QFP Chip */}
                     <div className="nano-atmega-ic"></div>
-
-                    {/* Silkscreen Branding */}
                     <div className="nano-branding">
                         <span className="nano-title">ARDUINO</span>
                         <span className="nano-subtitle">NANO</span>
                     </div>
 
-                    {/* Onboard LEDs */}
                     <div className="nano-leds-cluster">
                         <span className={`micro-smd-led led-pwr ${isPowered ? "lit" : ""}`} title="PWR"></span>
                         <span className={`micro-smd-led led-d13 ${isD13Lit ? "lit" : ""}`} title="Pin 13"></span>
@@ -532,10 +556,9 @@ function McuBoard({
                     </div>
                 </div>
 
-                {/* 15-Pin DIP Headers */}
                 <div className="mcu-pin-sockets-layer">
-                    {ARDUINO_NANO_PINS.topRow.map((p) => renderPinSocket(p, "nanoTop"))}
-                    {ARDUINO_NANO_PINS.botRow.map((p) => renderPinSocket(p, "nanoBot"))}
+                    {ARDUINO_NANO_PINS.topRow.map((p) => renderPinSocket(p, "nanoTop", "bot"))}
+                    {ARDUINO_NANO_PINS.botRow.map((p) => renderPinSocket(p, "nanoBot", "top"))}
                 </div>
             </div>
         );
@@ -544,7 +567,7 @@ function McuBoard({
     // ==========================================
     // 4. ESP32 DEVKIT V1 (30-PIN DUAL-ROW)
     // ==========================================
-    const isPowered = Boolean(simState?.isPowered);
+    const isPowered = Boolean(isSimulating || simState?.isPowered);
     const isD2Lit = Boolean(isPowered && simState?.d2High);
     const isTxRxActive = Boolean(isPowered && (simState?.txrxActive || simState?.serialActive));
 
@@ -561,7 +584,13 @@ function McuBoard({
                 onMouseDown && onMouseDown(e, id);
             }}
         >
-            {/* Matte Dark PCB Surface */}
+            {/* Tinkercad USB Plug Module into Micro-USB Jack */}
+            <div className={`tinkercad-usb-cable esp-cable ${isPowered ? "connected" : "unplugged"}`}>
+                <div className="usb-plug-strain-relief"></div>
+                <div className="usb-plug-metal-shell micro-shell"></div>
+            </div>
+
+            {/* Matte Dark PCB Surface with Gold Traces */}
             <div className="esp32-pcb-surface">
                 {/* ESP-WROOM-32 Metal RF Shielding Can with Meandered Antenna */}
                 <div className="esp32-metal-can">
@@ -583,7 +612,7 @@ function McuBoard({
                     <div className="micro-usb-connector"></div>
                 </div>
 
-                {/* Push Buttons: EN and BOOT */}
+                {/* Tactile Push Buttons: EN and BOOT */}
                 <div className="esp32-button-left" title="EN (Reset)">
                     <div className="esp-btn-cap"></div>
                     <span className="esp-btn-label">EN</span>
@@ -606,10 +635,10 @@ function McuBoard({
                 </div>
             </div>
 
-            {/* Dual 15-pin Headers (16px Pitch) */}
+            {/* Dual 15-pin Headers with Permanent Silkscreen Labels positioned on the outer board margin (never covering the middle chip) */}
             <div className="mcu-pin-sockets-layer">
-                {ESP32_PINS.leftCol.map((p) => renderPinSocket(p, "espL"))}
-                {ESP32_PINS.rightCol.map((p) => renderPinSocket(p, "espR"))}
+                {ESP32_PINS.leftCol.map((p) => renderPinSocket(p, "espL", "espLeft"))}
+                {ESP32_PINS.rightCol.map((p) => renderPinSocket(p, "espR", "espRight"))}
             </div>
         </div>
     );

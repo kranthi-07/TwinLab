@@ -255,6 +255,50 @@ export const COMPONENTS_CATALOG = [
         tag: "Power"
     },
     {
+        id: "battery-aa",
+        name: "AA Battery Pack",
+        type: "battery-aa",
+        category: "devices",
+        icon: "ri-battery-2-charge-line",
+        width: 96,
+        height: 64,
+        desc: "AA cell battery enclosure with coiled spring and snap leads (1, 2, or 4 cells: 1.5V, 3V, 6V)",
+        tag: "Power"
+    },
+    {
+        id: "battery-aaa",
+        name: "AAA Battery Pack",
+        type: "battery-aaa",
+        category: "devices",
+        icon: "ri-battery-charge-line",
+        width: 88,
+        height: 56,
+        desc: "AAA cell battery enclosure with coiled spring and snap leads (1, 2, or 4 cells: 1.5V, 3V, 6V)",
+        tag: "Power"
+    },
+    {
+        id: "switch-spst",
+        name: "SPST Toggle Switch",
+        type: "switch-spst",
+        category: "devices",
+        icon: "ri-toggle-line",
+        width: 48,
+        height: 32,
+        desc: "Single-Pole Single-Throw electronic toggle switch with ON/OFF contact lever",
+        tag: "Input"
+    },
+    {
+        id: "lcd-1602",
+        name: "16x2 Character LCD (I2C)",
+        type: "lcd-1602",
+        category: "devices",
+        icon: "ri-tv-line",
+        width: 192,
+        height: 96,
+        desc: "HD44780 dot-matrix 16x2 alphanumeric display with integrated PCF8574 I2C backpack",
+        tag: "Output"
+    },
+    {
         id: "buzzer",
         name: "Piezo Buzzer",
         type: "buzzer",
@@ -350,9 +394,12 @@ export const SMALL_COMPONENTS_PALETTE = [
     { id: "capacitor-ceramic", name: "Capacitor", type: "capacitor-ceramic", icon: "ri-contrast-2-line", color: "#10B981" },
     { id: "led-red", name: "LED", type: "led", icon: "ri-lightbulb-line", color: "#EF4444" },
     { id: "push-button", name: "Button", type: "button", icon: "ri-radio-button-line", color: "#A855F7" },
-    { id: "slide-switch", name: "Switch", type: "slide-switch", icon: "ri-toggle-line", color: "#6366F1" },
+    { id: "switch-spst", name: "Toggle", type: "switch-spst", icon: "ri-toggle-line", color: "#6366F1" },
+    { id: "slide-switch", name: "Slide SW", type: "slide-switch", icon: "ri-git-commit-line", color: "#818CF8" },
     { id: "potentiometer", name: "Potentiometer", type: "potentiometer", icon: "ri-equalizer-line", color: "#F59E0B" },
-    { id: "battery-9v", name: "Battery", type: "battery-9v", icon: "ri-battery-charge-line", color: "#EC4899" },
-    { id: "buzzer", name: "Buzzer", type: "buzzer", icon: "ri-volume-up-line", color: "#06B6D4" },
-    { id: "multimeter", name: "Multimeter", type: "multimeter", icon: "ri-speed-up-line", color: "#EAB308" }
+    { id: "battery-aa", name: "AA Pack", type: "battery-aa", icon: "ri-battery-2-charge-line", color: "#EC4899" },
+    { id: "battery-aaa", name: "AAA Pack", type: "battery-aaa", icon: "ri-battery-charge-line", color: "#F43F5E" },
+    { id: "battery-9v", name: "9V Battery", type: "battery-9v", icon: "ri-battery-line", color: "#D946EF" },
+    { id: "lcd-1602", name: "16x2 LCD", type: "lcd-1602", icon: "ri-tv-line", color: "#14B8A6" },
+    { id: "buzzer", name: "Buzzer", type: "buzzer", icon: "ri-volume-up-line", color: "#06B6D4" }
 ];

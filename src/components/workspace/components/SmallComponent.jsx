@@ -868,6 +868,206 @@ function SmallComponent({
                     )}
                 </div>
             )}
+
+            {/* AA & AAA BATTERY PACK (WITH 1, 2, 4 CELL OPTIONS & REALISTIC HOLDER) */}
+            {(type === "battery-aa" || type === "battery-aaa") && (() => {
+                const cellCount = cells || (voltage === 1.5 ? 1 : voltage === 6 ? 4 : 2);
+                const isAAA = type === "battery-aaa";
+                const cellWidth = isAAA ? 22 : 28;
+                const totalWidth = cellCount === 1 ? 52 : cellCount === 4 ? 132 : 76;
+                const posLeadX = totalWidth - 16;
+                const negLeadX = 16;
+
+                return (
+                    <div className="aa-battery-case" style={{ width: totalWidth }}>
+                        {/* Terminal Lead Wires */}
+                        <div className="battery-leads-header">
+                            {/* Negative Lead (Black) */}
+                            <div 
+                                className={`aa-term-pin term-neg ${hoveredTerminal === "aaNeg" ? "targeted" : ""}`}
+                                style={{ left: negLeadX }}
+                                onMouseEnter={() => setHoveredTerminal("aaNeg")}
+                                onMouseLeave={() => setHoveredTerminal(null)}
+                                onMouseDown={(e) => handleTerminalMouseDown(e, "aaNeg", negLeadX, -12)}
+                                onMouseUp={(e) => handleTerminalMouseUp(e, negLeadX, -12)}
+                                onClick={(e) => handleTerminalPress(e, "aaNeg", negLeadX, -12)}
+                                onDoubleClick={(e) => handleTerminalAction(e, negLeadX, -12)}
+                            >
+                                <div className="lead-wire lead-neg"></div>
+                                <span className="needle-tip-dot"></span>
+                                {hoveredTerminal === "aaNeg" && (
+                                    <div className="terminal-hover-tooltip" style={{ left: negLeadX, top: -12, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                        GND (−)
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Positive Lead (Red) */}
+                            <div 
+                                className={`aa-term-pin term-pos ${hoveredTerminal === "aaPos" ? "targeted" : ""}`}
+                                style={{ left: posLeadX }}
+                                onMouseEnter={() => setHoveredTerminal("aaPos")}
+                                onMouseLeave={() => setHoveredTerminal(null)}
+                                onMouseDown={(e) => handleTerminalMouseDown(e, "aaPos", posLeadX, -12)}
+                                onMouseUp={(e) => handleTerminalMouseUp(e, posLeadX, -12)}
+                                onClick={(e) => handleTerminalPress(e, "aaPos", posLeadX, -12)}
+                                onDoubleClick={(e) => handleTerminalAction(e, posLeadX, -12)}
+                            >
+                                <div className="lead-wire lead-pos"></div>
+                                <span className="needle-tip-dot"></span>
+                                {hoveredTerminal === "aaPos" && (
+                                    <div className="terminal-hover-tooltip" style={{ left: posLeadX, top: -12, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                        {cellCount * 1.5}V (+)
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Molded ABS Enclosure with Cells */}
+                        <div className="aa-molded-holder">
+                            <div className="holder-rim">
+                                {[...Array(cellCount)].map((_, idx) => (
+                                    <div key={`cell-${idx}`} className={`battery-cylindrical-cell ${isAAA ? "is-aaa" : "is-aa"}`} style={{ width: cellWidth }}>
+                                        <div className="cell-nipple-top"></div>
+                                        <div className="cell-copper-shoulder">
+                                            <span className="cell-plus">+</span>
+                                        </div>
+                                        <div className="cell-matte-body">
+                                            <span className="cell-label-text">{isAAA ? "AAA" : "AA"}</span>
+                                            <span className="cell-volt-text">1.5V</span>
+                                        </div>
+                                        <div className="cell-spring-contact">
+                                            <span className="spring-coil"></span>
+                                            <span className="cell-minus">−</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="holder-spec-tag">
+                                {cellCount}× {isAAA ? "AAA" : "AA"} • {(cellCount * 1.5).toFixed(1)}V DC
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* REALISTIC 16x2 CHARACTER LCD (HD44780 / I2C DISPLAY) */}
+            {type === "lcd-1602" && (() => {
+                const isPowered = Boolean(isSimulating || simState?.isPowered);
+                return (
+                    <div className={`lcd-module-container ${isPowered ? "powered-on" : ""}`}>
+                        {/* 4-Pin I2C Header at Top (GND, VCC, SDA, SCL) */}
+                        <div className="lcd-i2c-header">
+                            {[
+                                { name: "GND", x: 16, isGnd: true },
+                                { name: "VCC", x: 32, is5V: true },
+                                { name: "SDA", x: 48, isGpio: true },
+                                { name: "SCL", x: 64, isGpio: true }
+                            ].map((pin) => (
+                                <div
+                                    key={pin.name}
+                                    className={`lcd-pin-socket ${hoveredTerminal === `lcd_${pin.name}` ? "targeted" : ""}`}
+                                    style={{ left: pin.x }}
+                                    onMouseEnter={() => setHoveredTerminal(`lcd_${pin.name}`)}
+                                    onMouseLeave={() => setHoveredTerminal(null)}
+                                    onMouseDown={(e) => handleTerminalMouseDown(e, `lcd_${pin.name}`, pin.x, -10)}
+                                    onMouseUp={(e) => handleTerminalMouseUp(e, pin.x, -10)}
+                                    onClick={(e) => handleTerminalPress(e, `lcd_${pin.name}`, pin.x, -10)}
+                                    onDoubleClick={(e) => handleTerminalAction(e, pin.x, -10)}
+                                >
+                                    <div className="socket-inner-metal"></div>
+                                    <span className="lcd-pin-label">{pin.name}</span>
+                                    {hoveredTerminal === `lcd_${pin.name}` && (
+                                        <div className="terminal-hover-tooltip" style={{ left: pin.x, top: -10, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                            {pin.name} (I2C)
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Dark Blue PCB with Gold Mounting Holes */}
+                        <div className="lcd-pcb-surface">
+                            <div className="lcd-mount-hole hole-tl"></div>
+                            <div className="lcd-mount-hole hole-tr"></div>
+                            <div className="lcd-mount-hole hole-bl"></div>
+                            <div className="lcd-mount-hole hole-br"></div>
+
+                            {/* Metallic Screen Bezel */}
+                            <div className="lcd-bezel-frame">
+                                {/* Dot-Matrix LCD Screen Area */}
+                                <div className={`lcd-matrix-screen ${isPowered ? "backlight-active" : ""}`}>
+                                    <div className="lcd-text-row row-1">
+                                        <span className="lcd-dot-text">{isPowered ? (name || "TwinLab v2.0") : "                "}</span>
+                                    </div>
+                                    <div className="lcd-text-row row-2">
+                                        <span className="lcd-dot-text">{isPowered ? "Simulation OK" : "                "}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <span className="lcd-brand-stamp">1602A HD44780</span>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* SPST TOGGLE SWITCH */}
+            {type === "switch-spst" && (() => {
+                const switchActive = Boolean(isOn != null ? isOn : switchState === "closed");
+                return (
+                    <div 
+                        className={`spst-toggle-container ${switchActive ? "switch-closed" : "switch-open"}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateComponent && onUpdateComponent(id, { isOn: !switchActive, switchState: switchActive ? "open" : "closed" });
+                        }}
+                        title={`SPST Switch: ${switchActive ? "ON (Closed)" : "OFF (Open)"} - Click to Toggle`}
+                    >
+                        <div className="switch-metal-plate">
+                            <span className="switch-legend-off">0</span>
+                            <div className={`switch-rocker-lever ${switchActive ? "lever-on" : "lever-off"}`}>
+                                <div className="lever-bat-knob"></div>
+                            </div>
+                            <span className="switch-legend-on">I</span>
+                        </div>
+
+                        {/* Terminal 1 (0, 16) */}
+                        <span 
+                            className={`terminal-pin pin-sw-1 ${hoveredTerminal === "sw1" ? "targeted" : ""}`}
+                            style={{ left: 0, top: 16 }}
+                            onMouseEnter={() => setHoveredTerminal("sw1")}
+                            onMouseLeave={() => setHoveredTerminal(null)}
+                            onMouseDown={(e) => handleTerminalMouseDown(e, "sw1", 0, 16)}
+                            onMouseUp={(e) => handleTerminalMouseUp(e, 0, 16)}
+                            onClick={(e) => handleTerminalPress(e, "sw1", 0, 16)}
+                            onDoubleClick={(e) => handleTerminalAction(e, 0, 16)}
+                        />
+                        {hoveredTerminal === "sw1" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 0, top: 16, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Terminal 1
+                            </div>
+                        )}
+
+                        {/* Terminal 2 (32, 16) */}
+                        <span 
+                            className={`terminal-pin pin-sw-2 ${hoveredTerminal === "sw2" ? "targeted" : ""}`}
+                            style={{ left: 32, top: 16 }}
+                            onMouseEnter={() => setHoveredTerminal("sw2")}
+                            onMouseLeave={() => setHoveredTerminal(null)}
+                            onMouseDown={(e) => handleTerminalMouseDown(e, "sw2", 32, 16)}
+                            onMouseUp={(e) => handleTerminalMouseUp(e, 32, 16)}
+                            onClick={(e) => handleTerminalPress(e, "sw2", 32, 16)}
+                            onDoubleClick={(e) => handleTerminalAction(e, 32, 16)}
+                        />
+                        {hoveredTerminal === "sw2" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 32, top: 16, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Terminal 2
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
         </div>
     );
 }

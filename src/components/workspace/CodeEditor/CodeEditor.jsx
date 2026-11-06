@@ -195,7 +195,7 @@ function CodeEditor({
             exit={{ x: 500, opacity: 0 }}
             transition={{ type: "spring", stiffness: 320, damping: 30 }}
         >
-            {/* Header bar with IDE Window Dots and Board Switcher */}
+            {/* TIER 1: Window Title Bar (Mac-style dots, title, board pill, and clean close button) */}
             <div className="code-editor-header">
                 <div className="header-left">
                     {/* IDE Window Controls */}
@@ -242,8 +242,27 @@ function CodeEditor({
                     )}
                 </div>
 
-                {/* Right controls */}
+                {/* Right Header Control */}
                 <div className="header-right">
+                    <button 
+                        className="close-panel-btn" 
+                        onClick={onClose}
+                        title="Close Code Editor"
+                    >
+                        <i className="ri-close-line"></i>
+                    </button>
+                </div>
+            </div>
+
+            {/* TIER 2: Action Toolbar (Tabs, Starter Presets, and Spacious Upload & Run Button) */}
+            <div className="editor-action-toolbar">
+                <div className="toolbar-left">
+                    <div className="active-file-tab">
+                        <span className="tab-ino-icon">ino</span>
+                        <span className="tab-filename">sketch.ino</span>
+                        <span className="tab-clean-dot"></span>
+                    </div>
+
                     {/* Professional Preset Examples Dropdown */}
                     <div className="custom-ide-select-container preset-select-container">
                         <i className="ri-folder-code-line ide-select-icon"></i>
@@ -263,7 +282,14 @@ function CodeEditor({
                         <i className="ri-arrow-down-s-line ide-select-chevron"></i>
                     </div>
 
-                    {/* Compile & Upload Button */}
+                    <div className="tab-board-info">
+                        <i className="ri-speed-line"></i>
+                        <span>{currentBoard.arch}</span>
+                    </div>
+                </div>
+
+                <div className="toolbar-right">
+                    {/* Compile & Upload Button (Spacious, prominent, zero overflow) */}
                     <button 
                         className={`action-btn upload-btn ${isExecuting ? "active" : ""}`}
                         onClick={handleUpload}
@@ -284,28 +310,6 @@ function CodeEditor({
                             <span>Stop</span>
                         </button>
                     )}
-
-                    {/* Close Panel Button */}
-                    <button 
-                        className="close-panel-btn" 
-                        onClick={onClose}
-                        title="Close Code Editor"
-                    >
-                        <i className="ri-close-line"></i>
-                    </button>
-                </div>
-            </div>
-
-            {/* IDE File Tab Bar */}
-            <div className="editor-tabs-bar">
-                <div className="active-file-tab">
-                    <span className="tab-ino-icon">ino</span>
-                    <span className="tab-filename">sketch.ino</span>
-                    <span className="tab-clean-dot"></span>
-                </div>
-                <div className="tab-board-info">
-                    <i className="ri-speed-line"></i>
-                    <span>{currentBoard.arch}</span>
                 </div>
             </div>
 

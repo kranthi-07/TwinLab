@@ -807,53 +807,115 @@ function Workspace({ onBackToHome }) {
         setIsWireMode(false);
         setSelectedWireId(null);
 
-        if (newComp.type === "starter-led-resistor") {
-            const resId = `resistor-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-            const ledId = `led-${Date.now() + 1}-${Math.random().toString(36).substring(2, 6)}`;
-            const res = { id: resId, type: "resistor", name: "Resistor (220Ω)", x: 320, y: 112, rotation: 0 };
-            const led = { id: ledId, type: "led", name: "5mm LED (Red)", color: "#ef4444", x: 400, y: 112, rotation: 0 };
-            setComponents(prev => [...prev, res, led]);
+        if (newComp.type === "starter-led-resistor" || newComp.type === "starter-battery-led") {
+            const now = Date.now();
+            const bbId = `breadboard-${now}`;
+            const batId = `battery-9v-${now + 1}`;
+            const resId = `resistor-${now + 2}`;
+            const ledId = `led-${now + 3}`;
+
+            // Breadboard placed at x: 320, y: 160
+            const bb = { id: bbId, type: "breadboard-half", name: "Breadboard (Half)", x: 320, y: 160, rotation: 0 };
+            // 9V Battery on the left
+            const bat = { id: batId, type: "battery-9v", name: "9V Battery", x: 160, y: 208, rotation: 0, voltage: 9 };
+            // Resistor: Col 10 (320 + 48 + 9*16 = 512), Row d (160 + 112 = 272). 64px span to Col 14 (576, 272)
+            const res = { id: resId, type: "resistor", name: "Resistor (220Ω)", resistance: 220, x: 512, y: 272, rotation: 0 };
+            // LED: Anode at Col 14 Row e (576, 288), Cathode at Col 15 Row e (592, 288)
+            const led = { id: ledId, type: "led", name: "5mm LED (Red)", color: "#ef4444", x: 576, y: 288, rotation: 0 };
+
+            // Accurate pre-routed wires completing the closed-loop circuit:
+            const wirePos = {
+                id: `wire-${now + 4}`,
+                color: "#ef4444",
+                points: [{ x: 176, y: 208 }, { x: 512, y: 240 }], // Battery + to Col 10 Row b
+                routingMode: "curved"
+            };
+            const wireNeg = {
+                id: `wire-${now + 5}`,
+                color: "#0f172a",
+                points: [{ x: 208, y: 208 }, { x: 592, y: 240 }], // Battery - to Col 15 Row b
+                routingMode: "curved"
+            };
+
+            setComponents(prev => [...prev, bb, bat, res, led]);
+            setWires(prev => [...prev, wirePos, wireNeg]);
             setSelectedId(led.id);
             setIsUnsaved(true);
-            setToastMessage("Added Starter: LED + Resistor");
-            setTimeout(() => setToastMessage(""), 2000);
-            return;
-        }
-        if (newComp.type === "starter-battery-led") {
-            const batId = `battery-9v-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-            const resId = `resistor-${Date.now() + 1}-${Math.random().toString(36).substring(2, 6)}`;
-            const ledId = `led-${Date.now() + 2}-${Math.random().toString(36).substring(2, 6)}`;
-            const bat = { id: batId, type: "battery-9v", name: "9V Battery", x: 192, y: 80, rotation: 0 };
-            const res = { id: resId, type: "resistor", name: "Resistor (1kΩ)", x: 336, y: 112, rotation: 0 };
-            const led = { id: ledId, type: "led", name: "5mm LED (Red)", color: "#ef4444", x: 416, y: 112, rotation: 0 };
-            setComponents(prev => [...prev, bat, res, led]);
-            setSelectedId(led.id);
-            setIsUnsaved(true);
-            setToastMessage("Added Starter: 9V Battery + Circuit");
+            setToastMessage("Imported Starter: LED + Resistor Circuit");
             setTimeout(() => setToastMessage(""), 2000);
             return;
         }
         if (newComp.type === "starter-pot-led") {
-            const potId = `potentiometer-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-            const ledId = `led-${Date.now() + 1}-${Math.random().toString(36).substring(2, 6)}`;
-            const pot = { id: potId, type: "potentiometer", name: "Potentiometer (10k)", x: 320, y: 112, rotation: 0 };
-            const led = { id: ledId, type: "led", name: "5mm LED (Red)", color: "#ef4444", x: 384, y: 112, rotation: 0 };
-            setComponents(prev => [...prev, pot, led]);
+            const now = Date.now();
+            const bbId = `breadboard-${now}`;
+            const batId = `battery-9v-${now + 1}`;
+            const potId = `potentiometer-${now + 2}`;
+            const resId = `resistor-${now + 3}`;
+            const ledId = `led-${now + 4}`;
+
+            const bb = { id: bbId, type: "breadboard-half", name: "Breadboard (Half)", x: 320, y: 160, rotation: 0 };
+            const bat = { id: batId, type: "battery-9v", name: "9V Battery", x: 160, y: 208, rotation: 0, voltage: 9 };
+            const pot = { id: potId, type: "potentiometer", name: "Potentiometer (10k)", resistance: 10000, wiperValue: 0.7, x: 480, y: 272, rotation: 0 };
+            const res = { id: resId, type: "resistor", name: "Resistor (330Ω)", resistance: 330, x: 560, y: 272, rotation: 0 };
+            const led = { id: ledId, type: "led", name: "5mm LED (Green)", color: "#22c55e", x: 640, y: 288, rotation: 0 };
+
+            const wirePos = {
+                id: `wire-${now + 5}`,
+                color: "#ef4444",
+                points: [{ x: 176, y: 208 }, { x: 480, y: 256 }],
+                routingMode: "curved"
+            };
+            const wireNeg = {
+                id: `wire-${now + 6}`,
+                color: "#0f172a",
+                points: [{ x: 208, y: 208 }, { x: 656, y: 256 }],
+                routingMode: "curved"
+            };
+
+            setComponents(prev => [...prev, bb, bat, pot, res, led]);
+            setWires(prev => [...prev, wirePos, wireNeg]);
             setSelectedId(led.id);
             setIsUnsaved(true);
-            setToastMessage("Added Starter: Potentiometer + LED");
+            setToastMessage("Imported Starter: Variable LED Dimmer");
             setTimeout(() => setToastMessage(""), 2000);
             return;
         }
         if (newComp.type === "starter-button-buzzer") {
-            const btnId = `button-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-            const buzId = `buzzer-${Date.now() + 1}-${Math.random().toString(36).substring(2, 6)}`;
-            const btn = { id: btnId, type: "button", name: "Tactile Pushbutton", x: 320, y: 112, rotation: 0 };
-            const buz = { id: buzId, type: "buzzer", name: "Piezo Buzzer", x: 384, y: 112, rotation: 0 };
-            setComponents(prev => [...prev, btn, buz]);
+            const now = Date.now();
+            const bbId = `breadboard-${now}`;
+            const batId = `battery-9v-${now + 1}`;
+            const btnId = `button-${now + 2}`;
+            const buzId = `buzzer-${now + 3}`;
+
+            const bb = { id: bbId, type: "breadboard-half", name: "Breadboard (Half)", x: 320, y: 160, rotation: 0 };
+            const bat = { id: batId, type: "battery-9v", name: "9V Battery", x: 160, y: 208, rotation: 0, voltage: 9 };
+            const btn = { id: btnId, type: "button", name: "Tactile Pushbutton", x: 496, y: 272, rotation: 0 };
+            const buz = { id: buzId, type: "buzzer", name: "Piezo Buzzer", x: 592, y: 256, rotation: 0 };
+
+            const wirePos = {
+                id: `wire-${now + 4}`,
+                color: "#ef4444",
+                points: [{ x: 176, y: 208 }, { x: 496, y: 240 }],
+                routingMode: "curved"
+            };
+            const wireMid = {
+                id: `wire-${now + 5}`,
+                color: "#eab308",
+                points: [{ x: 528, y: 240 }, { x: 592, y: 240 }],
+                routingMode: "curved"
+            };
+            const wireNeg = {
+                id: `wire-${now + 6}`,
+                color: "#0f172a",
+                points: [{ x: 208, y: 208 }, { x: 608, y: 240 }],
+                routingMode: "curved"
+            };
+
+            setComponents(prev => [...prev, bb, bat, btn, buz]);
+            setWires(prev => [...prev, wirePos, wireMid, wireNeg]);
             setSelectedId(buz.id);
             setIsUnsaved(true);
-            setToastMessage("Added Starter: Pushbutton + Buzzer");
+            setToastMessage("Imported Starter: Doorbell Buzzer");
             setTimeout(() => setToastMessage(""), 2000);
             return;
         }
@@ -1070,11 +1132,13 @@ function Workspace({ onBackToHome }) {
                     components={components}
                     wires={wires}
                     simulationResult={simulationResult}
+                    isSimulating={isSimulating}
                     onAddComponent={handleAddComponent}
                     onUpdateComponent={handleUpdateComponent}
                     onDeleteComponent={handleDeleteComponent}
                     onAddWire={handleAddWire}
                     onDeleteWire={handleDeleteWire}
+                    onUpdateWire={(id, upd) => setWires(prev => prev.map(w => w.id === id ? { ...w, ...upd } : w))}
                     onBatchUpdateWires={handleBatchUpdateWires}
                     onUpdateAllComponentsAndWires={handleUpdateAllComponentsAndWires}
                     selectedId={selectedId}
@@ -1285,18 +1349,18 @@ function Workspace({ onBackToHome }) {
                     <motion.div 
                         className="exit-modal-overlay" 
                         onClick={() => setShowExitModal(false)}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.18 }}
+                        initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                        animate={{ opacity: 1, backdropFilter: "blur(12px)" }}
+                        exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                        transition={{ duration: 0.2 }}
                     >
                         <motion.div 
                             className="exit-modal" 
                             onClick={(e) => e.stopPropagation()}
-                            initial={{ opacity: 0, scale: 0.92, y: 16 }}
+                            initial={{ opacity: 0, scale: 0.88, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.92, y: 16 }}
-                            transition={{ duration: 0.22, ease: "easeOut" }}
+                            exit={{ opacity: 0, scale: 0.9, y: 12 }}
+                            transition={{ type: "spring", stiffness: 420, damping: 28 }}
                         >
                             <div className="exit-modal-icon">
                                 <i className="ri-alert-line"></i>

@@ -1,0 +1,206 @@
+/* ============================================================
+   LEARN / ACADEMY PAGE STYLING
+============================================================ */
+.learn-page-container {
+    padding: 32px 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.learn-header {
+    margin-bottom: 32px;
+}
+
+.learn-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.28);
+    color: #4ade80;
+    font-size: 11.5px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.learn-header h1 {
+    font-size: 30px;
+    font-weight: 800;
+    color: #f8fafc;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+}
+
+.learn-header p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #94a3b8;
+    max-width: 680px;
+}
+
+.learn-filters {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.level-filter-btn {
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    color: #94a3b8;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.level-filter-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #f1f5f9;
+}
+
+.level-filter-btn.active {
+    background: rgba(34, 197, 94, 0.16);
+    border-color: #22c55e;
+    color: #4ade80;
+}
+
+/* Lessons Grid */
+.lessons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+}
+
+.lesson-card {
+    background: rgba(18, 24, 38, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
+.lesson-card:hover {
+    border-color: rgba(34, 197, 94, 0.45);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45), 0 0 24px rgba(34, 197, 94, 0.15);
+}
+
+.lesson-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.lesson-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    color: #22c55e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.lesson-meta-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.level-badge {
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.time-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 3px 8px;
+    border-radius: 6px;
+}
+
+.lesson-content h3 {
+    font-size: 17px;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin-bottom: 8px;
+}
+
+.lesson-content p {
+    font-size: 13px;
+    line-height: 1.55;
+    color: #94a3b8;
+    margin-bottom: 16px;
+}
+
+.lesson-topics-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 20px;
+}
+
+.topic-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #cbd5e1;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 7px;
+    border-radius: 5px;
+}
+
+.topic-chip i {
+    color: #22c55e;
+    font-size: 12px;
+}
+
+.launch-lesson-btn {
+    width: 100%;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    color: #4ade80;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.launch-lesson-btn:hover {
+    background: #22c55e;
+    color: #ffffff;
+    border-color: #22c55e;
+    box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4);
+}

@@ -151,31 +151,60 @@ function Dashboard({ onOpenWorkspace }) {
         let initialWires = [];
 
         if (template === "esp32") {
+            const espId = `esp32-${now}`;
+            const bbId = `breadboard-${now + 1}`;
+            const resId = `res-${now + 2}`;
+            const ledId = `led-${now + 3}`;
+
             initialComponents = [
                 {
-                    id: `esp32-${now}`,
+                    id: espId,
                     type: "esp32-devkit",
                     name: "ESP32 DevKit V1",
-                    x: 240,
-                    y: 140,
+                    x: 160,
+                    y: 160,
                     rotation: 0
                 },
                 {
-                    id: `breadboard-${now + 1}`,
+                    id: bbId,
                     type: "breadboard-half",
                     name: "Breadboard (Half-Size)",
-                    x: 200,
-                    y: 350,
+                    x: 480,
+                    y: 160,
                     rotation: 0
                 },
                 {
-                    id: `led-${now + 2}`,
+                    id: resId,
+                    type: "resistor",
+                    name: "Resistor (220Ω)",
+                    resistance: 220,
+                    x: 672,
+                    y: 272,
+                    rotation: 0
+                },
+                {
+                    id: ledId,
                     type: "led",
                     name: "5mm LED (Blue)",
                     color: "#3b82f6",
-                    x: 340,
-                    y: 414,
+                    x: 736,
+                    y: 288,
                     rotation: 0
+                }
+            ];
+
+            initialWires = [
+                {
+                    id: `wire-${now + 4}`,
+                    color: "#3b82f6",
+                    points: [{ x: 304, y: 320 }, { x: 672, y: 240 }], // D2 to Resistor
+                    routingMode: "curved"
+                },
+                {
+                    id: `wire-${now + 5}`,
+                    color: "#0f172a",
+                    points: [{ x: 304, y: 368 }, { x: 752, y: 240 }], // GND to LED Cathode
+                    routingMode: "curved"
                 }
             ];
         } else if (template === "arduino") {
@@ -189,7 +218,7 @@ function Dashboard({ onOpenWorkspace }) {
                     id: ardId,
                     type: "arduino-uno",
                     name: "Arduino Uno R3",
-                    x: 160,
+                    x: 144,
                     y: 160,
                     rotation: 0
                 },
@@ -197,7 +226,7 @@ function Dashboard({ onOpenWorkspace }) {
                     id: bbId,
                     type: "breadboard-half",
                     name: "Breadboard (Half-Size)",
-                    x: 520,
+                    x: 512,
                     y: 160,
                     rotation: 0
                 },
@@ -206,8 +235,8 @@ function Dashboard({ onOpenWorkspace }) {
                     type: "resistor",
                     name: "Resistor (220Ω)",
                     resistance: 220,
-                    x: 640,
-                    y: 224,
+                    x: 704,
+                    y: 272,
                     rotation: 0
                 },
                 {
@@ -215,9 +244,24 @@ function Dashboard({ onOpenWorkspace }) {
                     type: "led",
                     name: "5mm LED (Red)",
                     color: "#ef4444",
-                    x: 720,
-                    y: 224,
+                    x: 768,
+                    y: 288,
                     rotation: 0
+                }
+            ];
+
+            initialWires = [
+                {
+                    id: `wire-${now + 4}`,
+                    color: "#ef4444",
+                    points: [{ x: 352, y: 176 }, { x: 704, y: 240 }], // Arduino Pin 13 to Col 10 Row b
+                    routingMode: "curved"
+                },
+                {
+                    id: `wire-${now + 5}`,
+                    color: "#0f172a",
+                    points: [{ x: 336, y: 176 }, { x: 784, y: 240 }], // Arduino GND to Col 15 Row b
+                    routingMode: "curved"
                 }
             ];
         } else if (template === "pi") {
@@ -458,6 +502,52 @@ function Dashboard({ onOpenWorkspace }) {
                                 onClick={() => handleTemplateClick(t)}
                             >
                                 <div className="template-card-glow"></div>
+                                <div className="template-preview-banner">
+                                    {t.id === "esp32" && (
+                                        <svg viewBox="0 0 160 70" className="template-card-art">
+                                            <rect x="15" y="10" width="45" height="50" rx="3" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+                                            <rect x="23" y="20" width="29" height="26" rx="2" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="0.8" />
+                                            <text x="37" y="36" fill="#475569" fontSize="6" fontWeight="bold" textAnchor="middle">ESP32</text>
+                                            <rect x="75" y="14" width="70" height="42" rx="3" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1" />
+                                            <line x1="78" y1="18" x2="142" y2="18" stroke="#ef4444" strokeWidth="0.8" />
+                                            <circle cx="110" cy="35" r="5" fill="#3b82f6" />
+                                            <path d="M 60 30 Q 75 25 105 35" fill="none" stroke="#3b82f6" strokeWidth="1.2" />
+                                        </svg>
+                                    )}
+                                    {t.id === "arduino" && (
+                                        <svg viewBox="0 0 160 70" className="template-card-art">
+                                            <rect x="10" y="12" width="55" height="46" rx="4" fill="#008784" stroke="#004d40" strokeWidth="1" />
+                                            <rect x="8" y="18" width="8" height="12" rx="1" fill="#cbd5e1" />
+                                            <rect x="25" y="32" width="25" height="10" rx="1" fill="#09090b" />
+                                            <rect x="75" y="12" width="75" height="46" rx="3" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1" />
+                                            <rect x="90" y="30" width="18" height="5" rx="1" fill="#d97706" />
+                                            <circle cx="120" cy="33" r="5" fill="#ef4444" />
+                                            <path d="M 50 16 Q 70 8 90 30" fill="none" stroke="#ef4444" strokeWidth="1.2" />
+                                            <path d="M 45 16 Q 70 20 120 40" fill="none" stroke="#09090b" strokeWidth="1.2" />
+                                        </svg>
+                                    )}
+                                    {t.id === "pi" && (
+                                        <svg viewBox="0 0 160 70" className="template-card-art">
+                                            <rect x="15" y="15" width="40" height="40" rx="3" fill="#15803d" stroke="#166534" strokeWidth="1" />
+                                            <rect x="25" y="25" width="20" height="20" rx="2" fill="#09090b" />
+                                            <text x="35" y="37" fill="#86efac" fontSize="5" fontWeight="bold" textAnchor="middle">RP2040</text>
+                                            <rect x="65" y="10" width="85" height="50" rx="3" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1" />
+                                            <line x1="70" y1="16" x2="145" y2="16" stroke="#ef4444" strokeWidth="1" />
+                                            <line x1="70" y1="54" x2="145" y2="54" stroke="#3b82f6" strokeWidth="1" />
+                                        </svg>
+                                    )}
+                                    {t.id === "blank" && (
+                                        <svg viewBox="0 0 160 70" className="template-card-art">
+                                            <pattern id="dashGrid" width="10" height="10" patternUnits="userSpaceOnUse">
+                                                <circle cx="5" cy="5" r="0.8" fill="#475569" />
+                                            </pattern>
+                                            <rect x="10" y="10" width="140" height="50" rx="4" fill="url(#dashGrid)" stroke="rgba(255,255,255,0.08)" />
+                                            <circle cx="50" cy="35" r="4" fill="#10b981" />
+                                            <circle cx="110" cy="35" r="4" fill="#10b981" />
+                                            <path d="M 50 35 Q 80 15 110 35" fill="none" stroke="#10b981" strokeWidth="1.5" strokeDasharray="4 2" />
+                                        </svg>
+                                    )}
+                                </div>
                                 <div className="template-top-row">
                                     <div className="template-icon" style={{ color: t.accent }}>
                                         <i className={t.icon}></i>

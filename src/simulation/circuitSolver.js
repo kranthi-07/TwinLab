@@ -1261,6 +1261,9 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         arduinoBoards.forEach(b => { standbyMcuStates[b.id] = { isPowered: false, d13High: false, pins: {} }; });
         esp32Boards.forEach(b => { standbyMcuStates[b.id] = { isPowered: false, d2High: false, pins: {} }; });
 
+        const emptyWireStates = {};
+        wires.forEach(w => { emptyWireStates[w.id] = { hasCurrent: false }; });
+
         return {
             isSimulating: false,
             supplyVoltage: 0,
@@ -1268,6 +1271,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             batteryStates,
             buzzerStates,
             dmmStates,
+            wireStates: emptyWireStates,
             mcuStates: standbyMcuStates,
             logs: [{ time: "0.00s", type: "info", text: "Simulation standby. Click Play in the topbar to run simulation." }]
         };
@@ -1292,6 +1296,49 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         };
     });
 
+    // 8. Calculate Real Wire Currents (Only animate when real current is flowing!)
+    const conductingNodes = new Set();
+    Object.entries(ledStates).forEach(([ledId, state]) => {
+        if (state.isOn && state.currentMa > 0) {
+            conductingNodes.add(dsu.find(`LED_${ledId}_ANODE`));
+            conductingNodes.add(dsu.find(`LED_${ledId}_CATHODE`));
+        }
+    });
+    Object.entries(buzzerStates).forEach(([buzId, state]) => {
+        if (state.isBeeping) {
+            conductingNodes.add(dsu.find(`BUZZER_${buzId}_POS`));
+            conductingNodes.add(dsu.find(`BUZZER_${buzId}_NEG`));
+        }
+    });
+    if (conductingNodes.size > 0) {
+        batteries.forEach(b => {
+            conductingNodes.add(dsu.find(`POWER_SOURCE_POS_${b.id}`));
+            conductingNodes.add(dsu.find(`POWER_SOURCE_GND_${b.id}`));
+        });
+        arduinoBoards.forEach(b => {
+            conductingNodes.add(dsu.find(`MCU_${b.id}_PIN_13`));
+            conductingNodes.add(dsu.find(`MCU_${b.id}_PIN_5V`));
+            conductingNodes.add(dsu.find(`MCU_${b.id}_PIN_GND`));
+        });
+        esp32Boards.forEach(b => {
+            conductingNodes.add(dsu.find(`MCU_${b.id}_PIN_2`));
+            conductingNodes.add(dsu.find(`MCU_${b.id}_PIN_3V3`));
+            conductingNodes.add(dsu.find(`MCU_${b.id}_PIN_GND`));
+        });
+    }
+
+    const wireStates = {};
+    wires.forEach(w => {
+        if (!w.points || w.points.length < 2) return;
+        const startRoot = dsu.find(`WIRE_${w.id}_START`);
+        const endRoot = dsu.find(`WIRE_${w.id}_END`);
+        const isConducting = conductingNodes.size > 0 && 
+            (conductingNodes.has(startRoot) || conductingNodes.has(endRoot));
+        wireStates[w.id] = {
+            hasCurrent: Boolean(isConducting)
+        };
+    });
+
     const activeSupplyVoltage = powerSources.length > 0 
         ? powerSources[0].voltage 
         : (batteries.length > 0 && batteries[0].voltage != null ? Number(batteries[0].voltage) : 5.0);
@@ -1303,6 +1350,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         batteryStates,
         buzzerStates,
         dmmStates,
+        wireStates,
         mcuStates: resolvedMcuStates,
         logs: simLogs
     };

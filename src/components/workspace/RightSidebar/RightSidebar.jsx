@@ -499,6 +499,11 @@ function RightSidebar({
         setActiveTab(activeTab === id ? null : id);
     };
 
+    const handleOpenInst = (action) => {
+        action && action();
+        setActiveTab(null);
+    };
+
     return (
         <aside 
             ref={rightSidebarRef}
@@ -531,7 +536,7 @@ function RightSidebar({
                             {activeTab === "instruments" && (
                                 <div className="instruments-gallery">
                                     {/* Voltmeter / DMM Card */}
-                                    <div className="instrument-feature-card" onClick={onOpenMultimeter}>
+                                    <div className="instrument-feature-card" onClick={() => handleOpenInst(onOpenMultimeter)}>
                                         <div className="instrument-art-container">
                                             <MultimeterIllustration />
                                         </div>
@@ -542,7 +547,7 @@ function RightSidebar({
                                             </div>
                                             <p>Precision DC Voltage, Current, Resistance & Continuity beeper.</p>
                                             <div className="instrument-actions">
-                                                <button className="inst-action-btn primary" onClick={onOpenMultimeter}>
+                                                <button className="inst-action-btn primary" onClick={(e) => { e.stopPropagation(); handleOpenInst(onOpenMultimeter); }}>
                                                     <i className="ri-dashboard-3-line"></i> Open Meter
                                                 </button>
                                             </div>
@@ -550,7 +555,7 @@ function RightSidebar({
                                     </div>
 
                                     {/* Oscilloscope Card */}
-                                    <div className="instrument-feature-card" onClick={onOpenOscilloscope}>
+                                    <div className="instrument-feature-card" onClick={() => handleOpenInst(onOpenOscilloscope)}>
                                         <div className="instrument-art-container">
                                             <OscilloscopeIllustration />
                                         </div>
@@ -561,7 +566,7 @@ function RightSidebar({
                                             </div>
                                             <p>Real-time waveform signal analyzer with live frequency & Vpp.</p>
                                             <div className="instrument-actions">
-                                                <button className="inst-action-btn primary" onClick={onOpenOscilloscope}>
+                                                <button className="inst-action-btn primary" onClick={(e) => { e.stopPropagation(); handleOpenInst(onOpenOscilloscope); }}>
                                                     <i className="ri-line-chart-line"></i> Launch Scope
                                                 </button>
                                             </div>
@@ -569,7 +574,7 @@ function RightSidebar({
                                     </div>
 
                                     {/* Serial Monitor Card */}
-                                    <div className="instrument-feature-card" onClick={onOpenSerial}>
+                                    <div className="instrument-feature-card" onClick={() => handleOpenInst(onOpenSerial)}>
                                         <div className="instrument-art-container">
                                             <SerialMonitorIllustration />
                                         </div>
@@ -580,7 +585,7 @@ function RightSidebar({
                                             </div>
                                             <p>Real-time hardware UART serial communication logger for MCU.</p>
                                             <div className="instrument-actions">
-                                                <button className="inst-action-btn" onClick={onOpenSerial}>
+                                                <button className="inst-action-btn" onClick={(e) => { e.stopPropagation(); handleOpenInst(onOpenSerial); }}>
                                                     <i className="ri-terminal-box-line"></i> Open Console
                                                 </button>
                                             </div>

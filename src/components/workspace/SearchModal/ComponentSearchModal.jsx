@@ -198,6 +198,54 @@ export const SEARCH_CATALOG = [
         instrumentAction: "multimeter"
     },
     {
+        id: "lcd-1602",
+        type: "lcd-1602",
+        name: "16x2 Character LCD (I2C)",
+        designator: "LCD1",
+        category: "outputs",
+        categoryLabel: "Display",
+        badge: "HD44780 + I2C",
+        specs: "16x2 Alphanumeric • PCF8574 Backpack (SDA/SCL)",
+        keywords: ["lcd", "display", "screen", "1602", "hd44780", "i2c", "text", "characters"],
+        defaultProps: { type: "lcd-1602", name: "16x2 LCD (I2C)" }
+    },
+    {
+        id: "battery-aa",
+        type: "battery-aa",
+        name: "AA Battery Holder",
+        designator: "BAT2",
+        category: "power",
+        categoryLabel: "Power",
+        badge: "1.5V / 3V / 6V Case",
+        specs: "Configurable 1, 2, or 4 Cells with Spring Contacts",
+        keywords: ["battery", "aa", "holder", "pack", "case", "cells", "1.5v", "3v", "6v"],
+        defaultProps: { type: "battery-aa", name: "AA Battery Pack", cellCount: 2, voltage: 3.0 }
+    },
+    {
+        id: "battery-aaa",
+        type: "battery-aaa",
+        name: "AAA Battery Holder",
+        designator: "BAT3",
+        category: "power",
+        categoryLabel: "Power",
+        badge: "1.5V / 3V / 6V Case",
+        specs: "Compact AAA Enclosure with Snap Leads",
+        keywords: ["battery", "aaa", "holder", "pack", "case", "cells"],
+        defaultProps: { type: "battery-aaa", name: "AAA Battery Pack", cellCount: 2, voltage: 3.0 }
+    },
+    {
+        id: "switch-spst",
+        type: "switch-spst",
+        name: "SPST Toggle Switch",
+        designator: "SW3",
+        category: "inputs",
+        categoryLabel: "Input",
+        badge: "Bistable 2-Pin",
+        specs: "Single-Pole Single-Throw Mechanical Lever",
+        keywords: ["switch", "spst", "toggle", "lever", "power switch", "on off"],
+        defaultProps: { type: "switch-spst", name: "SPST Toggle Switch", switchState: "off" }
+    },
+    {
         id: "oscilloscope",
         type: "oscilloscope",
         name: "Dual-Trace Oscilloscope",
@@ -215,9 +263,10 @@ export const SEARCH_CATALOG = [
 const CATEGORIES = [
     { id: "all", label: "All Items" },
     { id: "mcu", label: "Microcontrollers" },
-    { id: "passives", label: "Passives" },
+    { id: "outputs", label: "Displays & Outputs" },
+    { id: "power", label: "Power & Batteries" },
     { id: "inputs", label: "Inputs & Switches" },
-    { id: "outputs", label: "Outputs" },
+    { id: "passives", label: "Passives" },
     { id: "breadboards", label: "Breadboards" },
     { id: "instruments", label: "Instruments" }
 ];
@@ -296,6 +345,34 @@ export function Component3DThumbnail({ type }) {
                 <svg viewBox="0 0 50 40" className="thumb-3d-svg">
                     <rect x="8" y="12" width="34" height="16" rx="2" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1" />
                     <rect x="12" y="8" width="10" height="24" rx="2" fill="#0f172a" />
+                </svg>
+            );
+        case "switch-spst":
+            return (
+                <svg viewBox="0 0 50 40" className="thumb-3d-svg">
+                    <rect x="12" y="10" width="26" height="20" rx="3" fill="#1e293b" stroke="#334155" strokeWidth="1" />
+                    <circle cx="25" cy="20" r="6" fill="#0f172a" />
+                    <line x1="25" y1="20" x2="31" y2="12" stroke="#cbd5e1" strokeWidth="2.5" strokeLinecap="round" />
+                </svg>
+            );
+        case "lcd-1602":
+            return (
+                <svg viewBox="0 0 60 40" className="thumb-3d-svg">
+                    <rect x="6" y="8" width="48" height="24" rx="2.5" fill="#006644" stroke="#004d33" strokeWidth="1" />
+                    <rect x="10" y="11" width="40" height="18" rx="1.5" fill="#0f172a" />
+                    <rect x="12" y="13" width="36" height="14" rx="1" fill="#0284c7" fillOpacity="0.3" />
+                    <text x="15" y="20" fill="#38bdf8" fontSize="4.5" fontFamily="monospace">TwinLab</text>
+                    <text x="15" y="25" fill="#38bdf8" fontSize="4" fontFamily="monospace">16x2 LCD</text>
+                </svg>
+            );
+        case "battery-aa":
+        case "battery-aaa":
+            return (
+                <svg viewBox="0 0 50 40" className="thumb-3d-svg">
+                    <rect x="8" y="8" width="34" height="24" rx="2.5" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+                    <rect x="12" y="11" width="26" height="8" rx="1" fill="#0284c7" />
+                    <rect x="12" y="21" width="26" height="8" rx="1" fill="#0284c7" />
+                    <path d="M 42 15 Q 46 12 46 18" fill="none" stroke="#ef4444" strokeWidth="1.2" />
                 </svg>
             );
         case "breadboard-half":

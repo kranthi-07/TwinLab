@@ -956,8 +956,8 @@
 }
 
 .mode-btn.active {
-    color: #FF8A00;
-    background: rgba(255, 138, 0, 0.15);
+    color: var(--project-accent, #FF8A00);
+    background: var(--project-accent-subtle, rgba(255, 138, 0, 0.15));
     font-weight: 600;
 }
 
@@ -974,9 +974,9 @@
     gap: 7px;
     padding: 6px 12px;
     border-radius: 10px;
-    background: rgba(255, 138, 0, 0.12);
-    border: 1px solid rgba(255, 138, 0, 0.35);
-    color: #FF8A00;
+    background: var(--project-accent-subtle, rgba(255, 138, 0, 0.12));
+    border: 1px solid var(--project-accent-border, rgba(255, 138, 0, 0.35));
+    color: var(--project-accent, #FF8A00);
     font-size: 12px;
     font-weight: 600;
     cursor: default;
@@ -984,9 +984,9 @@
 }
 
 .code-pill-btn:hover {
-    background: #FF8A00;
+    background: var(--project-accent, #FF8A00);
     color: #ffffff;
-    box-shadow: 0 4px 14px rgba(255, 138, 0, 0.4);
+    box-shadow: 0 4px 14px var(--project-accent-glow, rgba(255, 138, 0, 0.4));
 }
 
 .edit-firmware-pill-btn {
@@ -995,9 +995,9 @@
     gap: 5px;
     padding: 3px 9px;
     border-radius: 6px;
-    background: rgba(255, 138, 0, 0.15);
-    border: 1px solid rgba(255, 138, 0, 0.4);
-    color: #FF8A00;
+    background: var(--project-accent-subtle, rgba(255, 138, 0, 0.15));
+    border: 1px solid var(--project-accent-border, rgba(255, 138, 0, 0.4));
+    color: var(--project-accent, #FF8A00);
     font-size: 11px;
     font-weight: 700;
     cursor: pointer;
@@ -1005,15 +1005,15 @@
 }
 
 .edit-firmware-pill-btn:hover {
-    background: #FF8A00;
+    background: var(--project-accent, #FF8A00);
     color: #ffffff;
-    box-shadow: 0 2px 8px rgba(255, 138, 0, 0.4);
+    box-shadow: 0 2px 8px var(--project-accent-glow, rgba(255, 138, 0, 0.4));
 }
 
 .code-pill-btn.active {
-    background: #FF8A00;
+    background: var(--project-accent, #FF8A00);
     color: #ffffff;
-    box-shadow: 0 4px 14px rgba(255, 138, 0, 0.45);
+    box-shadow: 0 4px 14px var(--project-accent-glow, rgba(255, 138, 0, 0.45));
 }
 
 .code-pill-btn.active .code-badge {
@@ -1109,12 +1109,12 @@
     gap: 5px;
     font-size: 11px;
     font-weight: 700;
-    color: #FF8A00;
+    color: var(--project-accent, #FF8A00);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     padding: 2px 7px;
-    background: rgba(255, 138, 0, 0.12);
-    border: 1px solid rgba(255, 138, 0, 0.25);
+    background: var(--project-accent-subtle, rgba(255, 138, 0, 0.12));
+    border: 1px solid var(--project-accent-border, rgba(255, 138, 0, 0.25));
     border-radius: 5px;
     white-space: nowrap;
 }
@@ -1141,8 +1141,8 @@
 }
 
 .inspector-name-edit-wrap:focus-within {
-    border-color: #FF8A00;
-    box-shadow: 0 0 0 1px rgba(255, 138, 0, 0.35);
+    border-color: var(--project-accent, #FF8A00);
+    box-shadow: 0 0 0 1px var(--project-accent-border, rgba(255, 138, 0, 0.35));
     background: rgba(0, 0, 0, 0.45);
 }
 
@@ -1694,9 +1694,9 @@
 }
 
 .routing-mode-btn.active {
-    background: linear-gradient(135deg, #FF8A00 0%, #e05e00 100%);
+    background: var(--project-accent, #FF8A00);
     color: #ffffff;
-    box-shadow: 0 2px 8px rgba(255, 138, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 8px var(--project-accent-glow, rgba(255, 138, 0, 0.4)), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .routing-mode-btn.active .routing-svg {
