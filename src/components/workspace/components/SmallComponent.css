@@ -19,7 +19,136 @@
 
 .canvas-small-comp.selected {
     z-index: 30;
-    filter: drop-shadow(0 0 0 2px var(--project-accent, #FF8A00)) drop-shadow(0 8px 24px rgba(0, 0, 0, 0.6));
+    filter: none !important;
+}
+
+/* Base fallback outline */
+.canvas-small-comp.selected:not(.small-comp-lcd-1602):not(.small-comp-lcd-2004):not(.small-comp-led):not(.small-comp-resistor):not(.small-comp-capacitor-ceramic):not(.small-comp-capacitor-electrolytic):not(.small-comp-battery-aa):not(.small-comp-battery-aaa):not(.small-comp-battery-coin):not(.small-comp-battery-9v):not(.small-comp-potentiometer):not(.small-comp-buzzer):not(.small-comp-motor-dc):not(.small-comp-servo-sg90):not(.small-comp-sensor-ultrasonic):not(.small-comp-sensor-pir):not(.small-comp-photoresistor):not(.small-comp-transistor):not(.small-comp-transistor-npn):not(.small-comp-transistor-pnp):not(.small-comp-mosfet-n) {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+/* 1. LCD Module: Clean thin border surrounding the whole PCB module */
+.canvas-small-comp.selected .lcd-module-container {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    border-radius: 8px;
+}
+
+/* 2. Resistor Body: Outlines the physical ceramic resistor body */
+.canvas-small-comp.selected .resistor-ceramic-body {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+/* 3. LED Dome: Outlines the 5mm LED dome */
+.canvas-small-comp.selected .led-hitbox {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 2px;
+    border-radius: 14px 14px 4px 4px;
+}
+
+/* 4. Ceramic Capacitor: Circular outline around ceramic disc */
+.canvas-small-comp.selected .ceramic-disc {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    border-radius: 50%;
+}
+
+/* 5. Electrolytic Capacitor: Outline around metal can */
+.canvas-small-comp.selected .elec-can-body {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    border-radius: 5px;
+}
+
+/* 6. AA / AAA Battery Case: Outline around entire molded case */
+.canvas-small-comp.selected .aa-battery-case {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+/* 7. Coin Battery: Circular outline */
+.canvas-small-comp.selected .coin-metal-disc {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    border-radius: 50%;
+}
+
+/* 8. 9V Battery: Outline around rectangular body */
+.canvas-small-comp.selected .battery-9v-body {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+/* 9. Potentiometer: Circular outline around potentiometer dial casing */
+.canvas-small-comp.selected .pot-body {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    border-radius: 50%;
+}
+
+/* 10. Buzzer: Circular outline around sound cylinder */
+.canvas-small-comp.selected .buzzer-cylinder {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    border-radius: 50%;
+}
+
+/* 11. DC Motor: Outline around cylindrical metal motor casing */
+.canvas-small-comp.selected .dc-motor-can {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    border-radius: 12px;
+}
+
+/* 12. Servo SG90: Outline around servo container */
+.canvas-small-comp.selected .servo-sg90-container,
+.canvas-small-comp.selected .servo-case-body {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 4px;
+    border-radius: 6px;
+}
+
+/* 13. Ultrasonic Sensor: Outline around the entire ultrasonic PCB */
+.canvas-small-comp.selected .ultrasonic-container,
+.canvas-small-comp.selected .ultrasonic-pcb {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 4px;
+    border-radius: 6px;
+}
+
+/* 14. PIR Sensor: Outline around PIR sensor container */
+.canvas-small-comp.selected .pir-container,
+.canvas-small-comp.selected .pir-pcb {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 4px;
+    border-radius: 6px;
+}
+
+/* 15. Photoresistor: Outline around disc */
+.canvas-small-comp.selected .ldr-ceramic-disc {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    border-radius: 50%;
+}
+
+/* 16. DIP-14 Logic Gates: Outline around DIP plastic package */
+.canvas-small-comp.selected .dip14-chip-body {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+/* 17. Transistors & MOSFETs: Outline around TO-92 package */
+.canvas-small-comp.selected .to92-body {
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    border-radius: 6px 6px 2px 2px;
 }
 
 /* Floating Action Bar when selected */
@@ -187,10 +316,31 @@
     left: 0;
     width: 64px;
     height: 3px;
-    background: linear-gradient(180deg, #e2e8f0 0%, #64748b 100%);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-    border-radius: 1px;
+    background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 45%, #64748b 100%);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+    border-radius: 1.5px;
     z-index: 2;
+    pointer-events: none;
+}
+
+.resistor-hole-lead {
+    position: absolute;
+    top: -1.5px;
+    width: 3.5px;
+    height: 9px;
+    background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 50%, #475569 100%);
+    border-radius: 1.5px;
+    z-index: 2;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+}
+
+.resistor-hole-lead.lead-left {
+    left: -1px;
+}
+
+.resistor-hole-lead.lead-right {
+    left: 61.5px;
 }
 
 .resistor-ceramic-body {
@@ -1495,4 +1645,887 @@
 .lever-off {
     transform: translateX(-4px);
     background: #dc2626;
+}
+
+/* ============================================================
+   11. PHOTORESISTOR (LDR)
+============================================================ */
+.photoresistor-container {
+    width: 32px;
+    height: 32px;
+    position: relative;
+    user-select: none;
+}
+
+.ldr-ceramic-disc {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 40%, #fed7aa 0%, #ea580c 45%, #7c2d12 100%);
+    border: 2px solid #9a3412;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.35);
+    overflow: hidden;
+}
+
+.ldr-cadmium-track {
+    width: 22px;
+    height: 22px;
+    opacity: 0.95;
+}
+
+.ldr-wave-svg {
+    width: 100%;
+    height: 100%;
+}
+
+.ldr-brand-pill {
+    position: absolute;
+    bottom: 3px;
+    right: 5px;
+    font-size: 6px;
+    font-weight: 900;
+    color: #ff8a00;
+    font-family: monospace;
+}
+
+.ldr-lux-control {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid #ff8a00;
+    border-radius: 9999px;
+    padding: 2px 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+    z-index: 20;
+}
+
+.ldr-sun-icon {
+    font-size: 10px;
+}
+
+.ldr-slider {
+    width: 48px;
+    height: 4px;
+    accent-color: #ff8a00;
+    cursor: pointer;
+}
+
+/* ============================================================
+   12. NPN BIPOLAR TRANSISTOR (TO-92 / 2N2222)
+============================================================ */
+.transistor-to92-container {
+    width: 36px;
+    height: 32px;
+    position: relative;
+    user-select: none;
+}
+
+.to92-body {
+    width: 32px;
+    height: 22px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.to92-flat-face {
+    width: 30px;
+    height: 18px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 2px 2px 8px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    z-index: 5;
+}
+
+.transistor-part-text {
+    font-size: 6px;
+    font-weight: 900;
+    font-family: monospace;
+    color: #cbd5e1;
+    letter-spacing: 0.05em;
+}
+
+.transistor-x-mark {
+    font-size: 5px;
+    font-weight: 900;
+    color: #ff8a00;
+    font-family: monospace;
+}
+
+.to92-curved-back {
+    position: absolute;
+    top: -3px;
+    width: 26px;
+    height: 8px;
+    background: #09090b;
+    border-radius: 8px 8px 0 0;
+    border-top: 1px solid #3f3f46;
+}
+
+/* ============================================================
+   13. COIN CELL BATTERY (CR2032 3V)
+============================================================ */
+.coin-cell-container {
+    width: 64px;
+    height: 64px;
+    position: relative;
+    user-select: none;
+}
+
+.coin-metal-disc {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 45%, #94a3b8 100%);
+    border: 2px solid #64748b;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.8);
+    gap: 1px;
+}
+
+.coin-plus-sign {
+    font-size: 14px;
+    font-weight: 900;
+    color: #475569;
+    line-height: 1;
+}
+
+.coin-model-label {
+    font-size: 9px;
+    font-weight: 900;
+    color: #1e293b;
+    letter-spacing: 0.1em;
+    font-family: system-ui, sans-serif;
+}
+
+.coin-volt-label {
+    font-size: 6px;
+    font-weight: 800;
+    color: #475569;
+    letter-spacing: 0.05em;
+    font-family: monospace;
+}
+
+/* ============================================================
+   14. ELECTROLYTIC CAPACITOR
+============================================================ */
+.elec-cap-container {
+    width: 24px;
+    height: 32px;
+    position: relative;
+    user-select: none;
+}
+
+.elec-can-body {
+    width: 20px;
+    height: 26px;
+    background: #0369a1;
+    border: 1px solid #0284c7;
+    border-radius: 4px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.25);
+    overflow: hidden;
+}
+
+.elec-vent-top {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(180deg, #f8fafc, #94a3b8);
+    border-bottom: 1px solid #475569;
+}
+
+.elec-negative-stripe {
+    position: absolute;
+    left: 1px;
+    top: 4px;
+    bottom: 0;
+    width: 5px;
+    background: #f8fafc;
+    color: #0369a1;
+    font-size: 6px;
+    font-weight: 900;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 0.9;
+}
+
+.elec-value-stamp {
+    font-size: 5.5px;
+    font-weight: 800;
+    font-family: monospace;
+    color: #ffffff;
+    margin-left: 4px;
+}
+
+/* ============================================================
+   15. POTENTIOMETER FLOATING BADGE & REALISTIC ROTARY KNOB
+============================================================ */
+.pot-floating-value-badge {
+    position: absolute;
+    top: -26px;
+    left: 16px;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.95);
+    border: 1.5px solid var(--project-accent, #FF8A00);
+    color: #f8fafc;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), 0 0 8px rgba(255, 138, 0, 0.25);
+    pointer-events: none;
+    z-index: 15;
+    white-space: nowrap;
+}
+
+.pot-rotary-knob {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #475569 0%, #1e293b 70%, #0f172a 100%);
+    border: 2px solid #64748b;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    position: relative;
+    cursor: grab;
+    transition: box-shadow 0.15s ease;
+}
+
+.pot-rotary-knob:active {
+    cursor: grabbing;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7), inset 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.pot-pointer-knot {
+    position: absolute;
+    top: 2px;
+    left: calc(50% - 1.5px);
+    width: 3px;
+    height: 10px;
+    background: #ffffff;
+    border-radius: 2px;
+    box-shadow: 0 0 6px #ffffff, 0 0 10px var(--project-accent, #FF8A00);
+}
+
+.pot-knob-cap {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #09090b;
+    border: 1.5px solid #334155;
+}
+
+/* ============================================================
+   16. BUZZER RADIATING SOUNDWAVES ANIMATION
+============================================================ */
+.buzzer-soundwaves-radiator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.sonic-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: 50%;
+    border: 2px solid #38bdf8;
+    transform: translate(-50%, -50%) scale(0.3);
+    animation: sonicWaveExpand 1.2s cubic-bezier(0.1, 0.5, 0.8, 1) infinite;
+    filter: drop-shadow(0 0 6px #38bdf8);
+}
+
+.sonic-ring.ring-1 { animation-delay: 0s; }
+.sonic-ring.ring-2 { animation-delay: 0.3s; }
+.sonic-ring.ring-3 { animation-delay: 0.6s; }
+
+@keyframes sonicWaveExpand {
+    0% {
+        transform: translate(-50%, -50%) scale(0.3);
+        opacity: 0.95;
+        border-color: #38bdf8;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(3.2);
+        opacity: 0;
+        border-color: #0284c7;
+    }
+}
+
+/* ============================================================
+   17. AA & AAA BATTERY LID SWITCH & REALISTIC CELLS
+============================================================ */
+.aa-battery-case {
+    background: var(--case-bg, #18181b);
+    border: 2px solid #27272a;
+    border-radius: 8px;
+    padding: 6px;
+    position: relative;
+    user-select: none;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6);
+}
+
+.battery-case-lid {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 6px;
+    background: rgba(0, 0, 0, 0.45);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lid-switch-track {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #09090b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 2px 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.lid-switch-track.switch-on {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.15);
+}
+
+.lid-switch-track.switch-off {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.lid-switch-thumb {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    transition: all 0.15s ease;
+}
+
+.switch-on .lid-switch-thumb {
+    background: #10b981;
+    box-shadow: 0 0 6px #10b981;
+}
+
+.lid-switch-label {
+    font-size: 8px;
+    font-weight: 800;
+    color: #e2e8f0;
+}
+
+.battery-power-led {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #334155;
+    border: 1px solid #475569;
+}
+
+.battery-power-led.glowing {
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+}
+
+/* Duracell-Grade AA vs AAA Cells */
+.battery-cylindrical-cell.is-aa {
+    height: 72px;
+}
+
+.battery-cylindrical-cell.is-aa .cell-copper-shoulder {
+    background: linear-gradient(180deg, #d97706 0%, #b45309 100%);
+    border-bottom: 1px solid #78350f;
+}
+
+.battery-cylindrical-cell.is-aa .cell-matte-body {
+    background: #09090b;
+    color: #f8fafc;
+}
+
+.battery-cylindrical-cell.is-aaa {
+    height: 62px;
+}
+
+.battery-cylindrical-cell.is-aaa .cell-copper-shoulder {
+    background: linear-gradient(180deg, #e2e8f0 0%, #94a3b8 100%);
+}
+
+.battery-cylindrical-cell.is-aaa .cell-matte-body {
+    background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+    color: #ffffff;
+}
+
+.cell-brand-x {
+    font-size: 7px;
+    font-weight: 900;
+    color: var(--project-accent, #FF8A00);
+}
+
+/* ============================================================
+   18. REALISTIC EXPLOSION / BLAST ANIMATION
+============================================================ */
+.battery-blast-fireball-wrap {
+    position: absolute;
+    inset: -20px;
+    pointer-events: none;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.blast-core-flash {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ffffff 0%, #fde047 30%, #ea580c 70%, transparent 100%);
+    animation: blastFlashPulse 0.8s ease-out infinite;
+    filter: drop-shadow(0 0 20px #ea580c);
+}
+
+@keyframes blastFlashPulse {
+    0% { transform: scale(0.4); opacity: 1; }
+    50% { transform: scale(1.6); opacity: 0.8; }
+    100% { transform: scale(2.2); opacity: 0; }
+}
+
+.blast-smoke {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(39, 39, 42, 0.7);
+    filter: blur(4px);
+    animation: blastSmokeBillow 1.4s ease-out infinite;
+}
+
+.blast-smoke.smoke-1 { width: 32px; height: 32px; top: -10px; animation-delay: 0s; }
+.blast-smoke.smoke-2 { width: 42px; height: 42px; top: -20px; left: 10px; animation-delay: 0.3s; }
+.blast-smoke.smoke-3 { width: 50px; height: 50px; top: -30px; animation-delay: 0.6s; }
+
+@keyframes blastSmokeBillow {
+    0% { transform: translateY(0) scale(0.6); opacity: 0.8; }
+    100% { transform: translateY(-36px) scale(1.8); opacity: 0; }
+}
+
+.blast-spark-shower .spark {
+    position: absolute;
+    width: 3px;
+    height: 8px;
+    background: #fef08a;
+    border-radius: 1px;
+    box-shadow: 0 0 6px #facc15;
+    animation: sparkFly 0.6s ease-out infinite;
+}
+
+.spark.sp-1 { top: 10px; left: -10px; transform: rotate(-45deg); animation-delay: 0.1s; }
+.spark.sp-2 { top: 10px; right: -10px; transform: rotate(45deg); animation-delay: 0.25s; }
+.spark.sp-3 { bottom: -10px; left: 0px; transform: rotate(-135deg); animation-delay: 0.4s; }
+.spark.sp-4 { top: -15px; left: 20px; transform: rotate(-15deg); animation-delay: 0.55s; }
+
+@keyframes sparkFly {
+    0% { opacity: 1; transform: scale(1) translate(0, 0); }
+    100% { opacity: 0; transform: scale(0.2) translate(14px, -14px); }
+}
+
+.scorch-overlay-mark {
+    position: absolute;
+    inset: 10px;
+    border-radius: 6px;
+    background: radial-gradient(circle, rgba(9, 9, 11, 0.85) 0%, rgba(24, 24, 27, 0.6) 80%, transparent 100%);
+    pointer-events: none;
+}
+
+/* ============================================================
+   19. DC MOTOR & PROPELLER FAN
+============================================================ */
+.dc-motor-container {
+    width: 48px;
+    height: 56px;
+    position: relative;
+    user-select: none;
+}
+
+.dc-motor-can {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #94a3b8 0%, #475569 60%, #1e293b 100%);
+    border: 2px solid #64748b;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.motor-propeller-fan {
+    width: 36px;
+    height: 36px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.motor-propeller-fan.spin-blur {
+    animation: propellerSpin 0.15s linear infinite;
+}
+
+@keyframes propellerSpin {
+    to { transform: rotate(360deg); }
+}
+
+.fan-blade {
+    position: absolute;
+    width: 8px;
+    height: 16px;
+    background: #0284c7;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.fan-blade.blade-1 { transform: translateY(-8px); }
+.fan-blade.blade-2 { transform: rotate(120deg) translateY(-8px); }
+.fan-blade.blade-3 { transform: rotate(240deg) translateY(-8px); }
+
+.fan-hub-cap {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    border: 1px solid #475569;
+    z-index: 2;
+}
+
+.motor-label-tag {
+    font-size: 5px;
+    font-weight: 800;
+    color: #e2e8f0;
+    position: absolute;
+    bottom: 2px;
+}
+
+/* ============================================================
+   20. SG90 MICRO SERVO
+============================================================ */
+.servo-sg90-container {
+    width: 32px;
+    height: 48px;
+    position: relative;
+    user-select: none;
+}
+
+/* ============================================================
+   21. DIP-14 LOGIC GATES (TINKERCAD SPEC - ROW E TO ROW F = 32px)
+============================================================ */
+.dip14-ic-container {
+    width: 96px;
+    height: 32px;
+    position: relative;
+    user-select: none;
+}
+
+.dip14-chip-body {
+    width: 104px;
+    height: 20px;
+    background: #09090b;
+    border: 1.5px solid #27272a;
+    border-radius: 3px;
+    position: absolute;
+    top: 6px;
+    left: -4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7), inset 0 1px 2px rgba(255, 255, 255, 0.1);
+}
+
+.ic-notch-mark {
+    position: absolute;
+    left: -1px;
+    top: calc(50% - 3.5px);
+    width: 3.5px;
+    height: 7px;
+    border-radius: 0 4px 4px 0;
+    background: #18181b;
+    border: 1px solid #3f3f46;
+    border-left: none;
+}
+
+.ic-pin1-dot {
+    position: absolute;
+    left: 4px;
+    bottom: 3px;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #3f3f46;
+}
+
+.ic-text-brand {
+    font-size: 4.5px;
+    font-weight: 800;
+    color: #71717a;
+    letter-spacing: 0.1em;
+}
+
+.ic-text-code {
+    font-size: 8.5px;
+    font-weight: 900;
+    font-family: 'JetBrains Mono', monospace;
+    color: #f4f4f5;
+    letter-spacing: 0.05em;
+}
+
+.ic-text-title {
+    font-size: 5px;
+    font-weight: 700;
+    color: #a1a1aa;
+}
+
+/* ============================================================
+   22. HC-SR04 ULTRASONIC & PIR SENSORS
+============================================================ */
+.ultrasonic-container {
+    width: 48px;
+    height: 48px;
+    position: relative;
+    user-select: none;
+}
+
+.pir-container {
+    width: 32px;
+    height: 48px;
+    position: relative;
+    user-select: none;
+}
+
+/* Strict Pin Centering for Multi-Pin Integrated Components */
+.pin-servo-gnd, .pin-servo-5v, .pin-servo-pwm,
+.pin-sonar-vcc, .pin-sonar-trig, .pin-sonar-echo, .pin-sonar-gnd,
+.pin-pir-vcc, .pin-pir-out, .pin-pir-gnd,
+.pin-motor-pos, .pin-motor-neg,
+.pin-ic-top, .pin-ic-bot {
+    transform: translate(-50%, -50%) !important;
+}
+
+.pin-servo-gnd:hover, .pin-servo-5v:hover, .pin-servo-pwm:hover,
+.pin-sonar-vcc:hover, .pin-sonar-trig:hover, .pin-sonar-echo:hover, .pin-sonar-gnd:hover,
+.pin-pir-vcc:hover, .pin-pir-out:hover, .pin-pir-gnd:hover,
+.pin-motor-pos:hover, .pin-motor-neg:hover,
+.pin-ic-top:hover, .pin-ic-bot:hover,
+.pin-servo-gnd.targeted, .pin-servo-5v.targeted, .pin-servo-pwm.targeted,
+.pin-sonar-vcc.targeted, .pin-sonar-trig.targeted, .pin-sonar-echo.targeted, .pin-sonar-gnd.targeted,
+.pin-pir-vcc.targeted, .pin-pir-out.targeted, .pin-pir-gnd.targeted,
+.pin-motor-pos.targeted, .pin-motor-neg.targeted,
+.pin-ic-top.targeted, .pin-ic-bot.targeted {
+    transform: translate(-50%, -50%) scale(1.25) !important;
+}
+
+/* ============================================================
+   ACTIVE COMPONENT WORKING ANIMATIONS (SIMULATION LIVE)
+============================================================ */
+
+/* 1. Resistor Active Heat & Current Dissipation */
+.resistor-ceramic-body.active-conducting {
+    box-shadow: inset 0 2px 2px rgba(255, 255, 255, 0.5), 0 0 10px rgba(255, 138, 0, 0.7), 0 0 20px rgba(255, 138, 0, 0.4);
+    animation: resistorHeatShimmer 1.8s ease-in-out infinite alternate;
+}
+
+.resistor-thermal-glow {
+    position: absolute;
+    inset: -2px;
+    border-radius: 6px;
+    background: radial-gradient(ellipse at center, rgba(255, 170, 0, 0.45) 0%, transparent 80%);
+    pointer-events: none;
+    animation: resistorHeatPulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes resistorHeatShimmer {
+    0% { filter: drop-shadow(0 0 2px rgba(255, 170, 0, 0.4)); }
+    100% { filter: drop-shadow(0 0 8px rgba(255, 120, 0, 0.8)); }
+}
+
+@keyframes resistorHeatPulse {
+    0% { opacity: 0.4; }
+    100% { opacity: 0.9; }
+}
+
+/* 2. Capacitors Dielectric Electric Field Pulse */
+.ceramic-disc.active-dielectric,
+.elec-can-body.active-dielectric {
+    box-shadow: inset 0 0 8px rgba(56, 189, 248, 0.6), 0 0 12px rgba(56, 189, 248, 0.5);
+    animation: capDielectricGlow 2s ease-in-out infinite alternate;
+}
+
+.cap-charge-glow,
+.elec-charge-pulse {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at center, rgba(56, 189, 248, 0.4) 0%, transparent 80%);
+    pointer-events: none;
+    animation: capFieldPulse 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes capDielectricGlow {
+    0% { filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.3)); }
+    100% { filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.7)); }
+}
+
+@keyframes capFieldPulse {
+    0% { opacity: 0.3; }
+    100% { opacity: 0.85; }
+}
+
+/* 3. Ultrasonic Acoustic Sonar Ping Rings */
+.sonar-ping-emitter {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 28px;
+    pointer-events: none;
+    overflow: visible;
+}
+
+.sonar-wave {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 1.5px solid #38bdf8;
+    border-radius: 50%;
+    opacity: 0;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
+    animation: sonarWaveExpand 1.6s cubic-bezier(0.1, 0.6, 0.3, 1) infinite;
+}
+
+.sonar-wave.wave-1 { animation-delay: 0s; }
+.sonar-wave.wave-2 { animation-delay: 0.5s; }
+.sonar-wave.wave-3 { animation-delay: 1.0s; }
+
+@keyframes sonarWaveExpand {
+    0% { width: 6px; height: 6px; opacity: 0.95; border-color: #38bdf8; }
+    70% { width: 38px; height: 38px; opacity: 0.35; border-color: #0284c7; }
+    100% { width: 52px; height: 52px; opacity: 0; }
+}
+
+/* 4. PIR Motion Sensor Active Radar Scanning */
+.pir-radar-beam {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, rgba(34, 197, 94, 0.5) 0deg, rgba(34, 197, 94, 0.1) 45deg, transparent 70deg, transparent 360deg);
+    animation: pirRadarSweep 2.2s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes pirRadarSweep {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 5. DIP-14 Logic Gates Live Logic Status Indicators */
+.ic-power-led-dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 6px #22c55e;
+}
+
+.ic-logic-status-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 5px #22c55e;
+    animation: logicPinBlink 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes logicPinBlink {
+    0% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* 6. DC Motor Propeller Fan High-Speed Spin */
+.dc-motor-container.is-spinning .motor-propeller-fan {
+    animation: fanSpinMotion 0.12s linear infinite;
+}
+
+@keyframes fanSpinMotion {
+    0% { transform: translate(-50%, -50%) rotate(0deg); filter: blur(0.6px); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); filter: blur(0.6px); }
+}
+
+/* 7. LCD Module Live Dot-Matrix Prompt & Blinking Cursor */
+.lcd-module-container.powered-on .lcd-matrix-screen {
+    background: var(--lcd-backlight, #0284c7) !important;
+    box-shadow: inset 0 0 14px rgba(255, 255, 255, 0.35), 0 0 16px var(--lcd-backlight, #0284c7) !important;
+}
+
+.lcd-cursor-prompt {
+    display: inline-block;
+    width: 6px;
+    height: 10px;
+    background: #ffffff;
+    margin-left: 2px;
+    vertical-align: middle;
+    animation: lcdCursorBlink 0.8s step-end infinite;
+}
+
+@keyframes lcdCursorBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
 }

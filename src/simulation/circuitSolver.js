@@ -109,7 +109,8 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
     };
 
     const breadboards = components.filter(c => c.type?.startsWith("breadboard"));
-    const batteries = components.filter(c => c.type === "battery-9v");
+    const isBattery = (c) => ["battery-9v", "battery-aa", "battery-aaa", "battery-coin"].includes(c.type);
+    const batteries = components.filter(isBattery);
     const arduinoBoards = components.filter(c => ["arduino-uno", "arduino-mega", "arduino-nano"].includes(c.type));
     const esp32Boards = components.filter(c => c.type === "esp32-devkit" || c.type === "esp32" || c.type === "esp32-s3");
 
@@ -125,28 +126,46 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             }
         }
 
-        // 2. Check if touches battery snap terminals (taking rotation into account)
+        // 2. Check if touches battery snap terminals (taking rotation and cell count into account)
         for (const b of batteries) {
             const rot = ((b.rotation || 0) * Math.PI) / 180;
             const cos = Math.cos(rot);
             const sin = Math.sin(rot);
 
-            // Positive terminal center (72, -14)
-            const posWorldX = b.x + 72 * cos - (-14) * sin;
-            const posWorldY = b.y + 72 * sin + (-14) * cos;
+            let posLocalX = 72, posLocalY = -14;
+            let negLocalX = 24, negLocalY = -14;
+
+            if (b.type === "battery-aa" || b.type === "battery-aaa") {
+                const cellCount = b.cells || (b.voltage === 1.5 ? 1 : b.voltage === 6 ? 4 : 2);
+                const isAAA = b.type === "battery-aaa";
+                const totalWidth = cellCount === 1 ? 56 : cellCount === 4 ? 144 : 84;
+                posLocalX = totalWidth - 18;
+                posLocalY = -14;
+                negLocalX = 18;
+                negLocalY = -14;
+            } else if (b.type === "battery-coin") {
+                posLocalX = 48;
+                posLocalY = 32;
+                negLocalX = 16;
+                negLocalY = 32;
+            }
+
+            // Positive terminal center
+            const posWorldX = b.x + posLocalX * cos - posLocalY * sin;
+            const posWorldY = b.y + posLocalX * sin + posLocalY * cos;
             const dPos = Math.hypot(x - posWorldX, y - posWorldY);
-            if (dPos <= 14) {
+            if (dPos <= 20) {
                 const posId = `POWER_SOURCE_POS_${b.id}`;
                 const ptKey = `pt_${Math.round(x / 4) * 4}_${Math.round(y / 4) * 4}`;
                 dsu.union(ptKey, posId);
                 return dsu.find(posId);
             }
 
-            // Negative terminal center (24, -14)
-            const negWorldX = b.x + 24 * cos - (-14) * sin;
-            const negWorldY = b.y + 24 * sin + (-14) * cos;
+            // Negative terminal center
+            const negWorldX = b.x + negLocalX * cos - negLocalY * sin;
+            const negWorldY = b.y + negLocalX * sin + negLocalY * cos;
             const dNeg = Math.hypot(x - negWorldX, y - negWorldY);
-            if (dNeg <= 14) {
+            if (dNeg <= 20) {
                 const negId = `POWER_SOURCE_GND_${b.id}`;
                 const ptKey = `pt_${Math.round(x / 4) * 4}_${Math.round(y / 4) * 4}`;
                 dsu.union(ptKey, negId);
@@ -247,7 +266,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         return pointToNode({ x, y });
     };
 
-    // 1. Connect Wire Endpoints
+    // 1. Connect Wire Endpoints & Register Wire End IDs
     wires.forEach((w) => {
         if (!w.points || w.points.length < 2) return;
         const pStart = w.points[0];
@@ -256,9 +275,11 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         const nodeStart = getElectricalNode(pStart.x, pStart.y);
         const nodeEnd = getElectricalNode(pEnd.x, pEnd.y);
         dsu.union(nodeStart, nodeEnd);
+        dsu.union(`WIRE_${w.id}_START`, nodeStart);
+        dsu.union(`WIRE_${w.id}_END`, nodeEnd);
     });
 
-    // 2. Identify Power Sources (9V Battery, Arduino Uno, ESP32 DevKit)
+    // 2. Identify Power Sources (Batteries, Arduino Uno, ESP32 DevKit)
     let posNodes = [];
     let gndNodes = [];
     const powerSources = [];
@@ -267,26 +288,44 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         const rot = ((c.rotation || 0) * Math.PI) / 180;
         const cos = Math.cos(rot);
         const sin = Math.sin(rot);
-        const posWorldX = c.x + 72 * cos - (-14) * sin;
-        const posWorldY = c.y + 72 * sin + (-14) * cos;
-        const negWorldX = c.x + 24 * cos - (-14) * sin;
-        const negWorldY = c.y + 24 * sin + (-14) * cos;
 
-        // Auto-link wire endpoints near terminals (exact snap within 14px)
+        let posLocalX = 72, posLocalY = -14;
+        let negLocalX = 24, negLocalY = -14;
+
+        if (c.type === "battery-aa" || c.type === "battery-aaa") {
+            const cellCount = c.cells || (c.voltage === 1.5 ? 1 : c.voltage === 6 ? 4 : 2);
+            const totalWidth = cellCount === 1 ? 56 : cellCount === 4 ? 144 : 84;
+            posLocalX = totalWidth - 18;
+            posLocalY = -14;
+            negLocalX = 18;
+            negLocalY = -14;
+        } else if (c.type === "battery-coin") {
+            posLocalX = 48;
+            posLocalY = 32;
+            negLocalX = 16;
+            negLocalY = 32;
+        }
+
+        const posWorldX = c.x + posLocalX * cos - posLocalY * sin;
+        const posWorldY = c.y + posLocalX * sin + posLocalY * cos;
+        const negWorldX = c.x + negLocalX * cos - negLocalY * sin;
+        const negWorldY = c.y + negLocalX * sin + negLocalY * cos;
+
+        // Auto-link wire endpoints near terminals (exact snap within 20px)
         wires.forEach(w => {
             if (!w.points || w.points.length < 2) return;
             const p1 = w.points[0];
             const p2 = w.points[w.points.length - 1];
-            if (Math.hypot(p1.x - posWorldX, p1.y - posWorldY) <= 14) {
+            if (Math.hypot(p1.x - posWorldX, p1.y - posWorldY) <= 20) {
                 dsu.union(getElectricalNode(p1.x, p1.y), dsu.find(`POWER_SOURCE_POS_${c.id}`));
             }
-            if (Math.hypot(p2.x - posWorldX, p2.y - posWorldY) <= 14) {
+            if (Math.hypot(p2.x - posWorldX, p2.y - posWorldY) <= 20) {
                 dsu.union(getElectricalNode(p2.x, p2.y), dsu.find(`POWER_SOURCE_POS_${c.id}`));
             }
-            if (Math.hypot(p1.x - negWorldX, p1.y - negWorldY) <= 14) {
+            if (Math.hypot(p1.x - negWorldX, p1.y - negWorldY) <= 20) {
                 dsu.union(getElectricalNode(p1.x, p1.y), dsu.find(`POWER_SOURCE_GND_${c.id}`));
             }
-            if (Math.hypot(p2.x - negWorldX, p2.y - negWorldY) <= 14) {
+            if (Math.hypot(p2.x - negWorldX, p2.y - negWorldY) <= 20) {
                 dsu.union(getElectricalNode(p2.x, p2.y), dsu.find(`POWER_SOURCE_GND_${c.id}`));
             }
         });
@@ -296,12 +335,29 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         posNodes.push(posNode);
         gndNodes.push(gndNode);
 
+        let v = 9.0;
+        if (c.type === "battery-coin") {
+            v = 3.0;
+        } else if (c.type === "battery-aa" || c.type === "battery-aaa") {
+            const cellCount = c.cells || (c.voltage === 1.5 ? 1 : c.voltage === 6 ? 4 : 2);
+            v = cellCount * 1.5;
+        } else if (c.voltage != null) {
+            v = Number(c.voltage);
+        }
+
+        // If built-in switch is turned OFF, battery supplies 0V
+        const isSwitchOn = c.switchState != null ? Boolean(c.switchState) : (c.isOn != null ? Boolean(c.isOn) : true);
+        if (!isSwitchOn) {
+            v = 0;
+        }
+
         powerSources.push({
             id: `battery_${c.id}`,
-            name: c.name || "9V Battery",
+            name: c.name || "Battery",
             posNode,
             gndNode,
-            voltage: c.voltage != null ? Number(c.voltage) : 9.0
+            voltage: v,
+            isSwitchOn
         });
     });
 
@@ -415,15 +471,13 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const n1 = getElectricalNode(c.x, c.y);
             const n2 = getElectricalNode(c.x + dx, c.y + dy);
 
-            // Connect any nearby wire endpoints (precision snap 8px)
+            // Connect nearby wire endpoints (generous 18px snap with pin discrimination)
             wires.forEach(w => {
                 if (!w.points || w.points.length < 2) return;
-                const p1 = w.points[0];
-                const p2 = w.points[w.points.length - 1];
-                if (Math.hypot(p1.x - c.x, p1.y - c.y) <= 8) dsu.union(getElectricalNode(p1.x, p1.y), n1);
-                if (Math.hypot(p2.x - c.x, p2.y - c.y) <= 8) dsu.union(getElectricalNode(p2.x, p2.y), n1);
-                if (Math.hypot(p1.x - (c.x + dx), p1.y - (c.y + dy)) <= 8) dsu.union(getElectricalNode(p1.x, p1.y), n2);
-                if (Math.hypot(p2.x - (c.x + dx), p2.y - (c.y + dy)) <= 8) dsu.union(getElectricalNode(p2.x, p2.y), n2);
+                [w.points[0], w.points[w.points.length - 1]].forEach(p => {
+                    if (Math.hypot(p.x - c.x, p.y - c.y) <= 18) dsu.union(getElectricalNode(p.x, p.y), n1);
+                    if (Math.hypot(p.x - (c.x + dx), p.y - (c.y + dy)) <= 18) dsu.union(getElectricalNode(p.x, p.y), n2);
+                });
             });
 
             resistors.push({
@@ -431,6 +485,41 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                 node1: n1,
                 node2: n2,
                 resistance: c.resistance || 220
+            });
+        }
+
+        if (c.type === "photoresistor") {
+            const rotRad = ((c.rotation || 0) * Math.PI) / 180;
+            const cos = Math.cos(rotRad);
+            const sin = Math.sin(rotRad);
+            const p1 = { x: Math.round(c.x), y: Math.round(c.y + 16 * cos) };
+            const p2 = { x: Math.round(c.x + 32 * cos), y: Math.round(c.y + 32 * sin + 16 * cos) };
+            const n1 = getElectricalNode(p1.x, p1.y);
+            const n2 = getElectricalNode(p2.x, p2.y);
+            const lux = c.lux != null ? c.lux : 50;
+            const r = c.resistance || Math.round(1000000 * Math.pow(10, -(lux / 25)));
+            resistors.push({
+                id: c.id,
+                node1: n1,
+                node2: n2,
+                resistance: Math.max(50, r)
+            });
+        }
+
+        if (c.type === "switch-spst") {
+            const rotRad = ((c.rotation || 0) * Math.PI) / 180;
+            const cos = Math.cos(rotRad);
+            const sin = Math.sin(rotRad);
+            const p1 = { x: Math.round(c.x), y: Math.round(c.y + 16 * cos) };
+            const p2 = { x: Math.round(c.x + 32 * cos), y: Math.round(c.y + 32 * sin + 16 * cos) };
+            const n1 = getElectricalNode(p1.x, p1.y);
+            const n2 = getElectricalNode(p2.x, p2.y);
+            const isClosed = Boolean(c.isOn != null ? c.isOn : c.switchState === "closed");
+            resistors.push({
+                id: c.id,
+                node1: n1,
+                node2: n2,
+                resistance: isClosed ? 0.05 : 10000000
             });
         }
     });
@@ -569,15 +658,18 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             let anodeNode = getElectricalNode(c.x, c.y);
             let cathodeNode = getElectricalNode(c.x + dx, c.y + dy);
 
-            // Connect nearby wire endpoints (MUST be <= 7px so 16px pin spacing is NEVER bridged!)
+            // Connect nearby wire endpoints (with pin discrimination so 16px pin spacing is cleanly preserved)
             wires.forEach(w => {
                 if (!w.points || w.points.length < 2) return;
-                const p1 = w.points[0];
-                const p2 = w.points[w.points.length - 1];
-                if (Math.hypot(p1.x - c.x, p1.y - c.y) <= 7) dsu.union(getElectricalNode(p1.x, p1.y), anodeNode);
-                if (Math.hypot(p2.x - c.x, p2.y - c.y) <= 7) dsu.union(getElectricalNode(p2.x, p2.y), anodeNode);
-                if (Math.hypot(p1.x - (c.x + dx), p1.y - (c.y + dy)) <= 7) dsu.union(getElectricalNode(p1.x, p1.y), cathodeNode);
-                if (Math.hypot(p2.x - (c.x + dx), p2.y - (c.y + dy)) <= 7) dsu.union(getElectricalNode(p2.x, p2.y), cathodeNode);
+                [w.points[0], w.points[w.points.length - 1]].forEach(p => {
+                    const dAnode = Math.hypot(p.x - c.x, p.y - c.y);
+                    const dCathode = Math.hypot(p.x - (c.x + dx), p.y - (c.y + dy));
+                    if (dAnode <= 14 && dAnode < dCathode) {
+                        dsu.union(getElectricalNode(p.x, p.y), anodeNode);
+                    } else if (dCathode <= 14 && dCathode < dAnode) {
+                        dsu.union(getElectricalNode(p.x, p.y), cathodeNode);
+                    }
+                });
             });
 
             anodeNode = dsu.find(anodeNode);
@@ -1298,41 +1390,69 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
 
     // 8. Calculate Real Wire Currents (Only animate when real current is flowing!)
     const conductingNodes = new Set();
-    Object.entries(ledStates).forEach(([ledId, state]) => {
-        if (state.isOn && state.currentMa > 0) {
-            conductingNodes.add(dsu.find(`LED_${ledId}_ANODE`));
-            conductingNodes.add(dsu.find(`LED_${ledId}_CATHODE`));
+
+    // A. Active Batteries (discharging through load or short-circuited)
+    batteries.forEach(b => {
+        const state = batteryStates[b.id];
+        if (state && (state.isDischarging || state.isShortCircuit || (state.currentMa > 0.05))) {
+            const posRoot = dsu.find(`POWER_SOURCE_POS_${b.id}`);
+            const gndRoot = dsu.find(`POWER_SOURCE_GND_${b.id}`);
+            conductingNodes.add(posRoot);
+            conductingNodes.add(gndRoot);
         }
     });
+
+    // B. Active MCU Power Rails & Output GPIOs
+    arduinoBoards.forEach(b => {
+        const gndRoot = dsu.find(`POWER_SOURCE_GND_ard_${b.id}`);
+        const pos5V = dsu.find(`POWER_SOURCE_POS_ard5V_${b.id}`);
+        const posD13 = dsu.find(`POWER_SOURCE_POS_ardD13_${b.id}`);
+        conductingNodes.add(gndRoot);
+        conductingNodes.add(pos5V);
+        if (resolvedMcuStates[b.id]?.d13High) conductingNodes.add(posD13);
+    });
+
+    esp32Boards.forEach(b => {
+        const gndRoot = dsu.find(`POWER_SOURCE_GND_esp_${b.id}`);
+        const pos3V3 = dsu.find(`POWER_SOURCE_POS_esp3V3_${b.id}`);
+        const posD2 = dsu.find(`POWER_SOURCE_POS_espD2_${b.id}`);
+        conductingNodes.add(gndRoot);
+        conductingNodes.add(pos3V3);
+        if (resolvedMcuStates[b.id]?.d2High) conductingNodes.add(posD2);
+    });
+
+    // C. Active LEDs
+    Object.entries(ledStates).forEach(([ledId, state]) => {
+        if (state.isOn && state.currentMa > 0) {
+            conductingNodes.add(dsu.find(state.nodeAnode));
+            conductingNodes.add(dsu.find(state.nodeCathode));
+        }
+    });
+
+    // D. Active Buzzers
     Object.entries(buzzerStates).forEach(([buzId, state]) => {
         if (state.isBeeping) {
             conductingNodes.add(dsu.find(`BUZZER_${buzId}_POS`));
             conductingNodes.add(dsu.find(`BUZZER_${buzId}_NEG`));
         }
     });
-    if (conductingNodes.size > 0) {
-        batteries.forEach(b => {
-            conductingNodes.add(dsu.find(`POWER_SOURCE_POS_${b.id}`));
-            conductingNodes.add(dsu.find(`POWER_SOURCE_GND_${b.id}`));
-        });
-        arduinoBoards.forEach(b => {
-            conductingNodes.add(dsu.find(`MCU_${b.id}_PIN_13`));
-            conductingNodes.add(dsu.find(`MCU_${b.id}_PIN_5V`));
-            conductingNodes.add(dsu.find(`MCU_${b.id}_PIN_GND`));
-        });
-        esp32Boards.forEach(b => {
-            conductingNodes.add(dsu.find(`MCU_${b.id}_PIN_2`));
-            conductingNodes.add(dsu.find(`MCU_${b.id}_PIN_3V3`));
-            conductingNodes.add(dsu.find(`MCU_${b.id}_PIN_GND`));
-        });
-    }
+
+    // E. Resistors carrying current in series loops
+    resistors.forEach(r => {
+        const r1 = dsu.find(r.node1);
+        const r2 = dsu.find(r.node2);
+        if (conductingNodes.has(r1) || conductingNodes.has(r2)) {
+            conductingNodes.add(r1);
+            conductingNodes.add(r2);
+        }
+    });
 
     const wireStates = {};
     wires.forEach(w => {
         if (!w.points || w.points.length < 2) return;
         const startRoot = dsu.find(`WIRE_${w.id}_START`);
         const endRoot = dsu.find(`WIRE_${w.id}_END`);
-        const isConducting = conductingNodes.size > 0 && 
+        const isConducting = isSimulating && conductingNodes.size > 0 && 
             (conductingNodes.has(startRoot) || conductingNodes.has(endRoot));
         wireStates[w.id] = {
             hasCurrent: Boolean(isConducting)

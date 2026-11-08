@@ -213,3 +213,91 @@
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.4; transform: scale(0.85); }
 }
+
+/* ==========================================
+   ADVANCED SERIAL MONITOR & TOKEN HIGHLIGHTS
+========================================== */
+.console-nav-tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 2px;
+}
+
+.console-tab-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.console-tab-btn:hover {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.console-tab-btn.active {
+    background: var(--project-accent, #FF8A00);
+    color: #0f172a;
+}
+
+.console-tab-btn.alerts-tab.active {
+    background: #ef4444;
+    color: #ffffff;
+}
+
+.console-icon-btn.active-tool {
+    color: #FF8A00;
+    background: rgba(255, 138, 0, 0.15);
+}
+
+/* Value Syntax Highlighting Tokens */
+.token-highlight {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-weight: 700;
+}
+
+.token-highlight.token-val {
+    color: #facc15;
+    background: rgba(250, 204, 21, 0.12);
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+.token-highlight.token-tx {
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.12);
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+.token-highlight.token-rx {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+.token-highlight.token-pin {
+    color: #c084fc;
+    background: rgba(192, 132, 252, 0.12);
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+.token-highlight.token-logic-high {
+    color: #4ade80;
+    font-weight: 800;
+}
+
+.token-highlight.token-logic-low {
+    color: #94a3b8;
+}

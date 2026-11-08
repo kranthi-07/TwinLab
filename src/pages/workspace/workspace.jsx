@@ -14,6 +14,8 @@ import SchematicView from "../../components/workspace/SchematicView/SchematicVie
 import Oscilloscope from "../../components/workspace/Instruments/Oscilloscope";
 import ComponentSearchModal from "../../components/workspace/SearchModal/ComponentSearchModal";
 import { McuExecutionSession, DEFAULT_SKETCHES } from "../../simulation/mcuRuntime";
+import cloudProjectService from "../../services/cloudProjectService";
+import authService from "../../services/authService";
 
 const STORAGE_KEY = "twinlab_active_project";
 const DRAFT_KEY = "twinlab_workspace_draft";
@@ -333,7 +335,13 @@ function Workspace({ onBackToHome }) {
         }
 
         setIsUnsaved(false);
-        setToastMessage(`Project "${projectData.name}" saved (Ctrl+S)`);
+        // Persist to cloud storage service
+        cloudProjectService.saveProjectToCloud(projectData).catch(console.error);
+        const currentUser = authService.getCurrentUser();
+        const saveNotice = !currentUser.isGuest 
+            ? `Project "${projectData.name}" synced to Cloud ☁️` 
+            : `Project "${projectData.name}" saved locally`;
+        setToastMessage(saveNotice);
         setTimeout(() => setToastMessage(null), 2500);
     }, [components, wires, projectMeta]);
 

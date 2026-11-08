@@ -6,42 +6,96 @@ const GRID_STEP = 16;
 
 // Arduino Uno R3 Header Pin Definitions (Exact 16px pitch layout)
 export const ARDUINO_PINS = {
-    // Top Digital High Header (10 pins, starting at local x: 144, y: 16)
+    // Top Digital High Header (10 pins from local x: 32 to 176 on 16px pitch)
     digitalHigh: [
-        { name: "SCL", x: 144, y: 16, pinNum: "SCL" },
-        { name: "SDA", x: 160, y: 16, pinNum: "SDA" },
-        { name: "AREF", x: 176, y: 16, pinNum: "AREF" },
-        { name: "GND", x: 192, y: 16, isGnd: true, pinNum: "GND" },
-        { name: "13", x: 208, y: 16, isGpio: true, isD13: true, pinNum: 13 },
-        { name: "12", x: 224, y: 16, isGpio: true, pinNum: 12 },
-        { name: "~11", x: 240, y: 16, isGpio: true, pinNum: 11 },
-        { name: "~10", x: 256, y: 16, isGpio: true, pinNum: 10 },
-        { name: "~9", x: 272, y: 16, isGpio: true, pinNum: 9 },
-        { name: "8", x: 288, y: 16, isGpio: true, pinNum: 8 },
+        { name: "SCL", x: 32, y: 16, pinNum: "SCL" },
+        { name: "SDA", x: 48, y: 16, pinNum: "SDA" },
+        { name: "AREF", x: 64, y: 16, pinNum: "AREF" },
+        { name: "GND", x: 80, y: 16, isGnd: true, pinNum: "GND" },
+        { name: "13", x: 96, y: 16, isGpio: true, isD13: true, pinNum: 13 },
+        { name: "12", x: 112, y: 16, isGpio: true, pinNum: 12 },
+        { name: "~11", x: 128, y: 16, isGpio: true, pinNum: 11 },
+        { name: "~10", x: 144, y: 16, isGpio: true, pinNum: 10 },
+        { name: "~9", x: 160, y: 16, isGpio: true, pinNum: 9 },
+        { name: "8", x: 176, y: 16, isGpio: true, pinNum: 8 },
     ],
-    // Top Digital Low Header (8 pins, starting at local x: 16, y: 16)
+    // Top Digital Low Header (8 pins from local x: 192 to 304 on 16px pitch, after 16px gap)
     digitalLow: [
-        { name: "7", x: 16, y: 16, isGpio: true, pinNum: 7 },
-        { name: "~6", x: 32, y: 16, isGpio: true, pinNum: 6 },
-        { name: "~5", x: 48, y: 16, isGpio: true, pinNum: 5 },
-        { name: "4", x: 64, y: 16, isGpio: true, pinNum: 4 },
-        { name: "~3", x: 80, y: 16, isGpio: true, pinNum: 3 },
-        { name: "2", x: 96, y: 16, isGpio: true, pinNum: 2 },
-        { name: "TX1", x: 112, y: 16, isGpio: true, pinNum: 1 },
-        { name: "RX0", x: 128, y: 16, isGpio: true, pinNum: 0 },
+        { name: "7", x: 192, y: 16, isGpio: true, pinNum: 7 },
+        { name: "~6", x: 208, y: 16, isGpio: true, pinNum: 6 },
+        { name: "~5", x: 224, y: 16, isGpio: true, pinNum: 5 },
+        { name: "4", x: 240, y: 16, isGpio: true, pinNum: 4 },
+        { name: "~3", x: 256, y: 16, isGpio: true, pinNum: 3 },
+        { name: "2", x: 272, y: 16, isGpio: true, pinNum: 2 },
+        { name: "TX>1", x: 288, y: 16, isGpio: true, pinNum: 1 },
+        { name: "RX<0", x: 304, y: 16, isGpio: true, pinNum: 0 },
     ],
-    // Bottom Power Header (8 pins, starting at local x: 48, y: 208)
+    // Bottom Power Header (8 pins from local x: 64 to 176 on 16px pitch)
     power: [
-        { name: "NC", x: 48, y: 208, pinNum: "NC" },
-        { name: "IO", x: 64, y: 208, is5V: true, pinNum: "IOREF" },
-        { name: "RST", x: 80, y: 208, pinNum: "RESET" },
-        { name: "3V3", x: 96, y: 208, is3V3: true, pinNum: "3.3V" },
-        { name: "5V", x: 112, y: 208, is5V: true, pinNum: "5V" },
-        { name: "GND", x: 128, y: 208, isGnd: true, pinNum: "GND" },
+        { name: "NC", x: 64, y: 208, pinNum: "NC" },
+        { name: "IOREF", x: 80, y: 208, is5V: true, pinNum: "IOREF" },
+        { name: "RESET", x: 96, y: 208, pinNum: "RESET" },
+        { name: "3.3V", x: 112, y: 208, is3V3: true, pinNum: "3.3V" },
+        { name: "5V", x: 128, y: 208, is5V: true, pinNum: "5V" },
         { name: "GND", x: 144, y: 208, isGnd: true, pinNum: "GND" },
-        { name: "VIN", x: 160, y: 208, is5V: true, pinNum: "VIN" },
+        { name: "GND", x: 160, y: 208, isGnd: true, pinNum: "GND" },
+        { name: "VIN", x: 176, y: 208, is5V: true, pinNum: "VIN" },
     ],
-    // Bottom Analog Header (6 pins, starting at local x: 192, y: 208)
+    // Bottom Analog Header (6 pins from local x: 208 to 288 on 16px pitch)
+    analog: [
+        { name: "A0", x: 208, y: 208, isAnalog: true, pinNum: "A0" },
+        { name: "A1", x: 224, y: 208, isAnalog: true, pinNum: "A1" },
+        { name: "A2", x: 240, y: 208, isAnalog: true, pinNum: "A2" },
+        { name: "A3", x: 256, y: 208, isAnalog: true, pinNum: "A3" },
+        { name: "A4", x: 272, y: 208, isAnalog: true, pinNum: "A4" },
+        { name: "A5", x: 288, y: 208, isAnalog: true, pinNum: "A5" },
+    ]
+};
+
+// Arduino Mega 2560 Header Pin Definitions (Exact 16px pitch layout)
+export const ARDUINO_MEGA_PINS = {
+    digitalHigh: [
+        { name: "SCL", x: 32, y: 16, pinNum: "SCL" },
+        { name: "SDA", x: 48, y: 16, pinNum: "SDA" },
+        { name: "AREF", x: 64, y: 16, pinNum: "AREF" },
+        { name: "GND", x: 80, y: 16, isGnd: true, pinNum: "GND" },
+        { name: "13", x: 96, y: 16, isGpio: true, isD13: true, pinNum: 13 },
+        { name: "~12", x: 112, y: 16, isGpio: true, pinNum: 12 },
+        { name: "~11", x: 128, y: 16, isGpio: true, pinNum: 11 },
+        { name: "~10", x: 144, y: 16, isGpio: true, pinNum: 10 },
+        { name: "~9", x: 160, y: 16, isGpio: true, pinNum: 9 },
+        { name: "~8", x: 176, y: 16, isGpio: true, pinNum: 8 },
+    ],
+    digitalLow: [
+        { name: "~7", x: 192, y: 16, isGpio: true, pinNum: 7 },
+        { name: "~6", x: 208, y: 16, isGpio: true, pinNum: 6 },
+        { name: "~5", x: 224, y: 16, isGpio: true, pinNum: 5 },
+        { name: "~4", x: 240, y: 16, isGpio: true, pinNum: 4 },
+        { name: "~3", x: 256, y: 16, isGpio: true, pinNum: 3 },
+        { name: "~2", x: 272, y: 16, isGpio: true, pinNum: 2 },
+        { name: "TX>1", x: 288, y: 16, isGpio: true, pinNum: 1 },
+        { name: "RX<0", x: 304, y: 16, isGpio: true, pinNum: 0 },
+    ],
+    communication: [
+        { name: "TX1>18", x: 320, y: 16, isGpio: true, pinNum: 18 },
+        { name: "RX1<19", x: 336, y: 16, isGpio: true, pinNum: 19 },
+        { name: "TX2>16", x: 352, y: 16, isGpio: true, pinNum: 16 },
+        { name: "RX2<17", x: 368, y: 16, isGpio: true, pinNum: 17 },
+        { name: "TX3>14", x: 384, y: 16, isGpio: true, pinNum: 14 },
+        { name: "RX3<15", x: 400, y: 16, isGpio: true, pinNum: 15 },
+        { name: "SDA>20", x: 416, y: 16, isGpio: true, pinNum: 20 },
+        { name: "SCL>21", x: 432, y: 16, isGpio: true, pinNum: 21 },
+    ],
+    power: [
+        { name: "NC", x: 64, y: 208, pinNum: "NC" },
+        { name: "IOREF", x: 80, y: 208, is5V: true, pinNum: "IOREF" },
+        { name: "RESET", x: 96, y: 208, pinNum: "RESET" },
+        { name: "3.3V", x: 112, y: 208, is3V3: true, pinNum: "3.3V" },
+        { name: "5V", x: 128, y: 208, is5V: true, pinNum: "5V" },
+        { name: "GND", x: 144, y: 208, isGnd: true, pinNum: "GND" },
+        { name: "GND", x: 160, y: 208, isGnd: true, pinNum: "GND" },
+        { name: "VIN", x: 176, y: 208, is5V: true, pinNum: "VIN" },
+    ],
     analog: [
         { name: "A0", x: 192, y: 208, isAnalog: true, pinNum: "A0" },
         { name: "A1", x: 208, y: 208, isAnalog: true, pinNum: "A1" },
@@ -49,70 +103,16 @@ export const ARDUINO_PINS = {
         { name: "A3", x: 240, y: 208, isAnalog: true, pinNum: "A3" },
         { name: "A4", x: 256, y: 208, isAnalog: true, pinNum: "A4" },
         { name: "A5", x: 272, y: 208, isAnalog: true, pinNum: "A5" },
-    ]
-};
-
-// Arduino Mega 2560 Header Pin Definitions (Exact 16px pitch layout)
-export const ARDUINO_MEGA_PINS = {
-    digitalHigh: [
-        { name: "SCL", x: 144, y: 16, pinNum: "SCL" },
-        { name: "SDA", x: 160, y: 16, pinNum: "SDA" },
-        { name: "AREF", x: 176, y: 16, pinNum: "AREF" },
-        { name: "GND", x: 192, y: 16, isGnd: true, pinNum: "GND" },
-        { name: "13", x: 208, y: 16, isGpio: true, isD13: true, pinNum: 13 },
-        { name: "~12", x: 224, y: 16, isGpio: true, pinNum: 12 },
-        { name: "~11", x: 240, y: 16, isGpio: true, pinNum: 11 },
-        { name: "~10", x: 256, y: 16, isGpio: true, pinNum: 10 },
-        { name: "~9", x: 272, y: 16, isGpio: true, pinNum: 9 },
-        { name: "~8", x: 288, y: 16, isGpio: true, pinNum: 8 },
-    ],
-    digitalLow: [
-        { name: "~7", x: 16, y: 16, isGpio: true, pinNum: 7 },
-        { name: "~6", x: 32, y: 16, isGpio: true, pinNum: 6 },
-        { name: "~5", x: 48, y: 16, isGpio: true, pinNum: 5 },
-        { name: "~4", x: 64, y: 16, isGpio: true, pinNum: 4 },
-        { name: "~3", x: 80, y: 16, isGpio: true, pinNum: 3 },
-        { name: "~2", x: 96, y: 16, isGpio: true, pinNum: 2 },
-        { name: "TX>1", x: 112, y: 16, isGpio: true, pinNum: 1 },
-        { name: "RX<0", x: 128, y: 16, isGpio: true, pinNum: 0 },
-    ],
-    communication: [
-        { name: "TX1>18", x: 304, y: 16, isGpio: true, pinNum: 18 },
-        { name: "RX1<19", x: 320, y: 16, isGpio: true, pinNum: 19 },
-        { name: "TX2>16", x: 336, y: 16, isGpio: true, pinNum: 16 },
-        { name: "RX2<17", x: 352, y: 16, isGpio: true, pinNum: 17 },
-        { name: "TX3>14", x: 368, y: 16, isGpio: true, pinNum: 14 },
-        { name: "RX3<15", x: 384, y: 16, isGpio: true, pinNum: 15 },
-        { name: "SDA>20", x: 400, y: 16, isGpio: true, pinNum: 20 },
-        { name: "SCL>21", x: 416, y: 16, isGpio: true, pinNum: 21 },
-    ],
-    power: [
-        { name: "NC", x: 48, y: 208, pinNum: "NC" },
-        { name: "IOREF", x: 64, y: 208, is5V: true, pinNum: "IOREF" },
-        { name: "RESET", x: 80, y: 208, pinNum: "RESET" },
-        { name: "3.3V", x: 96, y: 208, is3V3: true, pinNum: "3.3V" },
-        { name: "5V", x: 112, y: 208, is5V: true, pinNum: "5V" },
-        { name: "GND", x: 128, y: 208, isGnd: true, pinNum: "GND" },
-        { name: "GND", x: 144, y: 208, isGnd: true, pinNum: "GND" },
-        { name: "VIN", x: 160, y: 208, is5V: true, pinNum: "VIN" },
-    ],
-    analog: [
-        { name: "A0", x: 176, y: 208, isAnalog: true, pinNum: "A0" },
-        { name: "A1", x: 192, y: 208, isAnalog: true, pinNum: "A1" },
-        { name: "A2", x: 208, y: 208, isAnalog: true, pinNum: "A2" },
-        { name: "A3", x: 224, y: 208, isAnalog: true, pinNum: "A3" },
-        { name: "A4", x: 240, y: 208, isAnalog: true, pinNum: "A4" },
-        { name: "A5", x: 256, y: 208, isAnalog: true, pinNum: "A5" },
-        { name: "A6", x: 272, y: 208, isAnalog: true, pinNum: "A6" },
-        { name: "A7", x: 288, y: 208, isAnalog: true, pinNum: "A7" },
-        { name: "A8", x: 304, y: 208, isAnalog: true, pinNum: "A8" },
-        { name: "A9", x: 320, y: 208, isAnalog: true, pinNum: "A9" },
-        { name: "A10", x: 336, y: 208, isAnalog: true, pinNum: "A10" },
-        { name: "A11", x: 352, y: 208, isAnalog: true, pinNum: "A11" },
-        { name: "A12", x: 368, y: 208, isAnalog: true, pinNum: "A12" },
-        { name: "A13", x: 384, y: 208, isAnalog: true, pinNum: "A13" },
-        { name: "A14", x: 400, y: 208, isAnalog: true, pinNum: "A14" },
-        { name: "A15", x: 416, y: 208, isAnalog: true, pinNum: "A15" },
+        { name: "A6", x: 288, y: 208, isAnalog: true, pinNum: "A6" },
+        { name: "A7", x: 304, y: 208, isAnalog: true, pinNum: "A7" },
+        { name: "A8", x: 320, y: 208, isAnalog: true, pinNum: "A8" },
+        { name: "A9", x: 336, y: 208, isAnalog: true, pinNum: "A9" },
+        { name: "A10", x: 348, y: 208, isAnalog: true, pinNum: "A10" },
+        { name: "A11", x: 364, y: 208, isAnalog: true, pinNum: "A11" },
+        { name: "A12", x: 380, y: 208, isAnalog: true, pinNum: "A12" },
+        { name: "A13", x: 396, y: 208, isAnalog: true, pinNum: "A13" },
+        { name: "A14", x: 412, y: 208, isAnalog: true, pinNum: "A14" },
+        { name: "A15", x: 428, y: 208, isAnalog: true, pinNum: "A15" },
     ],
     dualDigital: [
         ...[23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49, 51, 53].map((num, i) => ({
@@ -165,6 +165,8 @@ export const ARDUINO_NANO_PINS = {
 };
 
 // ESP32 DevKit V1 30-pin Header Definitions (15 pins per side, 16px pitch layout)
+// Board width 210px: Left pins at x: 16, Right pins at x: 192.
+// Labels are placed cleanly inside the board between pins and central metal RF can.
 export const ESP32_PINS = {
     // Left column (local x: 16, y: 16 to 240)
     leftCol: [
@@ -184,23 +186,23 @@ export const ESP32_PINS = {
         { name: "GND", x: 16, y: 224, isGnd: true, pinNum: "GND" },
         { name: "VIN", x: 16, y: 240, is5V: true, pinNum: "VIN" },
     ],
-    // Right column (local x: 144, y: 16 to 240)
+    // Right column (local x: 192, y: 16 to 240)
     rightCol: [
-        { name: "D23", x: 144, y: 16, pinNum: 23, isGpio: true },
-        { name: "D22", x: 144, y: 32, pinNum: 22, isGpio: true },
-        { name: "TX0", x: 144, y: 48, pinNum: 1, isGpio: true },
-        { name: "RX0", x: 144, y: 64, pinNum: 3, isGpio: true },
-        { name: "D21", x: 144, y: 80, pinNum: 21, isGpio: true },
-        { name: "D19", x: 144, y: 96, pinNum: 19, isGpio: true },
-        { name: "D18", x: 144, y: 112, pinNum: 18, isGpio: true },
-        { name: "D5", x: 144, y: 128, pinNum: 5, isGpio: true },
-        { name: "D17", x: 144, y: 144, pinNum: 17, isGpio: true },
-        { name: "D16", x: 144, y: 160, pinNum: 16, isGpio: true },
-        { name: "D4", x: 144, y: 176, pinNum: 4, isGpio: true },
-        { name: "D0", x: 144, y: 192, pinNum: 0, isGpio: true },
-        { name: "D2", x: 144, y: 208, isGpio: true, isD2: true, pinNum: 2 },
-        { name: "D15", x: 144, y: 224, pinNum: 15, isGpio: true },
-        { name: "3V3", x: 144, y: 240, is3V3: true, pinNum: "3.3V" },
+        { name: "D23", x: 192, y: 16, pinNum: 23, isGpio: true },
+        { name: "D22", x: 192, y: 32, pinNum: 22, isGpio: true },
+        { name: "TX0", x: 192, y: 48, pinNum: 1, isGpio: true },
+        { name: "RX0", x: 192, y: 64, pinNum: 3, isGpio: true },
+        { name: "D21", x: 192, y: 80, pinNum: 21, isGpio: true },
+        { name: "D19", x: 192, y: 96, pinNum: 19, isGpio: true },
+        { name: "D18", x: 192, y: 112, pinNum: 18, isGpio: true },
+        { name: "D5", x: 192, y: 128, pinNum: 5, isGpio: true },
+        { name: "D17", x: 192, y: 144, pinNum: 17, isGpio: true },
+        { name: "D16", x: 192, y: 160, pinNum: 16, isGpio: true },
+        { name: "D4", x: 192, y: 176, pinNum: 4, isGpio: true },
+        { name: "D0", x: 192, y: 192, pinNum: 0, isGpio: true },
+        { name: "D2", x: 192, y: 208, isGpio: true, isD2: true, pinNum: 2 },
+        { name: "D15", x: 192, y: 224, pinNum: 15, isGpio: true },
+        { name: "3V3", x: 192, y: 240, is3V3: true, pinNum: "3.3V" },
     ]
 };
 
@@ -342,19 +344,45 @@ function McuBoard({
                         </div>
                     </div>
 
-                    {/* Reset Button (Top left) with red plunger & brass collar */}
-                    <div className="arduino-reset-btn" title="Reset Actuator">
-                        <div className="reset-brass-ring"></div>
-                        <div className="reset-actuator"></div>
+                    {/* Reset Button (Top left) with red plunger & brass collar - Tinkercad exact */}
+                    <div className="arduino-reset-btn" title="Reset Button">
+                        <div className="reset-brass-ring">
+                            <div className="reset-actuator"></div>
+                        </div>
                     </div>
 
-                    {/* 16MHz Crystal Oscillator */}
-                    <div className="arduino-crystal">
-                        <span className="crystal-text">16.000</span>
+                    {/* 16MHz Crystal Oscillator (SPK 16.000 silver can) */}
+                    <div className="arduino-crystal" title="16.000 MHz Crystal Oscillator">
+                        <span className="crystal-text">SPK 16.000</span>
+                    </div>
+
+                    {/* AMS1117 Voltage Regulator with heatsink tab */}
+                    <div className="arduino-voltage-regulator" title="AMS1117 5.0V Regulator">
+                        <div className="regulator-heat-tab"></div>
+                        <div className="regulator-body">
+                            <span className="regulator-text">AMS1117</span>
+                        </div>
+                        <div className="regulator-pins">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+
+                    {/* Dual Aluminum Electrolytic Filter Capacitors */}
+                    <div className="arduino-capacitors-pair">
+                        <div className="arduino-elec-cap cap-1" title="47µF Power Filter Capacitor">
+                            <div className="cap-silver-top">
+                                <div className="cap-negative-stripe"></div>
+                            </div>
+                        </div>
+                        <div className="arduino-elec-cap cap-2" title="47µF Power Filter Capacitor">
+                            <div className="cap-silver-top">
+                                <div className="cap-negative-stripe"></div>
+                            </div>
+                        </div>
                     </div>
 
                     {/* ATmega16U2 USB-Serial Chip */}
-                    <div className="atmega16u2-chip"></div>
+                    <div className="atmega16u2-chip" title="ATmega16U2 USB Bridge"></div>
 
                     {/* ATmega328P DIP-28 Main Microcontroller IC */}
                     <div className="arduino-atmega-ic">
@@ -364,19 +392,31 @@ function McuBoard({
                         <div className="ic-pins-row bot-pins"></div>
                     </div>
 
+                    {/* 6-Pin ICSP Header */}
+                    <div className="arduino-icsp-header" title="ICSP Header">
+                        <span className="icsp-dot"></span><span className="icsp-dot"></span>
+                        <span className="icsp-dot"></span><span className="icsp-dot"></span>
+                        <span className="icsp-dot"></span><span className="icsp-dot"></span>
+                    </div>
+
                     {/* Gold Ground Rings / Mounting Holes */}
                     <div className="mcu-mount-hole hole-tl"></div>
                     <div className="mcu-mount-hole hole-tr"></div>
                     <div className="mcu-mount-hole hole-bl"></div>
                     <div className="mcu-mount-hole hole-br"></div>
 
-                    {/* Silkscreen Italian Arduino Branding */}
+                    {/* Silkscreen Arduino Uno + X Branding (Tinkercad Exact) */}
                     <div className="arduino-silkscreen-labels">
-                        <div className="infinity-logo-svg">
-                            <span className="inf-sign">∞</span>
+                        <div className="arduino-brand-row">
+                            <div className="infinity-logo-svg">
+                                <span className="inf-sign">∞</span>
+                            </div>
+                            <span className="board-title">ARDUINO</span>
+                            <div className="uno-bubble-badge">
+                                <span className="uno-bubble-text">UNO</span>
+                                <span className="uno-x-badge">X</span>
+                            </div>
                         </div>
-                        <span className="board-title">ARDUINO</span>
-                        <span className="board-subtitle">UNO</span>
                     </div>
 
                     {/* Onboard Status SMD LEDs */}
@@ -467,9 +507,14 @@ function McuBoard({
                         <span className="mega-ic-label">MEGA 2560</span>
                     </div>
 
-                    <div className="arduino-silkscreen-labels" style={{ left: 144, top: 56 }}>
-                        <span className="board-title">ARDUINO</span>
-                        <span className="board-subtitle">MEGA 2560</span>
+                    <div className="arduino-silkscreen-labels" style={{ left: 160, top: 52 }}>
+                        <div className="arduino-brand-row">
+                            <span className="board-title">ARDUINO</span>
+                            <div className="uno-bubble-badge" style={{ marginTop: 0 }}>
+                                <span className="uno-bubble-text">MEGA 2560</span>
+                                <span className="uno-x-badge">X</span>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="arduino-leds-cluster" style={{ left: 240, top: 54 }}>
@@ -584,10 +629,10 @@ function McuBoard({
                 onMouseDown && onMouseDown(e, id);
             }}
         >
-            {/* Tinkercad USB Plug Module into Micro-USB Jack */}
-            <div className={`tinkercad-usb-cable esp-cable ${isPowered ? "connected" : "unplugged"}`}>
-                <div className="usb-plug-strain-relief"></div>
-                <div className="usb-plug-metal-shell micro-shell"></div>
+            {/* Tinkercad USB Type-C Plug Module inserting from Bottom */}
+            <div className={`tinkercad-usb-cable esp32-typec-cable ${isPowered ? "connected" : "unplugged"}`}>
+                <div className="typec-plug-strain-relief"></div>
+                <div className="typec-plug-metal-shell"></div>
             </div>
 
             {/* Matte Dark PCB Surface with Gold Traces */}
@@ -599,6 +644,7 @@ function McuBoard({
                         <span className="can-brand">ESPRESSIF</span>
                         <span className="can-model">ESP-WROOM-32</span>
                         <span className="can-fcc">FCC ID: 2AC7Z-ESPWROOM32</span>
+                        <div className="esp32-x-badge">TWINLAB X</div>
                     </div>
                 </div>
 
@@ -607,9 +653,11 @@ function McuBoard({
                     <span className="uart-label">CP2102</span>
                 </div>
 
-                {/* Micro-USB Jack at bottom */}
-                <div className="esp32-usb-port">
-                    <div className="micro-usb-connector"></div>
+                {/* Modern USB Type-C Receptacle Hub at bottom */}
+                <div className="esp32-typec-hub" title="USB Type-C Connector">
+                    <div className="typec-slot-inner">
+                        <div className="typec-center-tongue"></div>
+                    </div>
                 </div>
 
                 {/* Tactile Push Buttons: EN and BOOT */}

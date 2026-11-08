@@ -430,6 +430,9 @@ function Dashboard({ onOpenWorkspace }) {
                                         <i className={p.icon || "ri-cpu-line"}></i>
                                     </div>
                                     <div className="card-badges">
+                                        <span className="cloud-sync-badge" title="Synced with TwinLab Cloud Vault">
+                                            <i className="ri-cloud-line"></i> Cloud
+                                        </span>
                                         <span className={`status-tag ${p.status?.toLowerCase() || "active"}`}>
                                             {p.status || "Active"}
                                         </span>

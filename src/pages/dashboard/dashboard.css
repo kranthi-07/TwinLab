@@ -311,6 +311,23 @@
     gap: 6px;
 }
 
+.cloud-sync-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.cloud-sync-badge i {
+    font-size: 11px;
+}
+
 .status-tag {
     font-size: 10px;
     font-weight: 600;

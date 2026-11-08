@@ -342,6 +342,182 @@ export const COMPONENTS_CATALOG = [
         desc: "Light-dependent cadmium-sulfide resistor for ambient lux detection",
         tag: "Sensor"
     },
+    {
+        id: "transistor-pnp",
+        name: "PNP Transistor (2N3906)",
+        type: "transistor-pnp",
+        category: "devices",
+        icon: "ri-git-commit-line",
+        width: 48,
+        height: 32,
+        desc: "TO-92 bipolar junction PNP transistor with Emitter, Base, and Collector",
+        tag: "Discrete"
+    },
+    {
+        id: "mosfet-n",
+        name: "N-MOSFET (IRF540N)",
+        type: "mosfet-n",
+        category: "devices",
+        icon: "ri-flashlight-line",
+        width: 48,
+        height: 48,
+        desc: "TO-220 100V 33A N-Channel power MOSFET for switching high-current loads",
+        tag: "Discrete"
+    },
+    {
+        id: "motor-dc",
+        name: "DC Hobby Motor",
+        type: "motor-dc",
+        category: "devices",
+        icon: "ri-refresh-line",
+        width: 64,
+        height: 64,
+        desc: "Standard 3V-12V hobby DC electric motor with 3-blade aerodynamic fan propeller",
+        tag: "Motor"
+    },
+    {
+        id: "servo-sg90",
+        name: "Micro Servo (SG90)",
+        type: "servo-sg90",
+        category: "devices",
+        icon: "ri-settings-4-line",
+        width: 64,
+        height: 64,
+        desc: "9g micro positional servo motor with rotating horn (0° to 180° PWM control)",
+        tag: "Motor"
+    },
+    {
+        id: "sensor-ultrasonic",
+        name: "Ultrasonic Sensor (HC-SR04)",
+        type: "sensor-ultrasonic",
+        category: "devices",
+        icon: "ri-radar-line",
+        width: 80,
+        height: 56,
+        desc: "4-pin 40kHz sonar distance sensor with transmitter, receiver, and cm range",
+        tag: "Sensor"
+    },
+    {
+        id: "sensor-pir",
+        name: "PIR Motion Sensor",
+        type: "sensor-pir",
+        category: "devices",
+        icon: "ri-user-voice-line",
+        width: 64,
+        height: 56,
+        desc: "Passive infrared motion detector with hemispherical faceted Fresnel dome",
+        tag: "Sensor"
+    },
+    {
+        id: "sensor-tmp36",
+        name: "Temperature Sensor (TMP36)",
+        type: "sensor-tmp36",
+        category: "devices",
+        icon: "ri-temp-hot-line",
+        width: 32,
+        height: 32,
+        desc: "Precision analog temperature sensor outputting 10mV/°C from -40°C to +125°C",
+        tag: "Sensor"
+    },
+    {
+        id: "lcd-2004",
+        name: "20x4 Character LCD (I2C)",
+        type: "lcd-2004",
+        category: "devices",
+        icon: "ri-tv-line",
+        width: 240,
+        height: 114,
+        desc: "Large 20-column by 4-row alphanumeric matrix display with I2C backpack",
+        tag: "Output"
+    },
+    {
+        id: "ic-74hc08",
+        name: "Quad AND Gate (74HC08)",
+        type: "ic-74hc08",
+        category: "devices",
+        icon: "ri-mind-map",
+        width: 120,
+        height: 48,
+        desc: "DIP-14 integrated circuit containing four independent 2-input positive AND gates",
+        tag: "Logic"
+    },
+    {
+        id: "ic-74hc00",
+        name: "Quad NAND Gate (74HC00)",
+        type: "ic-74hc00",
+        category: "devices",
+        icon: "ri-mind-map",
+        width: 120,
+        height: 48,
+        desc: "DIP-14 integrated circuit containing four independent 2-input positive NAND gates",
+        tag: "Logic"
+    },
+    {
+        id: "ic-74hc32",
+        name: "Quad OR Gate (74HC32)",
+        type: "ic-74hc32",
+        category: "devices",
+        icon: "ri-mind-map",
+        width: 120,
+        height: 48,
+        desc: "DIP-14 integrated circuit containing four independent 2-input positive OR gates",
+        tag: "Logic"
+    },
+    {
+        id: "ic-74hc04",
+        name: "Hex Inverter (74HC04)",
+        type: "ic-74hc04",
+        category: "devices",
+        icon: "ri-mind-map",
+        width: 120,
+        height: 48,
+        desc: "DIP-14 integrated circuit containing six independent inverting NOT gates",
+        tag: "Logic"
+    },
+    {
+        id: "ic-74hc02",
+        name: "Quad NOR Gate (74HC02)",
+        type: "ic-74hc02",
+        category: "devices",
+        icon: "ri-mind-map",
+        width: 120,
+        height: 48,
+        desc: "DIP-14 integrated circuit containing four independent 2-input positive NOR gates",
+        tag: "Logic"
+    },
+    {
+        id: "ic-74hc86",
+        name: "Quad XOR Gate (74HC86)",
+        type: "ic-74hc86",
+        category: "devices",
+        icon: "ri-mind-map",
+        width: 120,
+        height: 48,
+        desc: "DIP-14 integrated circuit containing four independent 2-input exclusive-OR gates",
+        tag: "Logic"
+    },
+    {
+        id: "ic-74hc132",
+        name: "Quad NAND Schmitt (74HC132)",
+        type: "ic-74hc132",
+        category: "devices",
+        icon: "ri-mind-map",
+        width: 120,
+        height: 48,
+        desc: "DIP-14 integrated circuit with Schmitt-trigger inputs for noisy signal cleanup",
+        tag: "Logic"
+    },
+    {
+        id: "ic-l293d",
+        name: "Motor Driver (L293D)",
+        type: "ic-l293d",
+        category: "devices",
+        icon: "ri-cpu-line",
+        width: 136,
+        height: 52,
+        desc: "DIP-16 dual H-bridge motor driver IC capable of driving two DC motors or one stepper",
+        tag: "Driver"
+    },
 
     // ==========================================
     // STARTERS (TINKERCAD GRADE PRE-BUILT CIRCUITS)

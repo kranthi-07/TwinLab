@@ -151,6 +151,20 @@
 }
 
 /* Clean Studio Project Name Pill (STRICTLY NO BORDER, ONLY SUBTLE BACKGROUND) */
+.project-name-display-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.topbar-cloud-indicator {
+    font-size: 11px;
+    color: #38bdf8;
+    display: inline-flex;
+    align-items: center;
+    opacity: 0.85;
+}
+
 .project-name-pill {
     display: inline-flex;
     align-items: center;
@@ -224,7 +238,21 @@
     color: #0f172a;
 }
 
-[data-theme="light"] .project-name-pill {
+[data-theme="light"] .project-name-display-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.topbar-cloud-indicator {
+    font-size: 11px;
+    color: #38bdf8;
+    display: inline-flex;
+    align-items: center;
+    opacity: 0.85;
+}
+
+.project-name-pill {
     background: transparent;
     border: none !important;
 }
@@ -1828,4 +1856,89 @@
 @keyframes simDotPulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* ============================================================
+   AA / AAA BATTERY & LCD INSPECTOR CONTROLS
+============================================================ */
+.inspector-aa-controls,
+.inspector-lcd-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cells-segmented-picker {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+}
+
+.cell-seg-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.cell-seg-btn:hover {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.cell-seg-btn.active {
+    background: var(--project-accent, #FF8A00);
+    color: #0f172a;
+    font-weight: 700;
+    box-shadow: 0 1px 4px rgba(255, 138, 0, 0.35);
+}
+
+.battery-switch-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+}
+
+.battery-switch-toggle-btn.is-on {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #34d399;
+}
+
+.battery-switch-toggle-btn.is-off {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #f87171;
+}
+
+.battery-switch-toggle-btn .switch-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+}
+
+.battery-switch-toggle-btn.is-on .switch-status-dot {
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+}
+
+.battery-switch-toggle-btn.is-off .switch-status-dot {
+    background: #ef4444;
 }

@@ -2,7 +2,7 @@
 // Supports Arduino Uno R3 (ATmega328P) & ESP32 DevKit V1 (ESP-WROOM-32)
 
 export const DEFAULT_SKETCHES = {
-    blink: `// TwinLab Arduino / ESP32 Blink Sketch
+    blink: `// TwinLab X Arduino / ESP32 Blink Sketch
 // Onboard LED is Pin 13 (Arduino Uno) or Pin 2 (ESP32 DevKit)
 
 void setup() {
@@ -21,7 +21,7 @@ void loop() {
   delay(1000);
 }`,
 
-    strobe: `// TwinLab High-Speed Strobe Test (100ms)
+    strobe: `// TwinLab X High-Speed Strobe Test (100ms)
 // Fast switching test for visual responsiveness
 
 void setup() {
@@ -37,7 +37,7 @@ void loop() {
   delay(100);
 }`,
 
-    counter: `// TwinLab Serial Telemetry Counter
+    counter: `// TwinLab X Serial Telemetry Counter
 // Prints telemetry counter to the Serial Monitor every 500ms
 
 int counter = 0;
@@ -57,7 +57,7 @@ void loop() {
   delay(500);
 }`,
 
-    dual_pins: `// TwinLab Dual Alternating Outputs (Pins 13 & 12)
+    dual_pins: `// TwinLab X Dual Alternating Outputs (Pins 13 & 12)
 // Useful for flip-flop LED indicators and relay switching
 
 void setup() {
@@ -79,7 +79,7 @@ void loop() {
   delay(800);
 }`,
 
-    analog_serial: `// TwinLab Analog Voltage Monitor (Pin A0)
+    analog_serial: `// TwinLab X Analog Voltage Monitor (Pin A0)
 // Reads sensor voltage from potentiometer / divider
 
 void setup() {

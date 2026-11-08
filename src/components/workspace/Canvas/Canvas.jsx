@@ -45,6 +45,10 @@ function Canvas({
     const [isDragOver, setIsDragOver] = useState(false);
     const [activeWire, setActiveWire] = useState(null);
     const [isMoveAllActive, setIsMoveAllActive] = useState(false);
+    const isMoveAllActiveRef = useRef(false);
+    useEffect(() => {
+        isMoveAllActiveRef.current = isMoveAllActive;
+    }, [isMoveAllActive]);
     const [placingPos, setPlacingPos] = useState(null);
     const [placingRotation, setPlacingRotation] = useState(0);
 
@@ -161,8 +165,23 @@ function Canvas({
             e.stopPropagation();
 
             const { worldX, worldY } = screenToWorld(e.clientX, e.clientY);
-            const targetX = snapToGrid(worldX);
-            const targetY = snapToGrid(worldY);
+            let targetX = snapToGrid(worldX);
+            let targetY = snapToGrid(worldY);
+
+            // Smart Breadboard Center Trough Snapping for DIP ICs (Row e at Y=128, Row f at Y=160)
+            if (placingComponent.type?.startsWith("ic-")) {
+                const targetBB = componentsRef.current?.find(b => 
+                    b.type?.startsWith("breadboard") &&
+                    targetX >= b.x - 32 && targetX <= b.x + (b.width || 560) + 32 &&
+                    targetY >= b.y + 48 && targetY <= b.y + (b.height || 288) - 48
+                );
+                if (targetBB) {
+                    const rowEY = targetBB.y + 128;
+                    if (Math.abs(targetY - rowEY) <= 40) {
+                        targetY = rowEY;
+                    }
+                }
+            }
 
             onCommitPlacingComponent && onCommitPlacingComponent({
                 ...placingComponent,
@@ -259,6 +278,101 @@ function Canvas({
             // Buzzer (0,32, 16,32)
             else if (c.type === "buzzer") {
                 [toWorld(0, 32), toWorld(16, 32)].forEach(pt => {
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // AA & AAA Battery Packs (Negative 16,-12 and Positive posLeadX,-12)
+            else if (c.type === "battery-aa" || c.type === "battery-aaa") {
+                const cellCount = c.cells || (c.voltage === 1.5 ? 1 : c.voltage === 6 ? 4 : 2);
+                const totalWidth = cellCount === 1 ? 52 : cellCount === 4 ? 132 : 76;
+                const posLeadX = totalWidth - 16;
+                [toWorld(16, -12), toWorld(posLeadX, -12)].forEach(pt => {
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // Coin Cell Battery CR2032 3V (Negative 16,32 and Positive 48,32)
+            else if (c.type === "battery-coin") {
+                [toWorld(16, 32), toWorld(48, 32)].forEach(pt => {
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // 16x2 Character LCD (I2C: GND 16,-10, VCC 32,-10, SDA 48,-10, SCL 64,-10)
+            else if (c.type === "lcd-1602") {
+                [toWorld(16, -10), toWorld(32, -10), toWorld(48, -10), toWorld(64, -10)].forEach(pt => {
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // SPST Toggle Switch (0,16 and 32,16)
+            else if (c.type === "switch-spst") {
+                [toWorld(0, 16), toWorld(32, 16)].forEach(pt => {
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // Photoresistor / LDR (0,16 and 32,16)
+            else if (c.type === "photoresistor") {
+                [toWorld(0, 16), toWorld(32, 16)].forEach(pt => {
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // NPN Transistor 2N2222 (Collector: 0,16, Base: 16,16, Emitter: 32,16)
+            else if (c.type === "transistor" || c.type === "transistor-npn") {
+                [toWorld(0, 16), toWorld(16, 16), toWorld(32, 16)].forEach(pt => {
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // Electrolytic Capacitor (Anode: 0,16, Cathode: 16,16)
+            else if (c.type === "capacitor-electrolytic") {
+                [toWorld(0, 16), toWorld(16, 16)].forEach(pt => {
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // DC Hobby Motor (Pos: 0,48, Neg: 48,48)
+            else if (c.type === "motor-dc") {
+                [toWorld(0, 48), toWorld(48, 48)].forEach(pt => {
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // Micro Servo SG90 (GND: 0,48, 5V: 16,48, PWM: 32,48)
+            else if (c.type === "servo-sg90") {
+                [toWorld(0, 48), toWorld(16, 48), toWorld(32, 48)].forEach(pt => {
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // HC-SR04 Ultrasonic Distance Sensor (VCC: 0,48, Trig: 16,48, Echo: 32,48, GND: 48,48)
+            else if (c.type === "sensor-ultrasonic") {
+                [toWorld(0, 48), toWorld(16, 48), toWorld(32, 48), toWorld(48, 48)].forEach(pt => {
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // PIR Motion Sensor (VCC: 0,48, OUT: 16,48, GND: 32,48)
+            else if (c.type === "sensor-pir") {
+                [toWorld(0, 48), toWorld(16, 48), toWorld(32, 48)].forEach(pt => {
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // DIP-14 Logic Gates (Top: 0 to 96 at Y=0, Bottom: 0 to 96 at Y=32)
+            else if (c.type?.startsWith("ic-")) {
+                const dipCols = [0, 16, 32, 48, 64, 80, 96];
+                [...dipCols.map(px => toWorld(px, 0)), ...dipCols.map(px => toWorld(px, 32))].forEach(pt => {
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // 20x4 Character LCD (I2C: GND 16,-10, VCC 32,-10, SDA 48,-10, SCL 64,-10)
+            else if (c.type === "lcd-2004") {
+                [toWorld(16, -10), toWorld(32, -10), toWorld(48, -10), toWorld(64, -10)].forEach(pt => {
                     const d = Math.hypot(wx - pt.x, wy - pt.y);
                     if (d < minD) { minD = d; bestTarget = pt; }
                 });
@@ -657,7 +771,22 @@ function Canvas({
                 }
             } else {
                 // Single component drag
-                onUpdateComponent(dragData.id, { x: Math.max(0, snappedX), y: Math.max(0, snappedY) });
+                let finalCompY = snappedY;
+                const comp = componentsRef.current?.find(c => c.id === dragData.id);
+                if (comp?.type?.startsWith("ic-")) {
+                    const targetBB = componentsRef.current?.find(b => 
+                        b.type?.startsWith("breadboard") &&
+                        snappedX >= b.x - 32 && snappedX <= b.x + (b.width || 560) + 32 &&
+                        snappedY >= b.y + 48 && snappedY <= b.y + (b.height || 288) - 48
+                    );
+                    if (targetBB) {
+                        const rowEY = targetBB.y + 128;
+                        if (Math.abs(snappedY - rowEY) <= 40) {
+                            finalCompY = rowEY;
+                        }
+                    }
+                }
+                onUpdateComponent(dragData.id, { x: Math.max(0, snappedX), y: Math.max(0, finalCompY) });
             }
 
             onNotifyChange && onNotifyChange();
@@ -694,9 +823,11 @@ function Canvas({
                 }
             }
             draggingRef.current = null;
-            doubleTapDragRef.current = null;
             draggingWirePointRef.current = null;
-            setIsMoveAllActive(false);
+            if (!isMoveAllActiveRef.current) {
+                doubleTapDragRef.current = null;
+                setIsMoveAllActive(false);
+            }
         };
 
         window.addEventListener("mousemove", handleMouseMove, { passive: true });
@@ -781,9 +912,8 @@ function Canvas({
                              e.target.classList.contains("canvas-viewport-layer");
 
         if (isBackground) {
-            const now = Date.now();
-            if (now - lastEmptyClickTimeRef.current < 360 && components.length > 0) {
-                // DOUBLE TAP / DOUBLE CLICK DETECTED ON EMPTY SPACE: Move all components & wires together
+            if (isMoveAllActiveRef.current && components.length > 0) {
+                // If Move All is already active, arm dragging immediately
                 doubleTapDragRef.current = {
                     initialMouseX: e.clientX,
                     initialMouseY: e.clientY,
@@ -793,7 +923,23 @@ function Canvas({
                         points: w.points ? w.points.map(p => ({ ...p })) : []
                     }))
                 };
+                return;
+            }
+
+            const now = Date.now();
+            if (now - lastEmptyClickTimeRef.current < 450 && components.length > 0) {
+                // DOUBLE TAP / DOUBLE CLICK DETECTED ON EMPTY SPACE (2 clicks!): Move all components & wires together
+                isMoveAllActiveRef.current = true;
                 setIsMoveAllActive(true);
+                doubleTapDragRef.current = {
+                    initialMouseX: e.clientX,
+                    initialMouseY: e.clientY,
+                    initialComps: components.map(c => ({ ...c })),
+                    initialWires: wires.map(w => ({
+                        ...w,
+                        points: w.points ? w.points.map(p => ({ ...p })) : []
+                    }))
+                };
             }
             lastEmptyClickTimeRef.current = now;
         }
@@ -845,6 +991,12 @@ function Canvas({
                              e.target.classList.contains("canvas-viewport-layer");
 
         if (isBackground) {
+            // A click without drag exits Move All mode
+            if (isMoveAllActiveRef.current && (!doubleTapDragRef.current || Math.hypot(e.clientX - doubleTapDragRef.current.initialMouseX, e.clientY - doubleTapDragRef.current.initialMouseY) < 4)) {
+                isMoveAllActiveRef.current = false;
+                setIsMoveAllActive(false);
+                doubleTapDragRef.current = null;
+            }
             onSelectComponent(null);
             onSelectWire(null);
             if (!activeWire && isWireMode) {
@@ -853,11 +1005,36 @@ function Canvas({
         }
     };
 
-    // Canvas Double Click: Wires only terminate on connection points (holes, terminals, pins), never on empty space
+    // Canvas Double Click: Toggle Move All mode in 2 clicks on empty space
     const handleCanvasDoubleClick = (e) => {
         e.stopPropagation();
+        const isBackground = e.target === canvasRef.current || 
+                             e.target.classList.contains("dot-grid") || 
+                             e.target.classList.contains("canvas-viewport-layer");
+
+        if (isBackground && components.length > 0) {
+            // Instant 2-click toggle for Move All
+            const nextMode = !isMoveAllActiveRef.current;
+            isMoveAllActiveRef.current = nextMode;
+            setIsMoveAllActive(nextMode);
+            if (nextMode) {
+                doubleTapDragRef.current = {
+                    initialMouseX: e.clientX,
+                    initialMouseY: e.clientY,
+                    initialComps: components.map(c => ({ ...c })),
+                    initialWires: wires.map(w => ({
+                        ...w,
+                        points: w.points ? w.points.map(p => ({ ...p })) : []
+                    }))
+                };
+            }
+            return;
+        }
+
         draggingRef.current = null;
-        doubleTapDragRef.current = null;
+        if (!isMoveAllActiveRef.current) {
+            doubleTapDragRef.current = null;
+        }
         onSelectComponent && onSelectComponent(null);
         onSelectWire && onSelectWire(null);
     };
@@ -889,6 +1066,7 @@ function Canvas({
 
             // For small components: detect if dropped on an existing breadboard
             let mountedBoardId = null;
+            let dropFinalY = snappedY;
             if (!isBreadboard) {
                 const targetBB = (componentsRef.current || components).find(c => 
                     c.type?.startsWith("breadboard") &&
@@ -897,6 +1075,12 @@ function Canvas({
                 );
                 if (targetBB) {
                     mountedBoardId = targetBB.id;
+                    if (componentData.type?.startsWith("ic-")) {
+                        const rowEY = targetBB.y + 128;
+                        if (Math.abs(snappedY - rowEY) <= 40) {
+                            dropFinalY = rowEY;
+                        }
+                    }
                 }
             }
 
@@ -907,7 +1091,7 @@ function Canvas({
                 name: componentData.name,
                 color: componentData.color,
                 x: snappedX,
-                y: snappedY,
+                y: dropFinalY,
                 rotation: 0,
                 mountedBoardId: mountedBoardId
             };
@@ -1259,15 +1443,25 @@ function Canvas({
                             capacitance={comp.capacitance}
                             wiperValue={comp.wiperValue}
                             switchState={comp.switchState}
+                            isOn={comp.isOn}
+                            cells={comp.cells}
+                            lux={comp.lux}
+                            backlightColor={comp.backlightColor}
+                            lcdTextColor={comp.lcdTextColor}
+                            angle={comp.angle}
+                            distanceCm={comp.distanceCm}
                             onUpdate={(updates) => {
                                 onUpdateComponent(comp.id, updates);
                                 onNotifyChange && onNotifyChange();
                             }}
                             simState={
-                                comp.type === "battery-9v" ? simulationResult?.batteryStates?.[comp.id] :
+                                comp.type?.startsWith("battery") ? simulationResult?.batteryStates?.[comp.id] :
                                 comp.type === "buzzer" ? simulationResult?.buzzerStates?.[comp.id] :
+                                comp.type === "motor-dc" ? simulationResult?.motorStates?.[comp.id] :
+                                comp.type?.startsWith("lcd") ? simulationResult?.lcdStates?.[comp.id] :
                                 simulationResult?.ledStates?.[comp.id]
                             }
+                            isSimulating={isSimulating}
                             isSelected={selectedId === comp.id || selectedId === "all"}
                             isWireMode={isWireMode}
                             activeWire={activeWire}
@@ -1305,7 +1499,10 @@ function Canvas({
                             filter: "drop-shadow(0 0 16px rgba(255, 138, 0, 0.8))"
                         }}
                     >
-                        {["resistor", "led", "battery-9v", "capacitor-ceramic", "button", "pushbutton", "potentiometer", "slide-switch", "switch-spdt", "buzzer"].includes(placingComponent.type) && (
+                        {!placingComponent.type?.startsWith("breadboard") && 
+                         !placingComponent.type?.startsWith("arduino") && 
+                         !placingComponent.type?.startsWith("esp32") && 
+                         placingComponent.type !== "multimeter" && (
                             <SmallComponent
                                 id="placing-ghost-preview"
                                 type={placingComponent.type}
@@ -1316,6 +1513,13 @@ function Canvas({
                                 resistance={placingComponent.resistance}
                                 capacitance={placingComponent.capacitance}
                                 wiperValue={placingComponent.wiperValue}
+                                isOn={placingComponent.isOn}
+                                cells={placingComponent.cells}
+                                lux={placingComponent.lux}
+                                backlightColor={placingComponent.backlightColor}
+                                lcdTextColor={placingComponent.lcdTextColor}
+                                angle={placingComponent.angle}
+                                distanceCm={placingComponent.distanceCm}
                                 x={0}
                                 y={0}
                                 rotation={0}

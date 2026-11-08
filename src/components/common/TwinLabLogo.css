@@ -1,0 +1,76 @@
+.twinlab-brand-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    user-select: none;
+}
+
+.twinlab-logo-mark {
+    flex-shrink: 0;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s ease;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+}
+
+.twinlab-brand-container:hover .twinlab-logo-mark {
+    transform: scale(1.06) rotate(2deg);
+    filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.5)) drop-shadow(0 0 12px rgba(255, 138, 0, 0.5));
+}
+
+.twinlab-brand-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1;
+}
+
+.twinlab-brand-title {
+    display: flex;
+    align-items: baseline;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: var(--text-heading, #ffffff);
+    line-height: 1;
+}
+
+.twinlab-brand-title .brand-twin {
+    color: var(--text-heading, #ffffff);
+}
+
+.twinlab-brand-title .brand-lab {
+    color: #ff8a00;
+}
+
+/* X with NO background color, height matching the brand name */
+.twinlab-brand-title .brand-x {
+    display: inline-block;
+    margin-left: 5px;
+    font-size: 22px;
+    font-weight: 950;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1;
+    background: linear-gradient(135deg, #ffb800 0%, #ff6600 50%, #ff2a00 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    filter: drop-shadow(0 2px 6px rgba(255, 102, 0, 0.45));
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.twinlab-brand-container:hover .brand-x {
+    transform: scale(1.12);
+    filter: drop-shadow(0 0 10px rgba(255, 102, 0, 0.75));
+}
+
+.twinlab-brand-subtitle {
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--text-muted, #7d8b9e);
+    letter-spacing: 0.04em;
+    margin-top: 4px;
+    text-transform: uppercase;
+}

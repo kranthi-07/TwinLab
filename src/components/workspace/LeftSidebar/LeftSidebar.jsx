@@ -1,8 +1,15 @@
 import "./LeftSidebar.css";
 import { useState, useRef, useEffect } from "react";
 import { COMPONENTS_CATALOG } from "../../../data/componentsCatalog";
+import { ComponentArt } from "../../common/ComponentArt";
 
 function ComponentCatalogThumbnail({ component }) {
+    const type = component.type || component.id;
+    const color = component.color || "#ef4444";
+    return <ComponentArt type={type} color={color} className="catalog-svg-art" />;
+}
+
+function OldComponentCatalogThumbnail({ component }) {
     const type = component.type || component.id;
     const color = component.color || "#ef4444";
 
@@ -488,27 +495,33 @@ function LeftSidebar({ onAddComponent }) {
     const tabs = [
         {
             id: "all",
-            title: "All Components",
+            title: "All",
             icon: "ri-apps-2-line",
             color: "#A855F7"
         },
         {
+            id: "basic",
+            title: "Basic",
+            icon: "ri-pulse-line",
+            color: "#3B82F6"
+        },
+        {
             id: "boards",
-            title: "Boards & ICs",
+            title: "Boards",
             icon: "ri-cpu-line",
             color: "#FF8A00"
         },
         {
-            id: "devices",
-            title: "Sensors & Modules",
-            icon: "ri-hard-drive-3-line",
-            color: "#00D28F"
+            id: "logic",
+            title: "Logic & ICs",
+            icon: "ri-mind-map",
+            color: "#EC4899"
         },
         {
-            id: "favorites",
-            title: "Favorites",
-            icon: "ri-star-line",
-            color: "#FFD54A"
+            id: "devices",
+            title: "Sensors & Motors",
+            icon: "ri-radar-line",
+            color: "#10B981"
         }
     ];
 
@@ -537,7 +550,24 @@ function LeftSidebar({ onAddComponent }) {
         if (EXCLUDED_TYPES.has(comp.type) || EXCLUDED_TYPES.has(comp.id)) {
             return false;
         }
-        const matchesTab = activeTab === "all" ? true : comp.category === activeTab;
+
+        let matchesTab = true;
+        if (activeTab === "all") {
+            matchesTab = true;
+        } else if (activeTab === "basic") {
+            matchesTab = ["resistor", "capacitor", "led", "button", "push", "switch", "potentiometer", "battery"].some(t => comp.type?.includes(t)) || comp.category === "basic";
+        } else if (activeTab === "boards") {
+            matchesTab = comp.category === "boards" || Boolean(comp.isStarter || comp.category === "starters");
+        } else if (activeTab === "logic") {
+            matchesTab = comp.tag === "Logic" || comp.tag === "Driver" || comp.type?.startsWith("ic-") || comp.type?.includes("transistor") || comp.type?.includes("mosfet") || comp.category === "logic";
+        } else if (activeTab === "devices") {
+            matchesTab = comp.tag === "Sensor" || comp.tag === "Motor" || comp.tag === "Output" || 
+                         comp.type?.includes("sensor") || comp.type?.startsWith("lcd") || comp.type?.includes("motor") || 
+                         comp.type?.includes("servo") || comp.type === "buzzer" || comp.type === "multimeter" || comp.type === "photoresistor";
+        } else {
+            matchesTab = comp.category === activeTab;
+        }
+
         const q = searchQuery.toLowerCase().trim();
         const matchesSearch = !q || 
                               comp.name.toLowerCase().includes(q) ||
@@ -660,6 +690,7 @@ function LeftSidebar({ onAddComponent }) {
                                 className={`component-card card-${viewMode}`}
                                 draggable={true}
                                 onDragStart={(e) => handleDragStart(e, component)}
+                                onDragEnd={() => setOpen(false)}
                                 onClick={() => {
                                     onAddComponent && onAddComponent(component);
                                     setOpen(false);

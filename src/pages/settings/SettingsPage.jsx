@@ -83,7 +83,7 @@ function SettingsPage() {
                     <i className="ri-settings-3-line"></i>
                     <span>System Preferences</span>
                 </div>
-                <h1>TwinLab Studio Settings</h1>
+                <h1>TwinLab X Studio Settings</h1>
                 <p>Customize your digital twin environment, visual presentation, simulation tolerances, and storage preferences.</p>
                 {savedNotice && (
                     <div className="settings-toast-pill">

@@ -6,14 +6,39 @@ import { useTheme } from "../../../context/ThemeContext";
 const COMPONENT_META = {
     "resistor": { label: "Resistor", icon: "ri-pulse-line" },
     "led": { label: "LED", icon: "ri-lightbulb-line" },
-    "battery-9v": { label: "Battery", icon: "ri-battery-charge-line" },
+    "battery-9v": { label: "9V Battery", icon: "ri-battery-charge-line" },
+    "battery-aa": { label: "AA Battery Pack", icon: "ri-battery-2-charge-line" },
+    "battery-aaa": { label: "AAA Battery Pack", icon: "ri-battery-charge-line" },
+    "battery-coin": { label: "Coin Cell (3V)", icon: "ri-copper-coin-line" },
     "capacitor-ceramic": { label: "Capacitor", icon: "ri-contrast-2-line" },
+    "capacitor-electrolytic": { label: "Electrolytic Cap", icon: "ri-contrast-2-fill" },
     "potentiometer": { label: "Potentiometer", icon: "ri-equalizer-line" },
-    "buzzer": { label: "Buzzer", icon: "ri-volume-up-line" },
+    "buzzer": { label: "Piezo Buzzer", icon: "ri-volume-up-line" },
     "button": { label: "Pushbutton", icon: "ri-radio-button-line" },
     "pushbutton": { label: "Pushbutton", icon: "ri-radio-button-line" },
     "switch-spdt": { label: "Slide Switch", icon: "ri-toggle-line" },
     "slide-switch": { label: "Slide Switch", icon: "ri-toggle-line" },
+    "switch-spst": { label: "Toggle Switch", icon: "ri-toggle-line" },
+    "lcd-1602": { label: "16x2 Character LCD", icon: "ri-tv-line" },
+    "lcd-2004": { label: "20x4 Character LCD", icon: "ri-tv-line" },
+    "motor-dc": { label: "DC Motor", icon: "ri-refresh-line" },
+    "servo-sg90": { label: "Micro Servo SG90", icon: "ri-settings-4-line" },
+    "transistor": { label: "NPN Transistor (2N2222)", icon: "ri-git-commit-line" },
+    "transistor-npn": { label: "NPN Transistor (2N2222)", icon: "ri-git-commit-line" },
+    "transistor-pnp": { label: "PNP Transistor (2N3906)", icon: "ri-git-commit-line" },
+    "mosfet-n": { label: "N-MOSFET (IRF540N)", icon: "ri-flashlight-line" },
+    "sensor-ultrasonic": { label: "Ultrasonic (HC-SR04)", icon: "ri-radar-line" },
+    "sensor-pir": { label: "PIR Motion Sensor", icon: "ri-user-voice-line" },
+    "sensor-tmp36": { label: "TMP36 Temp Sensor", icon: "ri-temp-hot-line" },
+    "photoresistor": { label: "Photoresistor (LDR)", icon: "ri-sun-line" },
+    "ic-74hc08": { label: "74HC08 Quad AND", icon: "ri-mind-map" },
+    "ic-74hc00": { label: "74HC00 Quad NAND", icon: "ri-mind-map" },
+    "ic-74hc32": { label: "74HC32 Quad OR", icon: "ri-mind-map" },
+    "ic-74hc04": { label: "74HC04 Hex Inverter", icon: "ri-mind-map" },
+    "ic-74hc02": { label: "74HC02 Quad NOR", icon: "ri-mind-map" },
+    "ic-74hc86": { label: "74HC86 Quad XOR", icon: "ri-mind-map" },
+    "ic-74hc132": { label: "74HC132 NAND Schmitt", icon: "ri-mind-map" },
+    "ic-l293d": { label: "L293D Motor Driver", icon: "ri-cpu-line" },
     "multimeter": { label: "Multimeter", icon: "ri-dashboard-3-line" },
     "breadboard": { label: "Breadboard (Half)", icon: "ri-layout-grid-line" },
     "breadboard-half": { label: "Breadboard (Half)", icon: "ri-layout-grid-line" },
@@ -305,6 +330,254 @@ function BatteryValueControl({ component, onUpdate }) {
     );
 }
 
+function AaBatteryValueControl({ component, onUpdate }) {
+    const isAAA = component.type === "battery-aaa";
+    const cellCount = component.cells || (component.voltage === 1.5 ? 1 : component.voltage === 6 ? 4 : component.voltage === 4.5 ? 3 : 2);
+    const hasSwitch = component.switchState !== undefined ? Boolean(component.switchState) : (component.isOn !== undefined ? Boolean(component.isOn) : true);
+    const caseColor = component.color || "#18181b";
+
+    return (
+        <div className="inspector-aa-controls">
+            <div className="inspector-field-group">
+                <span className="studio-control-label">Cells</span>
+                <div className="cells-segmented-picker">
+                    {[1, 2, 3, 4].map((count) => (
+                        <button
+                            key={count}
+                            type="button"
+                            className={`cell-seg-btn ${cellCount === count ? "active" : ""}`}
+                            onClick={() => {
+                                const volts = count * 1.5;
+                                onUpdate && onUpdate(component.id, {
+                                    cells: count,
+                                    voltage: volts,
+                                    name: `${count}× ${isAAA ? "AAA" : "AA"} Pack (${volts}V)`
+                                });
+                            }}
+                        >
+                            {count} {count === 1 ? "Cell" : "Cells"} ({count * 1.5}V)
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="inspector-field-group">
+                <span className="studio-control-label">Cover Switch</span>
+                <button
+                    type="button"
+                    className={`battery-switch-toggle-btn ${hasSwitch ? "is-on" : "is-off"}`}
+                    onClick={() => {
+                        const nextState = !hasSwitch;
+                        onUpdate && onUpdate(component.id, {
+                            switchState: nextState,
+                            isOn: nextState
+                        });
+                    }}
+                >
+                    <span className="switch-status-dot"></span>
+                    <span>{hasSwitch ? "ON (Supplying Power)" : "OFF (Disconnected)"}</span>
+                </button>
+            </div>
+
+            <div className="inspector-field-group">
+                <span className="studio-control-label">Case Color</span>
+                <div className="wire-color-swatches compact-swatches">
+                    {[
+                        { name: "Matte Black", color: "#18181b" },
+                        { name: "Duracell Gold", color: "#b45309" },
+                        { name: "Industrial Slate", color: "#334155" },
+                        { name: "Energy Cyan", color: "#0284c7" },
+                        { name: "Safety Orange", color: "#ea580c" }
+                    ].map((c) => (
+                        <button
+                            key={c.name}
+                            type="button"
+                            className={`color-swatch-btn ${caseColor === c.color ? "active" : ""}`}
+                            style={{ "--swatch-color": c.color }}
+                            onClick={() => onUpdate && onUpdate(component.id, { color: c.color })}
+                            title={c.name}
+                        />
+                    ))}
+                </div>
+            </div>
+            <span className="specs-subtext">{(cellCount * 1.5).toFixed(1)}V DC Nominal</span>
+        </div>
+    );
+}
+
+function LcdValueControl({ component, onUpdate }) {
+    const is2004 = component.type === "lcd-2004" || Boolean(component.is2004) || component.size === "20x4";
+    const backlightColor = component.backlightColor || "#0284c7";
+
+    const LCD_BACKLIGHTS = [
+        { name: "Classic Blue", color: "#0284c7", textColor: "#ffffff" },
+        { name: "Neon Green", color: "#059669", textColor: "#064e3b" },
+        { name: "Retro Amber", color: "#d97706", textColor: "#451a03" },
+        { name: "Ice Cyan", color: "#06b6d4", textColor: "#083344" },
+        { name: "OLED Obsidian", color: "#18181b", textColor: "#f8fafc" }
+    ];
+
+    return (
+        <div className="inspector-lcd-controls">
+            <div className="inspector-field-group">
+                <span className="studio-control-label">Size</span>
+                <div className="cells-segmented-picker">
+                    <button
+                        type="button"
+                        className={`cell-seg-btn ${!is2004 ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { type: "lcd-1602", is2004: false, size: "16x2", name: "16x2 Character LCD" })}
+                    >
+                        16x2
+                    </button>
+                    <button
+                        type="button"
+                        className={`cell-seg-btn ${is2004 ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { type: "lcd-2004", is2004: true, size: "20x4", name: "20x4 Character LCD" })}
+                    >
+                        20x4 Large
+                    </button>
+                </div>
+            </div>
+
+            <div className="inspector-field-group">
+                <span className="studio-control-label">Backlight</span>
+                <div className="wire-color-swatches compact-swatches">
+                    {LCD_BACKLIGHTS.map((bl) => (
+                        <button
+                            key={bl.name}
+                            type="button"
+                            className={`color-swatch-btn ${backlightColor === bl.color ? "active" : ""}`}
+                            style={{ "--swatch-color": bl.color }}
+                            onClick={() => onUpdate && onUpdate(component.id, { backlightColor: bl.color, lcdTextColor: bl.textColor })}
+                            title={bl.name}
+                        />
+                    ))}
+                </div>
+            </div>
+            <span className="specs-subtext">HD44780 Controller • I2C 0x27</span>
+        </div>
+    );
+}
+
+function UltrasonicValueControl({ component, onUpdate }) {
+    const dist = component.distanceCm != null ? component.distanceCm : 25;
+    return (
+        <div className="inspector-ultrasonic-controls" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="inspector-field-group">
+                <span className="studio-control-label">Distance</span>
+                <div className="slider-with-val" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input 
+                        type="range"
+                        min="2"
+                        max="400"
+                        value={dist}
+                        onChange={(e) => onUpdate && onUpdate(component.id, { distanceCm: Number(e.target.value) })}
+                        className="studio-manual-number-input"
+                    />
+                    <span className="specs-subtext" style={{ minWidth: 42, fontWeight: 700 }}>{dist} cm</span>
+                </div>
+            </div>
+            <div className="cells-segmented-picker">
+                {[10, 25, 50, 100, 200].map(cm => (
+                    <button
+                        key={cm}
+                        type="button"
+                        className={`cell-seg-btn ${dist === cm ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { distanceCm: cm })}
+                    >
+                        {cm}cm
+                    </button>
+                ))}
+            </div>
+            <span className="specs-subtext">2cm - 400cm • 40kHz Sonar</span>
+        </div>
+    );
+}
+
+function PirValueControl({ component, onUpdate }) {
+    const isMotion = Boolean(component.motionActive);
+    return (
+        <div className="inspector-pir-controls" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="inspector-field-group">
+                <span className="studio-control-label">Sensor State</span>
+                <button
+                    type="button"
+                    className={`cell-seg-btn ${isMotion ? "active" : ""}`}
+                    style={{
+                        background: isMotion ? "#22c55e" : "rgba(255,255,255,0.08)",
+                        color: isMotion ? "#000" : "#fff",
+                        fontWeight: 700,
+                        padding: "4px 12px",
+                        borderRadius: 6
+                    }}
+                    onClick={() => onUpdate && onUpdate(component.id, { motionActive: !isMotion })}
+                >
+                    {isMotion ? "Motion Detected (HIGH)" : "Simulate Motion (LOW)"}
+                </button>
+            </div>
+            <span className="specs-subtext">HC-SR501 • 120° Pyroelectric Dome</span>
+        </div>
+    );
+}
+
+function ServoValueControl({ component, onUpdate }) {
+    const curAngle = component.angle != null ? component.angle : 90;
+    return (
+        <div className="inspector-servo-controls" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="inspector-field-group">
+                <span className="studio-control-label">Horn Angle</span>
+                <div className="slider-with-val" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input 
+                        type="range" 
+                        min="0" 
+                        max="180" 
+                        value={curAngle} 
+                        onChange={(e) => onUpdate && onUpdate(component.id, { angle: Number(e.target.value) })}
+                        className="studio-manual-number-input"
+                    />
+                    <span className="specs-subtext" style={{ minWidth: 36, fontWeight: 700 }}>{curAngle}°</span>
+                </div>
+            </div>
+            <div className="cells-segmented-picker">
+                {[0, 45, 90, 135, 180].map(a => (
+                    <button
+                        key={a}
+                        type="button"
+                        className={`cell-seg-btn ${curAngle === a ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { angle: a })}
+                    >
+                        {a}°
+                    </button>
+                ))}
+            </div>
+            <span className="specs-subtext">SG90 9g • 4.8V - 6V</span>
+        </div>
+    );
+}
+
+function MotorValueControl({ component, onUpdate }) {
+    const speed = component.speed != null ? component.speed : 100;
+    return (
+        <div className="inspector-motor-controls" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className="inspector-field-group">
+                <span className="studio-control-label">Speed</span>
+                <div className="slider-with-val" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input 
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={speed}
+                        onChange={(e) => onUpdate && onUpdate(component.id, { speed: Number(e.target.value) })}
+                        className="studio-manual-number-input"
+                    />
+                    <span className="specs-subtext" style={{ minWidth: 36, fontWeight: 700 }}>{speed}%</span>
+                </div>
+            </div>
+            <span className="specs-subtext">3V - 12V DC Hobby Motor with Propeller</span>
+        </div>
+    );
+}
+
 function PotentiometerValueControl({ component, onUpdate }) {
     const rawR = component.resistance != null ? Number(component.resistance) : 10000;
     const [unit, setUnit] = useState(rawR >= 1e6 ? "MΩ" : rawR >= 1e3 ? "kΩ" : "Ω");
@@ -459,15 +732,7 @@ function TopFloatingBar({
     }, []);
 
     // Determine what Contextual Inspector bar should show (Mutually exclusive: component OR wire)
-    const showInspector = selectedComponent 
-        ? [
-            "resistor", "led", "battery-9v", "battery-aa", "battery-aaa", "capacitor-ceramic", 
-            "potentiometer", "buzzer", "button", "pushbutton", 
-            "switch-spdt", "slide-switch", "switch-spst", "lcd-1602", 
-            "arduino-uno", "arduino-mega", "arduino-nano", "esp32", "esp32-devkit", "esp32-s3",
-            "breadboard", "breadboard-half", "breadboard-full", "breadboard-mini"
-          ].includes(selectedComponent.type) || selectedComponent.type?.startsWith("breadboard") || selectedComponent.type?.startsWith("arduino") || selectedComponent.type?.startsWith("esp32")
-        : (isWireMode || !!selectedWire);
+    const showInspector = Boolean(selectedComponent || isWireMode || selectedWire);
 
     return (
         <header className="top-floating-bar-wrapper" ref={barWrapperRef}>
@@ -530,12 +795,17 @@ function TopFloatingBar({
                                 style={{ width: `${Math.max(65, Math.min(180, (nameInputValue || "").length * 8.5 + 4))}px` }}
                             />
                         ) : (
-                            <span 
-                                className="project-name-text"
-                                title="Click to rename project"
-                            >
-                                {projectName || "Project - 1"}
-                            </span>
+                            <div className="project-name-display-row">
+                                <span 
+                                    className="project-name-text"
+                                    title="Click to rename project"
+                                >
+                                    {projectName || "Project - 1"}
+                                </span>
+                                <span className="topbar-cloud-indicator" title="Synced with TwinLab Cloud Vault">
+                                    <i className="ri-cloud-line" />
+                                </span>
+                            </div>
                         )}
                     </div>
 
@@ -1018,7 +1288,7 @@ function TopFloatingBar({
             <AnimatePresence mode="wait">
                 {showInspector && (
                     <motion.div 
-                        key={selectedComponent?.id ? `${selectedComponent.type}-${selectedComponent.id}` : (isWireMode ? "wire-mode" : "wire-sel")}
+                        key={selectedComponent?.id ? `comp-${selectedComponent.id}` : (isWireMode ? "wire-mode" : "wire-sel")}
                         className="context-property-bar compact-two-row-bar"
                         initial={{ opacity: 0, y: -6, scale: 0.97 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -1115,12 +1385,84 @@ function TopFloatingBar({
                                         />
                                     )}
 
-                                    {/* Battery */}
+                                    {/* 9V Battery */}
                                     {selectedComponent.type === "battery-9v" && (
                                         <BatteryValueControl 
                                             component={selectedComponent} 
                                             onUpdate={onUpdateComponent} 
                                         />
+                                    )}
+
+                                    {/* AA & AAA Battery Pack */}
+                                    {(selectedComponent.type === "battery-aa" || selectedComponent.type === "battery-aaa") && (
+                                        <AaBatteryValueControl 
+                                            component={selectedComponent} 
+                                            onUpdate={onUpdateComponent} 
+                                        />
+                                    )}
+
+                                    {/* Coin Cell (CR2032) */}
+                                    {selectedComponent.type === "battery-coin" && (
+                                        <div className="inspector-simple-badge-row">
+                                            <i className="ri-copper-coin-line"></i>
+                                            <span>3.0V Lithium Coin Cell (CR2032)</span>
+                                        </div>
+                                    )}
+
+                                    {/* LCD Screen (16x2 and 20x4) */}
+                                    {(selectedComponent.type === "lcd-1602" || selectedComponent.type === "lcd-2004") && (
+                                        <LcdValueControl 
+                                            component={selectedComponent} 
+                                            onUpdate={onUpdateComponent} 
+                                        />
+                                    )}
+
+                                    {/* DC Motor */}
+                                    {selectedComponent.type === "motor-dc" && (
+                                        <MotorValueControl 
+                                            component={selectedComponent}
+                                            onUpdate={onUpdateComponent}
+                                        />
+                                    )}
+
+                                    {/* Micro Servo SG90 */}
+                                    {selectedComponent.type === "servo-sg90" && (
+                                        <ServoValueControl 
+                                            component={selectedComponent}
+                                            onUpdate={onUpdateComponent}
+                                        />
+                                    )}
+
+                                    {/* Ultrasonic Distance Sensor HC-SR04 */}
+                                    {(selectedComponent.type === "sensor-ultrasonic" || selectedComponent.type?.includes("ultrasonic")) && (
+                                        <UltrasonicValueControl 
+                                            component={selectedComponent}
+                                            onUpdate={onUpdateComponent}
+                                        />
+                                    )}
+
+                                    {/* PIR Motion Sensor */}
+                                    {(selectedComponent.type === "sensor-pir" || selectedComponent.type?.includes("pir")) && (
+                                        <PirValueControl 
+                                            component={selectedComponent}
+                                            onUpdate={onUpdateComponent}
+                                        />
+                                    )}
+
+                                    {/* Transistors & MOSFETs */}
+                                    {(selectedComponent.type === "transistor" || selectedComponent.type === "transistor-npn" || selectedComponent.type === "transistor-pnp" || selectedComponent.type === "mosfet-n") && (
+                                        <div className="inspector-simple-badge-row">
+                                            <i className="ri-git-commit-line"></i>
+                                            <span>{selectedComponent.type === "transistor-pnp" ? "PNP (2N3906) • E-B-C" : selectedComponent.type === "mosfet-n" ? "N-MOSFET (IRF540N) • G-D-S" : "NPN (2N2222) • C-B-E"}</span>
+                                        </div>
+                                    )}
+
+                                    {/* Logic Gates (DIP-14) */}
+                                    {selectedComponent.type?.startsWith("ic-74hc") && (
+                                        <div className="inspector-simple-badge-row">
+                                            <i className="ri-mind-map"></i>
+                                            <span>74HC High-Speed CMOS Logic • 2V-6V VCC</span>
+                                        </div>
                                     )}
 
                                     {/* LED */}
