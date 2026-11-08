@@ -376,7 +376,7 @@
         radial-gradient(circle, rgba(236, 72, 153, 0.25) 1.6px, transparent 1.6px);
 }
 
-[data-theme="cyberpunk"] .top-floating-bar,
+[data-theme="cyberpunk"] .topbar-section,
 [data-theme="cyberpunk"] .context-property-bar,
 [data-theme="cyberpunk"] .left-sidebar,
 [data-theme="cyberpunk"] .right-panel,

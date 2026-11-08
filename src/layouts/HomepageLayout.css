@@ -1,6 +1,6 @@
-/* ==========================================
-   APP LAYOUT (ADOBE PRO STUDIO GRADE)
-========================================== */
+/* ============================================================
+   APP LAYOUT (AEROSPACE DIGITAL TWIN COCKPIT)
+============================================================ */
 
 .layout {
     width: 100%;
@@ -8,31 +8,72 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: radial-gradient(circle at 50% 0%, rgba(255, 138, 0, 0.04) 0%, transparent 45%),
-                radial-gradient(circle at 90% 10%, rgba(59, 156, 255, 0.03) 0%, transparent 40%),
-                var(--bg-base);
+    background: 
+        radial-gradient(circle at 50% 0%, var(--primary-glow, rgba(255, 138, 0, 0.08)) 0%, transparent 55%),
+        radial-gradient(circle at 90% 10%, var(--secondary-glow, rgba(59, 156, 255, 0.06)) 0%, transparent 45%),
+        var(--bg-base);
+    position: relative;
+    box-sizing: border-box;
+    transition: background 0.25s ease;
 }
 
-/* ==========================================
-   BODY
-========================================== */
+/* Subtle Sci-Fi Grid Underlay */
+.layout::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: 
+        linear-gradient(to right, var(--border-subtle, rgba(255, 255, 255, 0.02)) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--border-subtle, rgba(255, 255, 255, 0.02)) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+}
+
+/* ============================================================
+   BODY (FLEX ROW: DOCK + MAIN PAGE)
+============================================================ */
 
 .body {
     flex: 1;
     display: flex;
-    gap: 16px;
+    gap: 18px;
     padding: 16px 20px 20px 20px;
     overflow: hidden;
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
 }
 
-/* ==========================================
+/* ============================================================
    PAGE SCROLL CONTAINER
-========================================== */
+============================================================ */
 
 .page {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md, 18px);
     position: relative;
+    box-sizing: border-box;
+    scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar for Page */
+.page::-webkit-scrollbar {
+    width: 6px;
+}
+
+.page::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.page::-webkit-scrollbar-thumb {
+    background: var(--border, rgba(255, 255, 255, 0.1));
+    border-radius: 999px;
+}
+
+.page::-webkit-scrollbar-thumb:hover {
+    background: var(--primary, #ff8a00);
 }

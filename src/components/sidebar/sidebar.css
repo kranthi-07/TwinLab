@@ -1,8 +1,8 @@
-/* ==========================================
-   NAVIGATION RAIL (STUDIO GRADE FLOATING CAPSULE)
-========================================== */
+/* ============================================================
+   TECH NAVIGATION DOCK (AEROSPACE COCKPIT GRADE)
+============================================================ */
 
-.nav-rail {
+.nav-rail.tech-nav-dock {
     width: 68px;
     height: fit-content;
     position: relative;
@@ -11,149 +11,263 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    padding: 12px 0;
-    border-radius: 22px;
-    background: rgba(18, 24, 34, 0.78);
+    gap: 14px;
+    padding: 16px 0 14px;
+    border-radius: var(--radius-md, 18px);
+    background: var(--bg-surface, rgba(18, 24, 34, 0.88));
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
     flex-shrink: 0;
-    transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    transition: all 0.25s ease;
 }
 
-/* Light Theme Navigation Rail */
-[data-theme="light"] .nav-rail {
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+/* Corner Decorators */
+.dock-corner-decor {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    pointer-events: none;
+    z-index: 2;
 }
 
-/* ==========================================
-   NAV ITEM BUTTON
-========================================== */
+.dock-corner-decor.tl {
+    top: -1px; left: -1px;
+    border-top: 2px solid var(--primary, #ff8a00);
+    border-left: 2px solid var(--primary, #ff8a00);
+}
 
-.rail-item {
+.dock-corner-decor.tr {
+    top: -1px; right: -1px;
+    border-top: 2px solid var(--primary, #ff8a00);
+    border-right: 2px solid var(--primary, #ff8a00);
+}
+
+.dock-corner-decor.bl {
+    bottom: -1px; left: -1px;
+    border-bottom: 2px solid var(--primary, #ff8a00);
+    border-left: 2px solid var(--primary, #ff8a00);
+}
+
+.dock-corner-decor.br {
+    bottom: -1px; right: -1px;
+    border-bottom: 2px solid var(--primary, #ff8a00);
+    border-right: 2px solid var(--primary, #ff8a00);
+}
+
+/* Top Beacon */
+.dock-top-beacon {
+    position: relative;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+}
+
+.beacon-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--emerald, #10b981);
+    box-shadow: 0 0 8px var(--emerald, #10b981);
+}
+
+.beacon-ring {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid var(--emerald, #10b981);
+    animation: ringPing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ringPing {
+    0% { transform: scale(0.8); opacity: 0.8; }
+    100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Items Group */
+.dock-items-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.rail-item.tech-rail-item {
     position: relative;
     width: 48px;
     height: 48px;
-    border-radius: 14px;
+    border-radius: 12px;
     display: flex;
     justify-content: center;
     align-items: center;
     background: transparent;
-    color: #94a3b8;
+    color: var(--text-muted, #94a3b8);
     border: 1px solid transparent;
-    cursor: default;
+    cursor: pointer;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     overflow: visible;
 }
 
-.icon-box {
-    width: 44px;
-    height: 44px;
+.rail-item.tech-rail-item .icon-box {
+    width: 42px;
+    height: 42px;
     display: flex;
     justify-content: center;
     align-items: center;
-    border-radius: 13px;
+    border-radius: 11px;
     background: transparent;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.2s ease;
 }
 
-.rail-item i {
+.rail-item.tech-rail-item i {
     font-size: 20px;
-    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.2s ease;
 }
 
-/* Dark Mode Hover */
-.rail-item:hover {
-    color: #ffffff;
+.rail-item.tech-rail-item:hover {
+    color: var(--text-heading, #ffffff);
 }
 
-.rail-item:hover .icon-box {
-    background: rgba(255, 255, 255, 0.06);
+.rail-item.tech-rail-item:hover .icon-box {
+    background: rgba(255, 255, 255, 0.08);
 }
 
-.rail-item:hover i {
-    transform: scale(1.08);
+.rail-item.tech-rail-item.active {
+    color: var(--item-accent, var(--primary));
 }
 
-/* Dark Mode Active */
-.rail-item.active {
-    color: var(--accent, #FF8A00);
+.rail-item.tech-rail-item.active .icon-box {
+    background: color-mix(in srgb, var(--item-accent, var(--primary)) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--item-accent, var(--primary)) 40%, transparent);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--item-accent, var(--primary)) 30%, transparent);
 }
 
-.rail-item.active .icon-box {
-    background: color-mix(in srgb, var(--accent, #FF8A00) 18%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent, #FF8A00) 35%, transparent);
-    box-shadow: 0 0 16px color-mix(in srgb, var(--accent, #FF8A00) 22%, transparent);
+.rail-active-indicator {
+    position: absolute;
+    left: -2px;
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    border-radius: 0 4px 4px 0;
+    background: var(--item-accent, var(--primary));
+    box-shadow: 0 0 10px var(--item-accent, var(--primary));
 }
 
-/* ==========================================
-   LIGHT MODE STYLING (NO CHUNKY BLACK BLOCKS)
-========================================== */
-
-[data-theme="light"] .rail-item {
-    color: #64748b;
-    background: transparent;
-}
-
-[data-theme="light"] .rail-item .icon-box {
-    background: transparent;
-}
-
-[data-theme="light"] .rail-item:hover {
-    color: #0f172a;
-}
-
-[data-theme="light"] .rail-item:hover .icon-box {
-    background: rgba(15, 23, 42, 0.05);
-}
-
-[data-theme="light"] .rail-item.active {
-    color: var(--accent, #FF8A00);
-}
-
-[data-theme="light"] .rail-item.active .icon-box {
-    background: color-mix(in srgb, var(--accent, #FF8A00) 14%, #ffffff);
-    border: 1px solid color-mix(in srgb, var(--accent, #FF8A00) 30%, transparent);
-    box-shadow: 0 4px 14px color-mix(in srgb, var(--accent, #FF8A00) 18%, transparent);
-}
-
-/* ==========================================
-   FLOATING TOOLTIP LABEL
-========================================== */
-
-.rail-item span {
+/* Floating Rich Tooltip */
+.dock-tooltip {
     position: absolute;
     left: 64px;
     top: 50%;
     transform: translateY(-50%) translateX(-8px);
-    padding: 8px 14px;
-    border-radius: 10px;
-    background: rgba(18, 24, 34, 0.94);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #f8fafc;
-    font-size: 12px;
-    font-weight: 600;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: var(--bg-surface, #121822);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-accent, rgba(255, 255, 255, 0.14));
+    color: var(--text-heading, #f8fafc);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    z-index: 500;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    z-index: 2000;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
 }
 
-[data-theme="light"] .rail-item span {
-    background: rgba(255, 255, 255, 0.98);
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    color: #0f172a;
-    box-shadow: 0 8px 25px rgba(15, 23, 42, 0.1);
-}
-
-.rail-item:hover span {
+.rail-item.tech-rail-item:hover .dock-tooltip {
     opacity: 1;
     transform: translateY(-50%) translateX(0);
+}
+
+.tooltip-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: space-between;
+}
+
+.tooltip-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-heading, #ffffff);
+}
+
+.tooltip-key {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-subtle, #94a3b8);
+}
+
+.tooltip-desc {
+    font-size: 11px;
+    color: var(--text-muted, #8b99ae);
+}
+
+.tooltip-badge {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--item-accent, var(--primary));
+    align-self: flex-start;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid color-mix(in srgb, var(--item-accent, var(--primary)) 35%, transparent);
+}
+
+/* Interactive Voltage Rail Selector */
+.dock-bottom-widget {
+    padding-top: 10px;
+    border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    width: 80%;
+    display: flex;
+    justify-content: center;
+}
+
+.voltage-rail-toggle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    padding: 6px 4px;
+    cursor: pointer;
+    width: 44px;
+    transition: all 0.2s ease;
+}
+
+.voltage-rail-toggle:hover {
+    background: rgba(0, 0, 0, 0.5);
+    border-color: var(--border, rgba(255, 255, 255, 0.2));
+}
+
+.rail-led {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.rail-voltage {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.rail-type {
+    font-size: 8px;
+    color: var(--text-subtle, #64748b);
+    letter-spacing: 0.05em;
 }

@@ -5,21 +5,176 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: rgba(18, 23, 31, 0.75);
+    background: var(--bg-surface, rgba(18, 23, 31, 0.85));
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 18px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    border-radius: var(--radius-sm, 16px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
     position: relative;
     z-index: 50;
+    transition: all 0.25s ease;
+}
+
+/* Corner Decorators */
+.topbar-corner-decor {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    pointer-events: none;
+    z-index: 2;
+}
+.topbar-corner-decor.tl {
+    top: -1px; left: -1px;
+    border-top: 2px solid var(--primary, #ff8a00);
+    border-left: 2px solid var(--primary, #ff8a00);
+}
+.topbar-corner-decor.tr {
+    top: -1px; right: -1px;
+    border-top: 2px solid var(--primary, #ff8a00);
+    border-right: 2px solid var(--primary, #ff8a00);
+}
+.topbar-corner-decor.bl {
+    bottom: -1px; left: -1px;
+    border-bottom: 2px solid var(--primary, #ff8a00);
+    border-left: 2px solid var(--primary, #ff8a00);
+}
+.topbar-corner-decor.br {
+    bottom: -1px; right: -1px;
+    border-bottom: 2px solid var(--primary, #ff8a00);
+    border-right: 2px solid var(--primary, #ff8a00);
 }
 
 /* Brand */
 .brand {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
+}
+
+.brand-build-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--primary, #ff8a00);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+    padding: 3px 8px;
+    border-radius: 6px;
+}
+
+/* Interactive Center Signal Generator Scope */
+.topbar-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.topbar-interactive-scope {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 14px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.topbar-interactive-scope:hover {
+    border-color: var(--primary, #ff8a00);
+    background: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 16px var(--primary-glow, rgba(255, 138, 0, 0.2));
+}
+
+.scope-wave-box {
+    width: 52px;
+    height: 24px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.scope-svg {
+    width: 48px;
+    height: 20px;
+}
+
+.scope-path {
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    animation: waveScroll 1.4s linear infinite;
+}
+
+@keyframes waveScroll {
+    0% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -24; }
+}
+
+.scope-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.scope-title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.scope-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.scope-mode {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.scope-telemetry-sub {
+    font-size: 9.5px;
+    color: var(--text-subtle, #64748b);
+    letter-spacing: 0.05em;
+}
+
+.scope-click-hint {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9px;
+    color: var(--text-subtle, #64748b);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 3px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+    margin-left: 4px;
+}
+
+.topbar-interactive-scope:hover .scope-click-hint {
+    color: var(--text-heading, #ffffff);
+    border-color: var(--primary, #ff8a00);
+}
+
+.hotkey-hint {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    margin-left: 6px;
+    opacity: 0.85;
 }
 
 .brand-logo {
@@ -125,6 +280,27 @@
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.topbar-notif-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.notif-btn {
+    position: relative;
+}
+
+.notif-badge-dot {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 6px #ef4444;
 }
 
 /* Custom Styled Theme Dropdown on Home Screen */

@@ -19,6 +19,7 @@ const COMPONENT_META = {
     "switch-spdt": { label: "Slide Switch", icon: "ri-toggle-line" },
     "slide-switch": { label: "Slide Switch", icon: "ri-toggle-line" },
     "switch-spst": { label: "Toggle Switch", icon: "ri-toggle-line" },
+    "lcd": { label: "Character LCD", icon: "ri-tv-line" },
     "lcd-1602": { label: "16x2 Character LCD", icon: "ri-tv-line" },
     "lcd-2004": { label: "20x4 Character LCD", icon: "ri-tv-line" },
     "motor-dc": { label: "DC Motor", icon: "ri-refresh-line" },
@@ -1410,7 +1411,7 @@ function TopFloatingBar({
                                     )}
 
                                     {/* LCD Screen (16x2 and 20x4) */}
-                                    {(selectedComponent.type === "lcd-1602" || selectedComponent.type === "lcd-2004") && (
+                                    {(selectedComponent.type === "lcd-1602" || selectedComponent.type === "lcd-2004" || selectedComponent.type?.startsWith("lcd")) && (
                                         <LcdValueControl 
                                             component={selectedComponent} 
                                             onUpdate={onUpdateComponent} 

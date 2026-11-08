@@ -650,3 +650,94 @@ img {
     color: #0f172a;
     box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
 }
+
+
+/* ============================================================
+   THEME STYLING FOR NEW TECH THEMES
+============================================================ */
+
+/* CYBER NEON 2077 */
+[data-theme="cyberpunk"] .layout {
+    background: radial-gradient(circle at 10% 10%, rgba(255, 0, 127, 0.09) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(0, 240, 255, 0.09) 0%, transparent 45%),
+                #06020f;
+}
+[data-theme="cyberpunk"] .topbar {
+    background: rgba(15, 5, 36, 0.92);
+    border-bottom: 1px solid rgba(0, 240, 255, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 240, 255, 0.15);
+}
+[data-theme="cyberpunk"] .nav-rail {
+    background: rgba(15, 5, 36, 0.9);
+    border: 1px solid rgba(217, 70, 239, 0.25);
+}
+[data-theme="cyberpunk"] .icon-box.active {
+    background: rgba(0, 240, 255, 0.15);
+    border-color: #00f0ff;
+    color: #00f0ff;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+}
+
+/* TACTICAL MATRIX EMERALD */
+[data-theme="emerald"] .layout {
+    background: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.09) 0%, transparent 50%),
+                #030d06;
+}
+[data-theme="emerald"] .topbar {
+    background: rgba(6, 23, 11, 0.92);
+    border-bottom: 1px solid rgba(16, 185, 129, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(16, 185, 129, 0.12);
+}
+[data-theme="emerald"] .nav-rail {
+    background: rgba(6, 23, 11, 0.9);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+[data-theme="emerald"] .icon-box.active {
+    background: rgba(16, 185, 129, 0.18);
+    border-color: #10b981;
+    color: #34d399;
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.45);
+}
+
+/* DEEP OCEANIC ABYSS */
+[data-theme="abyss"] .layout {
+    background: radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.08) 0%, transparent 45%),
+                radial-gradient(circle at 80% 80%, rgba(56, 189, 248, 0.07) 0%, transparent 45%),
+                #020914;
+}
+[data-theme="abyss"] .topbar {
+    background: rgba(4, 20, 43, 0.92);
+    border-bottom: 1px solid rgba(6, 182, 212, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75), 0 0 15px rgba(6, 182, 212, 0.12);
+}
+[data-theme="abyss"] .nav-rail {
+    background: rgba(4, 20, 43, 0.9);
+    border: 1px solid rgba(6, 182, 212, 0.25);
+}
+[data-theme="abyss"] .icon-box.active {
+    background: rgba(6, 182, 212, 0.18);
+    border-color: #06b6d4;
+    color: #38bdf8;
+    box-shadow: 0 0 14px rgba(6, 182, 212, 0.45);
+}
+
+/* SOLAR INDUSTRIAL FORGE */
+[data-theme="solar"] .layout {
+    background: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.09) 0%, transparent 50%),
+                #0d0b09;
+}
+[data-theme="solar"] .topbar {
+    background: rgba(23, 19, 14, 0.94);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75), 0 0 15px rgba(245, 158, 11, 0.15);
+}
+[data-theme="solar"] .nav-rail {
+    background: rgba(23, 19, 14, 0.92);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+[data-theme="solar"] .icon-box.active {
+    background: rgba(245, 158, 11, 0.18);
+    border-color: #f59e0b;
+    color: #fde047;
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.45);
+}

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import authService from "../../services/authService";
 import { TwinLabLogo } from "../common/TwinLabLogo";
@@ -12,6 +13,17 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
     const [role, setRole] = useState("Embedded Systems Dev");
     const [isLoading, setIsLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
+
+    // Close on Escape key
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === "Escape" && isOpen) {
+                onClose && onClose();
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isOpen, onClose]);
 
     if (!isOpen) return null;
 
@@ -28,7 +40,7 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
             setIsLoading(false);
             onLoginSuccess && onLoginSuccess(user);
             onClose && onClose();
-        }, 300);
+        }, 200);
     };
 
     const handleSignUp = async (e) => {
@@ -44,7 +56,7 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
             setIsLoading(false);
             onLoginSuccess && onLoginSuccess(user);
             onClose && onClose();
-        }, 300);
+        }, 200);
     };
 
     const handleDemoLogin = () => {
@@ -54,7 +66,7 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
             setIsLoading(false);
             onLoginSuccess && onLoginSuccess(user);
             onClose && onClose();
-        }, 250);
+        }, 200);
     };
 
     const handleGuestLogin = () => {
@@ -63,29 +75,28 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
         onClose && onClose();
     };
 
-    return (
+    return createPortal(
         <AnimatePresence>
             <div className="login-modal-overlay" onClick={onClose}>
                 <motion.div 
-                    className="login-modal-card"
+                    className="login-modal-card compact-clean-card"
                     onClick={(e) => e.stopPropagation()}
-                    initial={{ opacity: 0, scale: 0.94, y: 16 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.94, y: 16 }}
-                    transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    transition={{ duration: 0.18 }}
                 >
                     {/* Header */}
                     <div className="login-modal-header">
-                        <TwinLabLogo size={36} showSubtitle={false} />
-                        <button className="login-close-btn" onClick={onClose} type="button">
+                        <TwinLabLogo size={32} showSubtitle={false} />
+                        <button 
+                            className="login-close-btn" 
+                            onClick={onClose} 
+                            type="button"
+                            title="Close"
+                        >
                             <i className="ri-close-line" />
                         </button>
-                    </div>
-
-                    {/* Subtitle */}
-                    <div className="login-title-wrap">
-                        <h3>Welcome to TwinLab X</h3>
-                        <p>Simulate hardware circuits and save projects to the cloud</p>
                     </div>
 
                     {/* Tabs */}
@@ -124,7 +135,7 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                     {tab === "signin" && (
                         <form className="login-form" onSubmit={handleSignIn}>
                             <div className="login-field">
-                                <label>Email Address</label>
+                                <label>Email</label>
                                 <div className="login-input-wrap">
                                     <i className="ri-mail-line" />
                                     <input 
@@ -158,21 +169,14 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                                 type="submit" 
                                 disabled={isLoading}
                             >
-                                {isLoading ? (
-                                    <span>Connecting to Cloud...</span>
-                                ) : (
-                                    <>
-                                        <span>Sign In with Cloud</span>
-                                        <i className="ri-arrow-right-line" />
-                                    </>
-                                )}
+                                <span>{isLoading ? "Signing In..." : "Sign In with Cloud"}</span>
+                                <i className="ri-arrow-right-line" />
                             </button>
 
                             <div className="login-divider">
                                 <span>OR</span>
                             </div>
 
-                            {/* One-click Demo Button */}
                             <button 
                                 className="demo-account-btn"
                                 type="button"
@@ -203,7 +207,7 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                             </div>
 
                             <div className="login-field">
-                                <label>Email Address</label>
+                                <label>Work Email</label>
                                 <div className="login-input-wrap">
                                     <i className="ri-mail-line" />
                                     <input 
@@ -216,7 +220,7 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                             </div>
 
                             <div className="login-field">
-                                <label>Developer Role</label>
+                                <label>Role</label>
                                 <div className="login-input-wrap select-wrap">
                                     <i className="ri-shield-user-line" />
                                     <select value={role} onChange={(e) => setRole(e.target.value)}>
@@ -233,14 +237,8 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                                 type="submit" 
                                 disabled={isLoading}
                             >
-                                {isLoading ? (
-                                    <span>Creating Account...</span>
-                                ) : (
-                                    <>
-                                        <span>Create Free Cloud Account</span>
-                                        <i className="ri-user-add-line" />
-                                    </>
-                                )}
+                                <span>{isLoading ? "Creating..." : "Create Free Account"}</span>
+                                <i className="ri-user-add-line" />
                             </button>
                         </form>
                     )}
@@ -251,25 +249,10 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                             <div className="guest-icon-badge">
                                 <i className="ri-user-smile-line" />
                             </div>
-                            <h4>Continue as Guest Engineer</h4>
+                            <h4>Continue as Guest</h4>
                             <p>
-                                Access all breadboards, microcontrollers, real-time circuit simulation, 
-                                and code editing without creating an account.
+                                Access all breadboards, microcontrollers, and real-time simulation without an account.
                             </p>
-                            <div className="guest-perks">
-                                <div className="perk-item">
-                                    <i className="ri-check-line" />
-                                    <span>Instant simulation access with zero wait</span>
-                                </div>
-                                <div className="perk-item">
-                                    <i className="ri-check-line" />
-                                    <span>Local browser storage for projects</span>
-                                </div>
-                                <div className="perk-item">
-                                    <i className="ri-check-line" />
-                                    <span>Upgrade to Cloud Account anytime with one click</span>
-                                </div>
-                            </div>
                             <button 
                                 className="login-submit-btn guest-btn" 
                                 type="button" 
@@ -282,7 +265,8 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                     )}
                 </motion.div>
             </div>
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 }
 

@@ -22,8 +22,8 @@
     filter: none !important;
 }
 
-/* Base fallback outline */
-.canvas-small-comp.selected:not(.small-comp-lcd-1602):not(.small-comp-lcd-2004):not(.small-comp-led):not(.small-comp-resistor):not(.small-comp-capacitor-ceramic):not(.small-comp-capacitor-electrolytic):not(.small-comp-battery-aa):not(.small-comp-battery-aaa):not(.small-comp-battery-coin):not(.small-comp-battery-9v):not(.small-comp-potentiometer):not(.small-comp-buzzer):not(.small-comp-motor-dc):not(.small-comp-servo-sg90):not(.small-comp-sensor-ultrasonic):not(.small-comp-sensor-pir):not(.small-comp-photoresistor):not(.small-comp-transistor):not(.small-comp-transistor-npn):not(.small-comp-transistor-pnp):not(.small-comp-mosfet-n) {
+/* Base fallback outline - only applies to components without specialized wraps */
+.canvas-small-comp.selected:not(.comp-lcd-1602):not(.comp-lcd-2004):not(.comp-led):not(.comp-resistor):not(.comp-capacitor-ceramic):not(.comp-capacitor-electrolytic):not(.comp-battery-aa):not(.comp-battery-aaa):not(.comp-battery-coin):not(.comp-battery-9v):not(.comp-potentiometer):not(.comp-buzzer):not(.comp-motor-dc):not(.comp-servo-sg90):not(.comp-sensor-ultrasonic):not(.comp-sensor-pir):not(.comp-photoresistor):not(.comp-transistor):not(.comp-transistor-npn):not(.comp-transistor-pnp):not(.comp-mosfet-n):not([class*="comp-ic-"]) {
     outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
     outline-offset: 3px;
     border-radius: 4px;
@@ -99,35 +99,60 @@
     border-radius: 50%;
 }
 
-/* 11. DC Motor: Outline around cylindrical metal motor casing */
-.canvas-small-comp.selected .dc-motor-can {
+/* 11. DC Motor: Outline tightly wrapped around cylindrical metal motor casing (100px diameter at center 24, -65) */
+.canvas-small-comp.comp-motor-dc.selected .dc-motor-container::before {
+    content: "";
+    position: absolute;
+    left: -26px;
+    top: -115px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
     outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
     outline-offset: 3px;
-    border-radius: 12px;
+    pointer-events: none;
 }
 
-/* 12. Servo SG90: Outline around servo container */
-.canvas-small-comp.selected .servo-sg90-container,
-.canvas-small-comp.selected .servo-case-body {
+/* 12. Servo SG90: Outline tightly wrapped around whole servo body + flanges */
+.canvas-small-comp.comp-servo-sg90.selected .servo-sg90-container::before {
+    content: "";
+    position: absolute;
+    left: -78px;
+    top: -152px;
+    width: 186px;
+    height: 96px;
+    border-radius: 9px;
     outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
-    outline-offset: 4px;
-    border-radius: 6px;
+    outline-offset: 2px;
+    pointer-events: none;
 }
 
-/* 13. Ultrasonic Sensor: Outline around the entire ultrasonic PCB */
-.canvas-small-comp.selected .ultrasonic-container,
-.canvas-small-comp.selected .ultrasonic-pcb {
+/* 13. Ultrasonic Sensor: Outline tightly wrapped around 220x96 PCB */
+.canvas-small-comp.comp-sensor-ultrasonic.selected .ultrasonic-container::before {
+    content: "";
+    position: absolute;
+    left: -88px;
+    top: -106px;
+    width: 224px;
+    height: 100px;
+    border-radius: 10px;
     outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
-    outline-offset: 4px;
-    border-radius: 6px;
+    outline-offset: 2px;
+    pointer-events: none;
 }
 
-/* 14. PIR Sensor: Outline around PIR sensor container */
-.canvas-small-comp.selected .pir-container,
-.canvas-small-comp.selected .pir-pcb {
+/* 14. PIR Sensor: Outline tightly wrapped around 200x124 PCB */
+.canvas-small-comp.comp-sensor-pir.selected .pir-container::before {
+    content: "";
+    position: absolute;
+    left: -86px;
+    top: -134px;
+    width: 204px;
+    height: 128px;
+    border-radius: 10px;
     outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
-    outline-offset: 4px;
-    border-radius: 6px;
+    outline-offset: 2px;
+    pointer-events: none;
 }
 
 /* 15. Photoresistor: Outline around disc */
@@ -2244,11 +2269,11 @@
 }
 
 /* ============================================================
-   20. SG90 MICRO SERVO
+   20. SG90 MICRO SERVO (HUGE FULL-SCALE MOTOR)
 ============================================================ */
 .servo-sg90-container {
     width: 32px;
-    height: 48px;
+    height: 16px;
     position: relative;
     user-select: none;
 }
@@ -2323,18 +2348,18 @@
 }
 
 /* ============================================================
-   22. HC-SR04 ULTRASONIC & PIR SENSORS
+   22. HC-SR04 ULTRASONIC & PIR SENSORS (HUGE FULL-SCALE PCB)
 ============================================================ */
 .ultrasonic-container {
     width: 48px;
-    height: 48px;
+    height: 16px;
     position: relative;
     user-select: none;
 }
 
 .pir-container {
     width: 32px;
-    height: 48px;
+    height: 16px;
     position: relative;
     user-select: none;
 }
@@ -2417,14 +2442,11 @@
     100% { opacity: 0.85; }
 }
 
-/* 3. Ultrasonic Acoustic Sonar Ping Rings */
+/* 3. Dual Ultrasonic Acoustic Sonar Ping Rings (Transmitter & Receiver) */
 .sonar-ping-emitter {
     position: absolute;
-    top: -14px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 28px;
-    height: 28px;
+    width: 0px;
+    height: 0px;
     pointer-events: none;
     overflow: visible;
 }
@@ -2434,24 +2456,124 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    border: 1.5px solid #38bdf8;
+    border: 2px solid #38bdf8;
     border-radius: 50%;
     opacity: 0;
-    box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
-    animation: sonarWaveExpand 1.6s cubic-bezier(0.1, 0.6, 0.3, 1) infinite;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
+    animation: sonarWaveExpand 1.8s cubic-bezier(0.1, 0.5, 0.3, 1) infinite;
+    pointer-events: none;
 }
 
 .sonar-wave.wave-1 { animation-delay: 0s; }
-.sonar-wave.wave-2 { animation-delay: 0.5s; }
-.sonar-wave.wave-3 { animation-delay: 1.0s; }
+.sonar-wave.wave-2 { animation-delay: 0.6s; }
+.sonar-wave.wave-3 { animation-delay: 1.2s; }
+
+/* Receiver (R) Echo Pulses */
+.emitter-receiver .sonar-wave {
+    border-color: #2dd4bf;
+    box-shadow: 0 0 10px rgba(45, 212, 191, 0.7);
+    animation: sonarWaveEcho 1.8s cubic-bezier(0.1, 0.5, 0.3, 1) infinite;
+}
+.emitter-receiver .sonar-wave.wave-1 { animation-delay: 0.3s; }
+.emitter-receiver .sonar-wave.wave-2 { animation-delay: 0.9s; }
+.emitter-receiver .sonar-wave.wave-3 { animation-delay: 1.5s; }
 
 @keyframes sonarWaveExpand {
-    0% { width: 6px; height: 6px; opacity: 0.95; border-color: #38bdf8; }
-    70% { width: 38px; height: 38px; opacity: 0.35; border-color: #0284c7; }
-    100% { width: 52px; height: 52px; opacity: 0; }
+    0% {
+        width: 16px;
+        height: 16px;
+        opacity: 0.95;
+        border-color: #38bdf8;
+    }
+    50% {
+        width: 64px;
+        height: 64px;
+        opacity: 0.7;
+        border-color: #0ea5e9;
+    }
+    100% {
+        width: 96px;
+        height: 96px;
+        opacity: 0;
+        border-color: rgba(2, 132, 199, 0);
+    }
 }
 
-/* 4. PIR Motion Sensor Active Radar Scanning */
+@keyframes sonarWaveEcho {
+    0% {
+        width: 16px;
+        height: 16px;
+        opacity: 0.95;
+        border-color: #2dd4bf;
+    }
+    50% {
+        width: 64px;
+        height: 64px;
+        opacity: 0.7;
+        border-color: #14b8a6;
+    }
+    100% {
+        width: 96px;
+        height: 96px;
+        opacity: 0;
+        border-color: rgba(20, 184, 166, 0);
+    }
+}
+
+/* Front Acoustic Sonar Wave Cone Arc */
+.sonar-acoustic-cone {
+    position: absolute;
+    width: 0px;
+    height: 0px;
+    pointer-events: none;
+    overflow: visible;
+}
+
+.sonar-cone-arc {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid rgba(56, 189, 248, 0.8);
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+    animation: sonarArcExpand 2.2s cubic-bezier(0.1, 0.4, 0.3, 1) infinite;
+}
+
+.sonar-cone-arc.arc-1 { animation-delay: 0.1s; }
+.sonar-cone-arc.arc-2 { animation-delay: 0.8s; }
+.sonar-cone-arc.arc-3 { animation-delay: 1.5s; }
+
+@keyframes sonarArcExpand {
+    0% {
+        width: 40px;
+        height: 20px;
+        opacity: 0.9;
+        transform: translate(-50%, -50%) translateY(0);
+    }
+    70% {
+        width: 180px;
+        height: 90px;
+        opacity: 0.35;
+        border-color: rgba(56, 189, 248, 0.4);
+    }
+    100% {
+        width: 250px;
+        height: 125px;
+        opacity: 0;
+        transform: translate(-50%, -50%) translateY(-24px);
+    }
+}
+
+/* 4. PIR Motion Sensor Active Radar Scanning - Perfectly Wrapped around 80px Dome */
+.pir-radar-container {
+    border-radius: 50%;
+    overflow: hidden;
+    pointer-events: none;
+    box-shadow: 0 0 16px rgba(34, 197, 94, 0.35);
+}
+
 .pir-radar-beam {
     position: absolute;
     top: 0;
@@ -2459,9 +2581,27 @@
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    background: conic-gradient(from 0deg, rgba(34, 197, 94, 0.5) 0deg, rgba(34, 197, 94, 0.1) 45deg, transparent 70deg, transparent 360deg);
+    background: conic-gradient(from 0deg, rgba(34, 197, 94, 0.6) 0deg, rgba(34, 197, 94, 0.15) 50deg, transparent 80deg, transparent 360deg);
     animation: pirRadarSweep 2.2s linear infinite;
     pointer-events: none;
+}
+
+.pir-dome-pulse {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 1.5px solid rgba(34, 197, 94, 0.7);
+    animation: pirDomeAura 2.2s ease-out infinite;
+    pointer-events: none;
+}
+
+@keyframes pirDomeAura {
+    0% { transform: scale(0.92); opacity: 0.85; }
+    70% { transform: scale(1.18); opacity: 0.2; }
+    100% { transform: scale(1.28); opacity: 0; }
 }
 
 @keyframes pirRadarSweep {

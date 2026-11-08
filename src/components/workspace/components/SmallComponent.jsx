@@ -179,6 +179,10 @@ function SmallComponent({
                 onSelect && onSelect(id);
                 onMouseDown && onMouseDown(e, id);
             }}
+            onClick={(e) => {
+                e.stopPropagation();
+                onSelect && onSelect(id);
+            }}
         >
             {/* RESISTOR: 64px span (4 grid units of 16px). Pins at (0, 0) and (64, 0) */}
             {type === "resistor" && (() => {
@@ -1442,17 +1446,18 @@ function SmallComponent({
             })()}
 
             {/* DC MOTOR (LARGE REALISTIC BRUSHED STEEL CAN & ROTATING PROPELLER): Terminals Pos (0, 48), Neg (48, 48) */}
+            {/* DC MOTOR (HUGE REALISTIC BRUSHED STEEL CAN & ROTATING PROPELLER): Terminals Pos (0, 0), Neg (48, 0) */}
             {type === "motor-dc" && (() => {
                 const isSpinning = Boolean(isSimulating && (simState?.isSpinning || (simState?.voltage && simState.voltage > 1.2)));
                 return (
                     <div className={`dc-motor-container ${isSpinning ? "is-spinning" : ""}`} title="DC Hobby Motor with Aerodynamic Propeller Fan (3-12V)">
-                        <svg className="dc-motor-svg" viewBox="-24 -18 96 90" width="96" height="90" style={{ position: "absolute", left: -24, top: -18, pointerEvents: "none" }}>
+                        <svg className="dc-motor-svg" viewBox="-36 -115 120 125" width="120" height="125" style={{ position: "absolute", left: -36, top: -115, pointerEvents: "auto", cursor: "move" }}>
                             <defs>
                                 <radialGradient id={`motor-can-grad-${id}`} cx="38%" cy="32%" r="68%">
-                                    <stop offset="0%" stopColor="#f1f5f9" />
-                                    <stop offset="35%" stopColor="#cbd5e1" />
-                                    <stop offset="70%" stopColor="#64748b" />
-                                    <stop offset="100%" stopColor="#334155" />
+                                    <stop offset="0%" stopColor="#f8fafc" />
+                                    <stop offset="30%" stopColor="#cbd5e1" />
+                                    <stop offset="65%" stopColor="#64748b" />
+                                    <stop offset="100%" stopColor="#1e293b" />
                                 </radialGradient>
                                 <linearGradient id={`motor-tab-grad-${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
                                     <stop offset="0%" stopColor="#f59e0b" />
@@ -1461,35 +1466,35 @@ function SmallComponent({
                                 </linearGradient>
                             </defs>
 
-                            {/* Two Curved Copper Solder Lugs branching to (0, 48) and (48, 48) */}
-                            {/* Pos (+) Lug */}
-                            <path d="M 12 36 Q 4 40 0 46" stroke={`url(#motor-tab-grad-${id})`} strokeWidth="3.2" strokeLinecap="round" fill="none" />
-                            <circle cx="0" cy="48" r="2.8" fill="#ca8a04" stroke="#78350f" strokeWidth="0.8" />
-                            <text x="0" y="42" fill="#ef4444" fontSize="4.2" fontWeight="900" textAnchor="middle">+</text>
+                            {/* Two Flexible Insulated Leads linking from Motor back to Pins (0, 0) and (48, 0) */}
+                            {/* Pos (+) Red Lead */}
+                            <path d="M 12 -15 C 6 -10, 2 -5, 0 0" stroke="#ef4444" strokeWidth="3.2" strokeLinecap="round" fill="none" />
+                            <circle cx="0" cy="0" r="3.2" fill="#ca8a04" stroke="#78350f" strokeWidth="1" />
+                            <text x="0" y="-8" fill="#ef4444" fontSize="4.8" fontWeight="900" textAnchor="middle">+</text>
 
-                            {/* Neg (-) Lug */}
-                            <path d="M 36 36 Q 44 40 48 46" stroke={`url(#motor-tab-grad-${id})`} strokeWidth="3.2" strokeLinecap="round" fill="none" />
-                            <circle cx="48" cy="48" r="2.8" fill="#ca8a04" stroke="#78350f" strokeWidth="0.8" />
-                            <text x="48" y="42" fill="#3b82f6" fontSize="4.2" fontWeight="900" textAnchor="middle">−</text>
+                            {/* Neg (-) Black Lead */}
+                            <path d="M 36 -15 C 42 -10, 46 -5, 48 0" stroke="#1e293b" strokeWidth="3.2" strokeLinecap="round" fill="none" />
+                            <circle cx="48" cy="0" r="3.2" fill="#ca8a04" stroke="#78350f" strokeWidth="1" />
+                            <text x="48" y="-8" fill="#3b82f6" fontSize="4.8" fontWeight="900" textAnchor="middle">−</text>
 
-                            {/* Main Cylindrical Steel Can (72px Diameter) */}
-                            <circle cx="24" cy="18" r="34" fill={`url(#motor-can-grad-${id})`} stroke="#475569" strokeWidth="2" filter="drop-shadow(0 6px 14px rgba(0,0,0,0.6))" />
-                            <circle cx="24" cy="18" r="31" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
-                            <circle cx="24" cy="18" r="26" fill="#1e293b" opacity="0.15" />
+                            {/* Main Cylindrical Steel Can (Diameter 100px, radius 50px at center (24, -65)) */}
+                            <circle cx="24" cy="-65" r="48" fill={`url(#motor-can-grad-${id})`} stroke="#475569" strokeWidth="2.5" filter="drop-shadow(0 10px 22px rgba(0,0,0,0.65))" />
+                            <circle cx="24" cy="-65" r="44" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.2" />
+                            <circle cx="24" cy="-65" r="38" fill="#0f172a" opacity="0.12" />
 
                             {/* Front Bearing Hub Boss */}
-                            <circle cx="24" cy="18" r="10" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1.2" />
-                            <circle cx="24" cy="18" r="3.5" fill="#0f172a" />
+                            <circle cx="24" cy="-65" r="14" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1.5" />
+                            <circle cx="24" cy="-65" r="4.5" fill="#0f172a" />
 
                             {/* Silkscreen text on can */}
-                            <text x="24" y="-3" fill="#ffffff" fontSize="4.8" fontWeight="900" textAnchor="middle" letterSpacing="0.05em">DC MOTOR 3-6V</text>
-                            <text x="24" y="40" fill="rgba(255,255,255,0.75)" fontSize="3.6" fontWeight="bold" textAnchor="middle">TWINLAB X</text>
+                            <text x="24" y="-95" fill="#ffffff" fontSize="6.5" fontWeight="900" textAnchor="middle" letterSpacing="0.06em">DC MOTOR 3-6V</text>
+                            <text x="24" y="-30" fill="rgba(255,255,255,0.8)" fontSize="4.5" fontWeight="bold" textAnchor="middle">TWINLAB X</text>
                         </svg>
 
-                        {/* High-Speed Spinning 3-Blade Aerofoil Propeller Fan */}
+                        {/* High-Speed Spinning 3-Blade Aerofoil Propeller Fan (Diameter 96px, center 24,-65) */}
                         <div 
                             className={`motor-propeller-fan ${isSpinning ? "spin-blur" : ""}`}
-                            style={{ position: "absolute", left: 0, top: -6, width: 48, height: 48 }}
+                            style={{ position: "absolute", left: 24 - 48, top: -65 - 48, width: 96, height: 96 }}
                         >
                             <div className="fan-blade blade-1"></div>
                             <div className="fan-blade blade-2"></div>
@@ -1497,36 +1502,36 @@ function SmallComponent({
                             <div className="fan-hub-cap"></div>
                         </div>
 
-                        {/* Positive Terminal Pin (0, 48) */}
+                        {/* Positive Terminal Pin (0, 0) */}
                         <span 
                             className={`terminal-pin pin-motor-pos ${hoveredTerminal === "motPos" ? "targeted" : ""}`}
-                            style={{ left: 0, top: 48, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 0, top: 0, transform: "translate(-50%, -50%)" }}
                             onMouseEnter={() => setHoveredTerminal("motPos")}
                             onMouseLeave={() => setHoveredTerminal(null)}
-                            onMouseDown={(e) => handleTerminalMouseDown(e, "motPos", 0, 48)}
-                            onMouseUp={(e) => handleTerminalMouseUp(e, 0, 48)}
-                            onClick={(e) => handleTerminalPress(e, "motPos", 0, 48)}
-                            onDoubleClick={(e) => handleTerminalAction(e, 0, 48)}
+                            onMouseDown={(e) => handleTerminalMouseDown(e, "motPos", 0, 0)}
+                            onMouseUp={(e) => handleTerminalMouseUp(e, 0, 0)}
+                            onClick={(e) => handleTerminalPress(e, "motPos", 0, 0)}
+                            onDoubleClick={(e) => handleTerminalAction(e, 0, 0)}
                         />
                         {hoveredTerminal === "motPos" && (
-                            <div className="terminal-hover-tooltip" style={{ left: 0, top: 48, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                            <div className="terminal-hover-tooltip" style={{ left: 0, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
                                 Motor (+) [Red]
                             </div>
                         )}
 
-                        {/* Negative Terminal Pin (48, 48) */}
+                        {/* Negative Terminal Pin (48, 0) */}
                         <span 
                             className={`terminal-pin pin-motor-neg ${hoveredTerminal === "motNeg" ? "targeted" : ""}`}
-                            style={{ left: 48, top: 48, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 48, top: 0, transform: "translate(-50%, -50%)" }}
                             onMouseEnter={() => setHoveredTerminal("motNeg")}
                             onMouseLeave={() => setHoveredTerminal(null)}
-                            onMouseDown={(e) => handleTerminalMouseDown(e, "motNeg", 48, 48)}
-                            onMouseUp={(e) => handleTerminalMouseUp(e, 48, 48)}
-                            onClick={(e) => handleTerminalPress(e, "motNeg", 48, 48)}
-                            onDoubleClick={(e) => handleTerminalAction(e, 48, 48)}
+                            onMouseDown={(e) => handleTerminalMouseDown(e, "motNeg", 48, 0)}
+                            onMouseUp={(e) => handleTerminalMouseUp(e, 48, 0)}
+                            onClick={(e) => handleTerminalPress(e, "motNeg", 48, 0)}
+                            onDoubleClick={(e) => handleTerminalAction(e, 48, 0)}
                         />
                         {hoveredTerminal === "motNeg" && (
-                            <div className="terminal-hover-tooltip" style={{ left: 48, top: 48, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                            <div className="terminal-hover-tooltip" style={{ left: 48, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
                                 Motor (−) [Black]
                             </div>
                         )}
@@ -1534,60 +1539,64 @@ function SmallComponent({
                 );
             })()}
 
-            {/* SG90 MICRO SERVO (ENLARGED FULL-SCALE REALISTIC SVG WITH ROTATING HORN): Pins GND (0, 48), 5V (16, 48), PWM (32, 48) */}
+            {/* SG90 MICRO SERVO (HUGE REALISTIC FULL-SCALE SVG WITH ROTATING HORN): Pins GND (0, 0), 5V (16, 0), PWM (32, 0) */}
             {type === "servo-sg90" && (() => {
                 const hornAngle = angle != null ? angle : 90;
                 return (
                     <div className="servo-sg90-container" title={`SG90 9g Micro Servo (${hornAngle}°)`}>
-                        <svg className="servo-realistic-svg" viewBox="-30 -22 100 78" width="100" height="78" style={{ position: "absolute", left: -30, top: -22, pointerEvents: "none" }}>
-                            {/* Translucent Sky Blue Case */}
-                            <rect x="-16" y="-12" width="64" height="48" rx="4.5" fill="#0284c7" stroke="#0369a1" strokeWidth="1.8" filter="drop-shadow(0 6px 14px rgba(0,0,0,0.55))" />
-                            <rect x="-13" y="-9" width="58" height="2.5" fill="rgba(255,255,255,0.4)" rx="1.2" />
+                        <svg className="servo-realistic-svg" viewBox="-80 -165 192 175" width="192" height="175" style={{ position: "absolute", left: -80, top: -165, pointerEvents: "auto", cursor: "move" }}>
+                            {/* Translucent Cobalt Sky Blue Servo Enclosure: Width 140px, Height 86px from Y=-146 to Y=-60 */}
+                            <rect x="-54" y="-146" width="140" height="86" rx="7" fill="#0284c7" stroke="#0369a1" strokeWidth="2.5" filter="drop-shadow(0 10px 24px rgba(0,0,0,0.65))" />
+                            <rect x="-48" y="-140" width="128" height="4" fill="rgba(255,255,255,0.4)" rx="2" />
 
-                            {/* Left & Right Mounting Ears with Brass Eyelets */}
-                            <rect x="-28" y="4" width="12" height="16" rx="2" fill="#0284c7" stroke="#0369a1" strokeWidth="1.2" />
-                            <circle cx="-22" cy="12" r="2.8" fill="#ca8a04" stroke="#713f12" strokeWidth="0.9" />
-                            <rect x="48" y="4" width="12" height="16" rx="2" fill="#0284c7" stroke="#0369a1" strokeWidth="1.2" />
-                            <circle cx="54" cy="12" r="2.8" fill="#ca8a04" stroke="#713f12" strokeWidth="0.9" />
+                            {/* Left & Right Mounting Flanges with Brass Eyelets & Mounting Screws */}
+                            {/* Left Flange */}
+                            <rect x="-76" y="-115" width="22" height="26" rx="3" fill="#0284c7" stroke="#0369a1" strokeWidth="1.8" />
+                            <circle cx="-65" cy="-102" r="4.2" fill="#ca8a04" stroke="#713f12" strokeWidth="1.2" />
+                            <circle cx="-65" cy="-102" r="2.2" fill="#0f172a" />
+                            {/* Right Flange */}
+                            <rect x="86" y="-115" width="22" height="26" rx="3" fill="#0284c7" stroke="#0369a1" strokeWidth="1.8" />
+                            <circle cx="97" cy="-102" r="4.2" fill="#ca8a04" stroke="#713f12" strokeWidth="1.2" />
+                            <circle cx="97" cy="-102" r="2.2" fill="#0f172a" />
 
-                            {/* Splined Drive Gear Output Shaft */}
-                            <circle cx="16" cy="4" r="12" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.4" />
+                            {/* Splined Drive Gear Output Shaft Hub (Center at (16, -112)) */}
+                            <circle cx="16" cy="-112" r="18" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="2" filter="drop-shadow(0 2px 5px rgba(0,0,0,0.3))" />
 
-                            {/* Rotating White Nylon Servo Horn with 4 Holes & Center Screw */}
-                            <g style={{ transform: `rotate(${hornAngle - 90}deg)`, transformOrigin: "16px 4px", transition: "transform 0.2s cubic-bezier(0.2, 0.8, 0.3, 1)" }}>
-                                <rect x="-10" y="0.5" width="52" height="7" rx="3.5" fill="#ffffff" stroke="#94a3b8" strokeWidth="1" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.35))" />
-                                <circle cx="-4" cy="4" r="1.3" fill="#475569" />
-                                <circle cx="3" cy="4" r="1.3" fill="#475569" />
-                                <circle cx="29" cy="4" r="1.3" fill="#475569" />
-                                <circle cx="36" cy="4" r="1.3" fill="#475569" />
-                                {/* Center Mounting Screw */}
-                                <circle cx="16" cy="4" r="3" fill="#0f172a" />
-                                <line x1="14" y1="4" x2="18" y2="4" stroke="#e2e8f0" strokeWidth="0.8" />
-                                <line x1="16" y1="2" x2="16" y2="6" stroke="#e2e8f0" strokeWidth="0.8" />
+                            {/* Large Rotating White Nylon Servo Horn with multiple linkage pushrod holes */}
+                            <g style={{ transform: `rotate(${hornAngle - 90}deg)`, transformOrigin: "16px -112px", transition: "transform 0.22s cubic-bezier(0.2, 0.8, 0.3, 1)" }}>
+                                <rect x="-38" y="-120" width="108" height="16" rx="8" fill="#ffffff" stroke="#94a3b8" strokeWidth="1.5" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.4))" />
+                                <circle cx="-26" cy="-112" r="2.5" fill="#475569" />
+                                <circle cx="-14" cy="-112" r="2.5" fill="#475569" />
+                                <circle cx="46" cy="-112" r="2.5" fill="#475569" />
+                                <circle cx="58" cy="-112" r="2.5" fill="#475569" />
+                                {/* Center Mounting Phillips Screw */}
+                                <circle cx="16" cy="-112" r="5" fill="#0f172a" />
+                                <line x1="12.5" y1="-112" x2="19.5" y2="-112" stroke="#e2e8f0" strokeWidth="1.2" />
+                                <line x1="16" y1="-115.5" x2="16" y2="-108.5" stroke="#e2e8f0" strokeWidth="1.2" />
                             </g>
 
-                            {/* Silkscreen Brand */}
-                            <text x="16" y="20" fill="#ffffff" fontSize="6.5" fontWeight="900" textAnchor="middle" letterSpacing="0.05em">SG90 9g</text>
-                            <text x="16" y="29" fill="#bae6fd" fontSize="4.2" fontWeight="700" textAnchor="middle">TWINLAB X</text>
+                            {/* Silkscreen Brand Label on Servo Body */}
+                            <text x="16" y="-88" fill="#ffffff" fontSize="9.5" fontWeight="900" textAnchor="middle" letterSpacing="0.06em">MICRO SERVO SG90</text>
+                            <text x="16" y="-74" fill="#bae6fd" fontSize="6.5" fontWeight="800" textAnchor="middle">9g • TWINLAB X</text>
 
-                            {/* 3-Color Ribbon Cable ("branches") linking servo case to header pins */}
-                            <path d="M 8 36 C 6 40, 2 43, 0 46" stroke="#78350f" strokeWidth="3.2" strokeLinecap="round" fill="none" />
-                            <line x1="16" y1="36" x2="16" y2="46" stroke="#dc2626" strokeWidth="3.2" strokeLinecap="round" />
-                            <path d="M 24 36 C 26 40, 30 43, 32 46" stroke="#f97316" strokeWidth="3.2" strokeLinecap="round" fill="none" />
+                            {/* 3-Color Flexible Ribbon Cable (Brown GND, Red 5V, Orange PWM) gracefully looping down */}
+                            <path d="M 4 -60 C -4 -40, -4 -25, 0 -12" stroke="#78350f" strokeWidth="4.2" strokeLinecap="round" fill="none" />
+                            <path d="M 16 -60 C 16 -40, 16 -25, 16 -12" stroke="#dc2626" strokeWidth="4.2" strokeLinecap="round" fill="none" />
+                            <path d="M 28 -60 C 36 -40, 36 -25, 32 -12" stroke="#f97316" strokeWidth="4.2" strokeLinecap="round" fill="none" />
 
-                            {/* Molded Black DuPont Connector Block at Y=42 to 46 */}
-                            <rect x="-5" y="42" width="42" height="5" rx="1.5" fill="#18181b" stroke="#3f3f46" strokeWidth="0.8" />
+                            {/* Molded Black DuPont Connector Housing Block from Y=-14 to Y=-4 */}
+                            <rect x="-6" y="-14" width="44" height="10" rx="2" fill="#18181b" stroke="#3f3f46" strokeWidth="1.2" />
 
-                            {/* 3 Gold Header Pins at Y=48 */}
-                            <rect x="-2" y="44" width="4" height="6" rx="0.8" fill="#ca8a04" stroke="#713f12" strokeWidth="0.6" />
-                            <rect x="14" y="44" width="4" height="6" rx="0.8" fill="#ca8a04" stroke="#713f12" strokeWidth="0.6" />
-                            <rect x="30" y="44" width="4" height="6" rx="0.8" fill="#ca8a04" stroke="#713f12" strokeWidth="0.6" />
-                            <text x="0" y="41" fill="#cbd5e1" fontSize="3" fontWeight="bold" textAnchor="middle">GND</text>
-                            <text x="16" y="41" fill="#cbd5e1" fontSize="3" fontWeight="bold" textAnchor="middle">5V</text>
-                            <text x="32" y="41" fill="#cbd5e1" fontSize="3" fontWeight="bold" textAnchor="middle">PWM</text>
+                            {/* 3 Gold Header Terminal Pins extending to (0, 0), (16, 0), (32, 0) */}
+                            <rect x="-2.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
+                            <rect x="13.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
+                            <rect x="29.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
+                            <text x="0" y="-17" fill="#cbd5e1" fontSize="4.2" fontWeight="bold" textAnchor="middle">GND</text>
+                            <text x="16" y="-17" fill="#cbd5e1" fontSize="4.2" fontWeight="bold" textAnchor="middle">5V</text>
+                            <text x="32" y="-17" fill="#cbd5e1" fontSize="4.2" fontWeight="bold" textAnchor="middle">PWM</text>
                         </svg>
 
-                        {/* 3 Header Pins at Y=48 */}
+                        {/* 3 Header Pins at Y=0 */}
                         {[
                             { name: "GND", x: 0, isGnd: true, color: "#78350f" },
                             { name: "5V", x: 16, is5V: true, color: "#dc2626" },
@@ -1596,13 +1605,13 @@ function SmallComponent({
                             <span
                                 key={pin.name}
                                 className={`terminal-pin pin-servo-${pin.name.toLowerCase()} ${hoveredTerminal === `servo_${pin.name}` ? "targeted" : ""}`}
-                                style={{ left: pin.x, top: 48, transform: "translate(-50%, -50%)" }}
+                                style={{ left: pin.x, top: 0, transform: "translate(-50%, -50%)" }}
                                 onMouseEnter={() => setHoveredTerminal(`servo_${pin.name}`)}
                                 onMouseLeave={() => setHoveredTerminal(null)}
-                                onMouseDown={(e) => handleTerminalMouseDown(e, `servo_${pin.name}`, pin.x, 48)}
-                                onMouseUp={(e) => handleTerminalMouseUp(e, pin.x, 48)}
-                                onClick={(e) => handleTerminalPress(e, `servo_${pin.name}`, pin.x, 48)}
-                                onDoubleClick={(e) => handleTerminalAction(e, pin.x, 48)}
+                                onMouseDown={(e) => handleTerminalMouseDown(e, `servo_${pin.name}`, pin.x, 0)}
+                                onMouseUp={(e) => handleTerminalMouseUp(e, pin.x, 0)}
+                                onClick={(e) => handleTerminalPress(e, `servo_${pin.name}`, pin.x, 0)}
+                                onDoubleClick={(e) => handleTerminalAction(e, pin.x, 0)}
                             />
                         ))}
                     </div>
@@ -1707,67 +1716,113 @@ function SmallComponent({
                 );
             })()}
 
-            {/* HC-SR04 ULTRASONIC DISTANCE SENSOR (ENLARGED 7-COLUMN FULL-SCALE REALISTIC SVG): Pins VCC (0, 48), Trig (16, 48), Echo (32, 48), GND (48, 48) */}
+            {/* HC-SR04 ULTRASONIC DISTANCE SENSOR (HUGE REALISTIC FULL-SCALE SVG): Pins VCC (0, 0), Trig (16, 0), Echo (32, 0), GND (48, 0) */}
             {type === "sensor-ultrasonic" && (() => {
                 const distCm = distanceCm != null ? distanceCm : 25;
                 const isPinging = Boolean(isSimulating);
                 return (
                     <div className={`ultrasonic-container ${isPinging ? "is-pinging" : ""}`} title={`HC-SR04 Ultrasonic Distance Sensor (${distCm} cm)`}>
-                        <svg className="ultrasonic-realistic-svg" viewBox="-38 -18 124 76" width="124" height="76" style={{ position: "absolute", left: -38, top: -18, pointerEvents: "none" }}>
-                            {/* Blue FR-4 PCB Spanning 7 Breadboard Columns */}
-                            <rect x="-34" y="-12" width="116" height="54" rx="5" fill="#0284c7" stroke="#0369a1" strokeWidth="1.8" filter="drop-shadow(0 6px 16px rgba(0,0,0,0.6))" />
+                        <svg className="ultrasonic-realistic-svg" viewBox="-100 -115 248 120" width="248" height="120" style={{ position: "absolute", left: -100, top: -115, pointerEvents: "auto", cursor: "move" }}>
+                            <defs>
+                                <radialGradient id={`sonar-transducer-grad-${id}`} cx="40%" cy="35%" r="65%">
+                                    <stop offset="0%" stopColor="#f8fafc" />
+                                    <stop offset="35%" stopColor="#e2e8f0" />
+                                    <stop offset="70%" stopColor="#94a3b8" />
+                                    <stop offset="100%" stopColor="#475569" />
+                                </radialGradient>
+                                <radialGradient id={`sonar-cone-grad-${id}`} cx="50%" cy="50%" r="50%">
+                                    <stop offset="0%" stopColor="#09090b" />
+                                    <stop offset="70%" stopColor="#18181b" />
+                                    <stop offset="100%" stopColor="#27272a" />
+                                </radialGradient>
+                            </defs>
+
+                            {/* Blue FR-4 PCB: Width 220px, Height 96px from Y=-104 to Y=-8, X=-86 to X=134 */}
+                            <rect x="-86" y="-104" width="220" height="96" rx="8" fill="#0284c7" stroke="#0369a1" strokeWidth="2.5" filter="drop-shadow(0 10px 24px rgba(0,0,0,0.65))" />
 
                             {/* 4 Corner Gold-Plated Mounting Holes with Annular Copper Rings */}
-                            <circle cx="-28" cy="-6" r="2" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
-                            <circle cx="76" cy="-6" r="2" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
-                            <circle cx="-28" cy="36" r="2" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
-                            <circle cx="76" cy="36" r="2" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
+                            <circle cx="-76" cy="-94" r="3.5" fill="#ca8a04" stroke="#713f12" strokeWidth="1" />
+                            <circle cx="-76" cy="-94" r="1.8" fill="#0f172a" />
+                            <circle cx="124" cy="-94" r="3.5" fill="#ca8a04" stroke="#713f12" strokeWidth="1" />
+                            <circle cx="124" cy="-94" r="1.8" fill="#0f172a" />
+                            <circle cx="-76" cy="-18" r="3.5" fill="#ca8a04" stroke="#713f12" strokeWidth="1" />
+                            <circle cx="-76" cy="-18" r="1.8" fill="#0f172a" />
+                            <circle cx="124" cy="-18" r="3.5" fill="#ca8a04" stroke="#713f12" strokeWidth="1" />
+                            <circle cx="124" cy="-18" r="1.8" fill="#0f172a" />
 
                             {/* 16MHz Metal Quartz Crystal in Center */}
-                            <rect x="19.5" y="6" width="9" height="16" rx="2.5" fill="#e2e8f0" stroke="#64748b" strokeWidth="1" />
-                            <text x="24" y="16" fill="#475569" fontSize="3.2" fontWeight="bold" textAnchor="middle">16.0</text>
+                            <rect x="17.5" y="-70" width="13" height="26" rx="3.5" fill="#f1f5f9" stroke="#64748b" strokeWidth="1.2" />
+                            <text x="24" y="-53" fill="#475569" fontSize="5" fontWeight="900" textAnchor="middle">16.0</text>
 
-                            {/* Dual Large Aluminum Ultrasonic Transducers: T (Transmitter) & R (Receiver) */}
-                            {/* T (Transmitter) on Left */}
-                            <circle cx="-8" cy="14" r="20" fill="#cbd5e1" stroke="#475569" strokeWidth="2" filter="drop-shadow(0 2px 5px rgba(0,0,0,0.4))" />
-                            <circle cx="-8" cy="14" r="14" fill="#1e293b" />
-                            <circle cx="-8" cy="14" r="9" fill="#334155" />
-                            <text x="-8" y="18" fill="#f8fafc" fontSize="11" fontWeight="900" textAnchor="middle">T</text>
+                            {/* Dual HUGE Aluminum Ultrasonic Transducers (Diameter 64px, radius 32px each) */}
+                            {/* T (Transmitter) on Left: Center (-36, -56) */}
+                            <circle cx="-36" cy="-56" r="32" fill={`url(#sonar-transducer-grad-${id})`} stroke="#475569" strokeWidth="2.8" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.45))" />
+                            <circle cx="-36" cy="-56" r="29" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" />
+                            <circle cx="-36" cy="-56" r="23" fill={`url(#sonar-cone-grad-${id})`} />
+                            <circle cx="-36" cy="-56" r="14" fill="#334155" opacity="0.4" />
+                            {/* Protective Metallic Speaker Mesh Hatch */}
+                            <line x1="-50" y1="-56" x2="-22" y2="-56" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+                            <line x1="-36" y1="-70" x2="-36" y2="-42" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+                            <text x="-36" y="-50" fill="#f8fafc" fontSize="18" fontWeight="900" textAnchor="middle" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.8))">T</text>
 
-                            {/* R (Receiver) on Right */}
-                            <circle cx="56" cy="14" r="20" fill="#cbd5e1" stroke="#475569" strokeWidth="2" filter="drop-shadow(0 2px 5px rgba(0,0,0,0.4))" />
-                            <circle cx="56" cy="14" r="14" fill="#1e293b" />
-                            <circle cx="56" cy="14" r="9" fill="#334155" />
-                            <text x="56" y="18" fill="#f8fafc" fontSize="11" fontWeight="900" textAnchor="middle">R</text>
+                            {/* R (Receiver) on Right: Center (84, -56) */}
+                            <circle cx="84" cy="-56" r="32" fill={`url(#sonar-transducer-grad-${id})`} stroke="#475569" strokeWidth="2.8" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.45))" />
+                            <circle cx="84" cy="-56" r="29" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" />
+                            <circle cx="84" cy="-56" r="23" fill={`url(#sonar-cone-grad-${id})`} />
+                            <circle cx="84" cy="-56" r="14" fill="#334155" opacity="0.4" />
+                            {/* Protective Metallic Speaker Mesh Hatch */}
+                            <line x1="70" y1="-56" x2="98" y2="-56" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+                            <line x1="84" y1="-70" x2="84" y2="-42" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+                            <text x="84" y="-50" fill="#f8fafc" fontSize="18" fontWeight="900" textAnchor="middle" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.8))">R</text>
 
-                            {/* Silkscreen Labels */}
-                            <text x="24" y="-3" fill="#ffffff" fontSize="5.5" fontWeight="900" textAnchor="middle">HC-SR04</text>
-                            <text x="24" y="32" fill="#a7f3d0" fontSize="4.5" fontWeight="900" textAnchor="middle">{distCm} cm</text>
-                            <text x="24" y="38" fill="rgba(255,255,255,0.7)" fontSize="3.2" fontWeight="700" textAnchor="middle">TWINLAB X</text>
+                            {/* Silkscreen Brand & Spec Labels */}
+                            <text x="24" y="-88" fill="#ffffff" fontSize="9" fontWeight="900" textAnchor="middle" letterSpacing="0.05em">HC-SR04</text>
+                            <text x="24" y="-30" fill="#a7f3d0" fontSize="7.5" fontWeight="900" textAnchor="middle">{distCm} cm</text>
+                            <text x="24" y="-20" fill="rgba(255,255,255,0.8)" fontSize="5" fontWeight="700" textAnchor="middle">TWINLAB X</text>
+
+                            {/* Black DuPont Connector Block at Y=-14 to Y=-4 */}
+                            <rect x="-6" y="-14" width="60" height="10" rx="2" fill="#18181b" stroke="#3f3f46" strokeWidth="1.2" />
 
                             {/* Pin Labels directly above the 4 pins */}
-                            <text x="0" y="40" fill="#ffffff" fontSize="3.5" fontWeight="bold" textAnchor="middle">VCC</text>
-                            <text x="16" y="40" fill="#ffffff" fontSize="3.5" fontWeight="bold" textAnchor="middle">Trig</text>
-                            <text x="32" y="40" fill="#ffffff" fontSize="3.5" fontWeight="bold" textAnchor="middle">Echo</text>
-                            <text x="48" y="40" fill="#ffffff" fontSize="3.5" fontWeight="bold" textAnchor="middle">GND</text>
+                            <text x="0" y="-16" fill="#cbd5e1" fontSize="4.5" fontWeight="bold" textAnchor="middle">VCC</text>
+                            <text x="16" y="-16" fill="#cbd5e1" fontSize="4.5" fontWeight="bold" textAnchor="middle">Trig</text>
+                            <text x="32" y="-16" fill="#cbd5e1" fontSize="4.5" fontWeight="bold" textAnchor="middle">Echo</text>
+                            <text x="48" y="-16" fill="#cbd5e1" fontSize="4.5" fontWeight="bold" textAnchor="middle">GND</text>
 
-                            {/* 4 Gold Header Pins extending from Y=42 to Y=48 */}
-                            <line x1="0" y1="42" x2="0" y2="48" stroke="#ca8a04" strokeWidth="2.8" strokeLinecap="round" />
-                            <line x1="16" y1="42" x2="16" y2="48" stroke="#ca8a04" strokeWidth="2.8" strokeLinecap="round" />
-                            <line x1="32" y1="42" x2="32" y2="48" stroke="#ca8a04" strokeWidth="2.8" strokeLinecap="round" />
-                            <line x1="48" y1="42" x2="48" y2="48" stroke="#ca8a04" strokeWidth="2.8" strokeLinecap="round" />
+                            {/* 4 Gold Header Pins extending from Y=-6 to Y=0 */}
+                            <rect x="-2.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
+                            <rect x="13.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
+                            <rect x="29.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
+                            <rect x="45.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
                         </svg>
 
-                        {/* Sonar Ping Waves on T */}
+                        {/* Dual Ultrasonic Sonar Waves on BOTH T (Transmitter) and R (Receiver) */}
                         {isPinging && (
-                            <div className="sonar-ping-emitter" style={{ left: -8, top: 14 }}>
-                                <div className="sonar-wave wave-1"></div>
-                                <div className="sonar-wave wave-2"></div>
-                                <div className="sonar-wave wave-3"></div>
-                            </div>
+                            <>
+                                {/* Transmitter (T) Acoustic Sonar Pulses */}
+                                <div className="sonar-ping-emitter emitter-transmitter" style={{ left: -36, top: -56 }}>
+                                    <div className="sonar-wave wave-1"></div>
+                                    <div className="sonar-wave wave-2"></div>
+                                    <div className="sonar-wave wave-3"></div>
+                                </div>
+
+                                {/* Receiver (R) Echo Reflection Pulses */}
+                                <div className="sonar-ping-emitter emitter-receiver" style={{ left: 84, top: -56 }}>
+                                    <div className="sonar-wave wave-1 echo-wave"></div>
+                                    <div className="sonar-wave wave-2 echo-wave"></div>
+                                    <div className="sonar-wave wave-3 echo-wave"></div>
+                                </div>
+
+                                {/* Front Combined Acoustic Radar Arcs */}
+                                <div className="sonar-acoustic-cone" style={{ left: 24, top: -56 }}>
+                                    <div className="sonar-cone-arc arc-1"></div>
+                                    <div className="sonar-cone-arc arc-2"></div>
+                                    <div className="sonar-cone-arc arc-3"></div>
+                                </div>
+                            </>
                         )}
 
-                        {/* 4 Header Pins at Y=48 snapped to 16px breadboard grid */}
+                        {/* 4 Header Pins at Y=0 snapped to 16px breadboard grid */}
                         {[
                             { name: "VCC", x: 0, is5V: true },
                             { name: "Trig", x: 16, isGpio: true },
@@ -1777,66 +1832,91 @@ function SmallComponent({
                             <span
                                 key={pin.name}
                                 className={`terminal-pin pin-sonar-${pin.name.toLowerCase()} ${hoveredTerminal === `sonar_${pin.name}` ? "targeted" : ""}`}
-                                style={{ left: pin.x, top: 48, transform: "translate(-50%, -50%)" }}
+                                style={{ left: pin.x, top: 0, transform: "translate(-50%, -50%)" }}
                                 onMouseEnter={() => setHoveredTerminal(`sonar_${pin.name}`)}
                                 onMouseLeave={() => setHoveredTerminal(null)}
-                                onMouseDown={(e) => handleTerminalMouseDown(e, `sonar_${pin.name}`, pin.x, 48)}
-                                onMouseUp={(e) => handleTerminalMouseUp(e, pin.x, 48)}
-                                onClick={(e) => handleTerminalPress(e, `sonar_${pin.name}`, pin.x, 48)}
-                                onDoubleClick={(e) => handleTerminalAction(e, pin.x, 48)}
+                                onMouseDown={(e) => handleTerminalMouseDown(e, `sonar_${pin.name}`, pin.x, 0)}
+                                onMouseUp={(e) => handleTerminalMouseUp(e, pin.x, 0)}
+                                onClick={(e) => handleTerminalPress(e, `sonar_${pin.name}`, pin.x, 0)}
+                                onDoubleClick={(e) => handleTerminalAction(e, pin.x, 0)}
                             />
                         ))}
                     </div>
                 );
             })()}
 
-            {/* PIR MOTION SENSOR (ENLARGED 6-COLUMN FULL-SCALE REALISTIC SVG): Pins VCC (0, 48), OUT (16, 48), GND (32, 48) */}
+            {/* PIR MOTION SENSOR (HUGE REALISTIC FULL-SCALE SVG): Pins VCC (0, 0), OUT (16, 0), GND (32, 0) */}
             {type === "sensor-pir" && (() => {
                 const isScanning = Boolean(isSimulating);
                 return (
                     <div className={`pir-container ${isScanning ? "is-scanning" : ""}`} title="PIR Motion Sensor (HC-SR501)">
-                        <svg className="pir-realistic-svg" viewBox="-36 -18 104 76" width="104" height="76" style={{ position: "absolute", left: -36, top: -18, pointerEvents: "none" }}>
-                            {/* Dark Green FR-4 PCB Spanning 6 Breadboard Columns */}
-                            <rect x="-32" y="-12" width="96" height="54" rx="5" fill="#15803d" stroke="#166534" strokeWidth="1.8" filter="drop-shadow(0 6px 16px rgba(0,0,0,0.6))" />
+                        <svg className="pir-realistic-svg" viewBox="-95 -145 220 150" width="220" height="150" style={{ position: "absolute", left: -95, top: -145, pointerEvents: "auto", cursor: "move" }}>
+                            {/* Dark Green FR-4 PCB: Width 200px, Height 124px from Y=-132 to Y=-8, X=-84 to X=116 */}
+                            <rect x="-84" y="-132" width="200" height="124" rx="8" fill="#15803d" stroke="#166534" strokeWidth="2.5" filter="drop-shadow(0 10px 24px rgba(0,0,0,0.65))" />
 
-                            {/* 4 Corner Gold Mounting Holes */}
-                            <circle cx="-26" cy="-6" r="2" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
-                            <circle cx="58" cy="-6" r="2" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
-                            <circle cx="-26" cy="36" r="2" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
-                            <circle cx="58" cy="36" r="2" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
+                            {/* 4 Corner Gold Mounting Holes with Annular Copper Rings */}
+                            <circle cx="-74" cy="-122" r="3.5" fill="#ca8a04" stroke="#713f12" strokeWidth="1" />
+                            <circle cx="-74" cy="-122" r="1.8" fill="#0f172a" />
+                            <circle cx="106" cy="-122" r="3.5" fill="#ca8a04" stroke="#713f12" strokeWidth="1" />
+                            <circle cx="106" cy="-122" r="1.8" fill="#0f172a" />
+                            <circle cx="-74" cy="-18" r="3.5" fill="#ca8a04" stroke="#713f12" strokeWidth="1" />
+                            <circle cx="-74" cy="-18" r="1.8" fill="#0f172a" />
+                            <circle cx="106" cy="-18" r="3.5" fill="#ca8a04" stroke="#713f12" strokeWidth="1" />
+                            <circle cx="106" cy="-18" r="1.8" fill="#0f172a" />
 
-                            {/* Large Hemispherical White Fresnel Dome with Concentric & Faceted Arcs */}
-                            <circle cx="16" cy="14" r="22" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.8" filter="drop-shadow(0 3px 8px rgba(0,0,0,0.3))" />
-                            <circle cx="16" cy="14" r="17" fill="none" stroke="#cbd5e1" strokeWidth="0.9" />
-                            <circle cx="16" cy="14" r="12" fill="none" stroke="#cbd5e1" strokeWidth="0.9" />
-                            <circle cx="16" cy="14" r="7" fill="none" stroke="#cbd5e1" strokeWidth="0.9" />
-                            <circle cx="16" cy="14" r="3" fill="none" stroke="#cbd5e1" strokeWidth="0.9" />
-                            <path d="M -4 14 Q 16 0 36 14" stroke="#94a3b8" strokeWidth="1" fill="none" />
-                            <path d="M -4 14 Q 16 28 36 14" stroke="#94a3b8" strokeWidth="1" fill="none" />
-                            <line x1="16" y1="-8" x2="16" y2="36" stroke="#94a3b8" strokeWidth="1" />
+                            {/* Dual Large SMD Trimmer Potentiometers (Sensitivity & Time Delay) */}
+                            {/* Left Trimmer (Sx - Sensitivity) */}
+                            <rect x="-68" y="-78" width="16" height="24" rx="2.5" fill="#f59e0b" stroke="#b45309" strokeWidth="1.2" />
+                            <circle cx="-60" cy="-66" r="6" fill="#ca8a04" stroke="#78350f" strokeWidth="1" />
+                            <line x1="-64" y1="-66" x2="-56" y2="-66" stroke="#451a03" strokeWidth="1.8" />
+                            <line x1="-60" y1="-70" x2="-60" y2="-62" stroke="#451a03" strokeWidth="1.8" />
+                            <text x="-60" y="-82" fill="#fde68a" fontSize="5" fontWeight="bold" textAnchor="middle">SENS</text>
 
-                            {/* Dual SMD Trimmer Potentiometers (Sensitivity & Delay) */}
-                            <rect x="-22" y="10" width="8" height="14" rx="1.5" fill="#f59e0b" stroke="#b45309" strokeWidth="0.8" />
-                            <line x1="-20" y1="17" x2="-16" y2="17" stroke="#451a03" strokeWidth="1" />
-                            <rect x="46" y="10" width="8" height="14" rx="1.5" fill="#f59e0b" stroke="#b45309" strokeWidth="0.8" />
-                            <line x1="48" y1="17" x2="52" y2="17" stroke="#451a03" strokeWidth="1" />
+                            {/* Right Trimmer (Tx - Time Delay) */}
+                            <rect x="84" y="-78" width="16" height="24" rx="2.5" fill="#f59e0b" stroke="#b45309" strokeWidth="1.2" />
+                            <circle cx="92" cy="-66" r="6" fill="#ca8a04" stroke="#78350f" strokeWidth="1" />
+                            <line x1="88" y1="-66" x2="96" y2="-66" stroke="#451a03" strokeWidth="1.8" />
+                            <line x1="92" y1="-70" x2="92" y2="-62" stroke="#451a03" strokeWidth="1.8" />
+                            <text x="92" y="-82" fill="#fde68a" fontSize="5" fontWeight="bold" textAnchor="middle">TIME</text>
+
+                            {/* Center: HUGE Hemispherical White Fresnel Dome (Diameter 80px, Radius 40px at (16, -70)) */}
+                            <circle cx="16" cy="-70" r="40" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="2.5" filter="drop-shadow(0 6px 14px rgba(0,0,0,0.35))" />
+                            <circle cx="16" cy="-70" r="33" fill="none" stroke="#cbd5e1" strokeWidth="1.2" />
+                            <circle cx="16" cy="-70" r="26" fill="none" stroke="#cbd5e1" strokeWidth="1.2" />
+                            <circle cx="16" cy="-70" r="19" fill="none" stroke="#cbd5e1" strokeWidth="1.2" />
+                            <circle cx="16" cy="-70" r="12" fill="none" stroke="#cbd5e1" strokeWidth="1.2" />
+                            <circle cx="16" cy="-70" r="5" fill="none" stroke="#cbd5e1" strokeWidth="1.2" />
+                            {/* Geometric Faceted Hexagon/Diamond Grid Lines */}
+                            <path d="M -18 -70 Q 16 -96 50 -70" stroke="#94a3b8" strokeWidth="1.2" fill="none" />
+                            <path d="M -18 -70 Q 16 -44 50 -70" stroke="#94a3b8" strokeWidth="1.2" fill="none" />
+                            <line x1="16" y1="-110" x2="16" y2="-30" stroke="#94a3b8" strokeWidth="1.2" />
+                            <line x1="-24" y1="-70" x2="56" y2="-70" stroke="#94a3b8" strokeWidth="1.2" />
 
                             {/* Silkscreen text */}
-                            <text x="16" y="-4" fill="#bbf7d0" fontSize="5.5" fontWeight="900" textAnchor="middle">PIR MOTION</text>
-                            <text x="16" y="38" fill="rgba(255,255,255,0.7)" fontSize="3.5" fontWeight="700" textAnchor="middle">HC-SR501 • TWINLAB X</text>
+                            <text x="16" y="-118" fill="#bbf7d0" fontSize="8.5" fontWeight="900" textAnchor="middle" letterSpacing="0.05em">PIR MOTION SENSOR</text>
+                            <text x="16" y="-20" fill="rgba(255,255,255,0.8)" fontSize="5.5" fontWeight="700" textAnchor="middle">HC-SR501 • TWINLAB X</text>
+
+                            {/* Black DuPont Connector Block at Y=-14 to Y=-4 */}
+                            <rect x="-6" y="-14" width="44" height="10" rx="2" fill="#18181b" stroke="#3f3f46" strokeWidth="1.2" />
 
                             {/* Pin labels */}
-                            <text x="0" y="40" fill="#ffffff" fontSize="3.5" fontWeight="bold" textAnchor="middle">VCC</text>
-                            <text x="16" y="40" fill="#ffffff" fontSize="3.5" fontWeight="bold" textAnchor="middle">OUT</text>
-                            <text x="32" y="40" fill="#ffffff" fontSize="3.5" fontWeight="bold" textAnchor="middle">GND</text>
+                            <text x="0" y="-16" fill="#cbd5e1" fontSize="4.5" fontWeight="bold" textAnchor="middle">VCC</text>
+                            <text x="16" y="-16" fill="#cbd5e1" fontSize="4.5" fontWeight="bold" textAnchor="middle">OUT</text>
+                            <text x="32" y="-16" fill="#cbd5e1" fontSize="4.5" fontWeight="bold" textAnchor="middle">GND</text>
 
-                            {/* 3 Gold Header Pins at Y=48 */}
-                            <line x1="0" y1="42" x2="0" y2="48" stroke="#ca8a04" strokeWidth="2.8" strokeLinecap="round" />
-                            <line x1="16" y1="42" x2="16" y2="48" stroke="#ca8a04" strokeWidth="2.8" strokeLinecap="round" />
-                            <line x1="32" y1="42" x2="32" y2="48" stroke="#ca8a04" strokeWidth="2.8" strokeLinecap="round" />
+                            {/* 3 Gold Header Pins at Y=0 */}
+                            <rect x="-2.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
+                            <rect x="13.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
+                            <rect x="29.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
                         </svg>
 
-                        {isScanning && <div className="pir-radar-beam" style={{ left: 16, top: 14 }}></div>}
+                        {/* Perfectly Wrapped 80px Circular Fresnel Dome Radar Scanning Animation */}
+                        {isScanning && (
+                            <div className="pir-radar-container" style={{ position: "absolute", left: 16, top: -70, width: 80, height: 80, transform: "translate(-50%, -50%)", pointerEvents: "none" }}>
+                                <div className="pir-radar-beam"></div>
+                                <div className="pir-dome-pulse"></div>
+                            </div>
+                        )}
 
                         {[
                             { name: "VCC", x: 0, is5V: true },
@@ -1846,13 +1926,13 @@ function SmallComponent({
                             <span
                                 key={pin.name}
                                 className={`terminal-pin pin-pir-${pin.name.toLowerCase()} ${hoveredTerminal === `pir_${pin.name}` ? "targeted" : ""}`}
-                                style={{ left: pin.x, top: 48, transform: "translate(-50%, -50%)" }}
+                                style={{ left: pin.x, top: 0, transform: "translate(-50%, -50%)" }}
                                 onMouseEnter={() => setHoveredTerminal(`pir_${pin.name}`)}
                                 onMouseLeave={() => setHoveredTerminal(null)}
-                                onMouseDown={(e) => handleTerminalMouseDown(e, `pir_${pin.name}`, pin.x, 48)}
-                                onMouseUp={(e) => handleTerminalMouseUp(e, pin.x, 48)}
-                                onClick={(e) => handleTerminalPress(e, `pir_${pin.name}`, pin.x, 48)}
-                                onDoubleClick={(e) => handleTerminalAction(e, pin.x, 48)}
+                                onMouseDown={(e) => handleTerminalMouseDown(e, `pir_${pin.name}`, pin.x, 0)}
+                                onMouseUp={(e) => handleTerminalMouseUp(e, pin.x, 0)}
+                                onClick={(e) => handleTerminalPress(e, `pir_${pin.name}`, pin.x, 0)}
+                                onDoubleClick={(e) => handleTerminalAction(e, pin.x, 0)}
                             />
                         ))}
                     </div>

@@ -334,30 +334,30 @@ function Canvas({
                     if (d < minD) { minD = d; bestTarget = pt; }
                 });
             }
-            // DC Hobby Motor (Pos: 0,48, Neg: 48,48)
+            // DC Hobby Motor (Pos: 0, 0, Neg: 48, 0)
             else if (c.type === "motor-dc") {
-                [toWorld(0, 48), toWorld(48, 48)].forEach(pt => {
+                [toWorld(0, 0), toWorld(48, 0)].forEach(pt => {
                     const d = Math.hypot(wx - pt.x, wy - pt.y);
                     if (d < minD) { minD = d; bestTarget = pt; }
                 });
             }
-            // Micro Servo SG90 (GND: 0,48, 5V: 16,48, PWM: 32,48)
+            // Micro Servo SG90 (GND: 0, 0, 5V: 16, 0, PWM: 32, 0)
             else if (c.type === "servo-sg90") {
-                [toWorld(0, 48), toWorld(16, 48), toWorld(32, 48)].forEach(pt => {
+                [toWorld(0, 0), toWorld(16, 0), toWorld(32, 0)].forEach(pt => {
                     const d = Math.hypot(wx - pt.x, wy - pt.y);
                     if (d < minD) { minD = d; bestTarget = pt; }
                 });
             }
-            // HC-SR04 Ultrasonic Distance Sensor (VCC: 0,48, Trig: 16,48, Echo: 32,48, GND: 48,48)
+            // HC-SR04 Ultrasonic Distance Sensor (VCC: 0, 0, Trig: 16, 0, Echo: 32, 0, GND: 48, 0)
             else if (c.type === "sensor-ultrasonic") {
-                [toWorld(0, 48), toWorld(16, 48), toWorld(32, 48), toWorld(48, 48)].forEach(pt => {
+                [toWorld(0, 0), toWorld(16, 0), toWorld(32, 0), toWorld(48, 0)].forEach(pt => {
                     const d = Math.hypot(wx - pt.x, wy - pt.y);
                     if (d < minD) { minD = d; bestTarget = pt; }
                 });
             }
-            // PIR Motion Sensor (VCC: 0,48, OUT: 16,48, GND: 32,48)
+            // PIR Motion Sensor (VCC: 0, 0, OUT: 16, 0, GND: 32, 0)
             else if (c.type === "sensor-pir") {
-                [toWorld(0, 48), toWorld(16, 48), toWorld(32, 48)].forEach(pt => {
+                [toWorld(0, 0), toWorld(16, 0), toWorld(32, 0)].forEach(pt => {
                     const d = Math.hypot(wx - pt.x, wy - pt.y);
                     if (d < minD) { minD = d; bestTarget = pt; }
                 });

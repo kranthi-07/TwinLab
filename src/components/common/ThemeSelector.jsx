@@ -7,30 +7,74 @@ const THEME_OPTIONS = [
     {
         id: "dark",
         name: "Obsidian Dark",
-        desc: "Default titanium carbon & warm amber",
+        desc: "Titanium carbon & aerospace amber",
         icon: "ri-contrast-drop-2-line",
-        colors: ["#090c10", "#ff8a00", "#3b9cff"]
-    },
-    {
-        id: "glassmorphism",
-        name: "Frost Glass",
-        desc: "Frosted aerospace glass & icy aurora",
-        icon: "ri-water-flash-line",
-        colors: ["#06101e", "#38bdf8", "#06b6d4"]
+        category: "Dark",
+        colors: ["#080a0f", "#ff8a00", "#3b9cff"]
     },
     {
         id: "cyberpunk",
-        name: "Cyber Neon",
-        desc: "Synthwave matrix neon cyan & hot magenta",
+        name: "Cyber Neon 2077",
+        desc: "Synthwave neon cyan & hot magenta",
         icon: "ri-flashlight-line",
-        colors: ["#070312", "#00f5ff", "#ff007f"]
+        category: "Dark",
+        colors: ["#06020f", "#00f0ff", "#ff007f"]
+    },
+    {
+        id: "emerald",
+        name: "Tactical Matrix",
+        desc: "Phosphor CRT radar green & mil-spec",
+        icon: "ri-radar-line",
+        category: "Dark",
+        colors: ["#030d06", "#10b981", "#34d399"]
+    },
+    {
+        id: "abyss",
+        name: "Oceanic Abyss",
+        desc: "Bioluminescent deep sea cyan & navy",
+        icon: "ri-water-flash-line",
+        category: "Dark",
+        colors: ["#020914", "#06b6d4", "#38bdf8"]
+    },
+    {
+        id: "solar",
+        name: "Solar Industrial",
+        desc: "Molten solar gold & charcoal gunmetal",
+        icon: "ri-fire-line",
+        category: "Dark",
+        colors: ["#0d0b09", "#f59e0b", "#ef4444"]
     },
     {
         id: "light",
-        name: "Minimal Light",
-        desc: "Clean Scandinavian daylight & slate",
+        name: "Nordic Daylight",
+        desc: "Clean architectural white & blueprint blue",
         icon: "ri-sun-line",
-        colors: ["#ffffff", "#2563eb", "#ea580c"]
+        category: "Light",
+        colors: ["#f8fafc", "#1d4ed8", "#ea580c"]
+    },
+    {
+        id: "paper",
+        name: "Laboratory Clean",
+        desc: "Clinical pure white & circuit emerald",
+        icon: "ri-flask-line",
+        category: "Light",
+        colors: ["#ffffff", "#059669", "#0284c7"]
+    },
+    {
+        id: "solar-light",
+        name: "Amber Blueprint",
+        desc: "Technical drafting parchment & sepia",
+        icon: "ri-draft-line",
+        category: "Light",
+        colors: ["#fdfbf7", "#b45309", "#c2410c"]
+    },
+    {
+        id: "cyber-light",
+        name: "Synthwave Day",
+        desc: "High-key pastel violet & cyan neon",
+        icon: "ri-sun-cloudy-line",
+        category: "Light",
+        colors: ["#f8f7ff", "#7c3aed", "#0284c7"]
     }
 ];
 
