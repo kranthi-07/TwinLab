@@ -36,6 +36,36 @@ function App() {
         return () => window.removeEventListener("hashchange", handleHashChange);
     }, []);
 
+    // Global Top-Level Shortcuts: Ctrl+L (Launch Workspace), Ctrl+D (Launch Code Editor)
+    useEffect(() => {
+        const handleGlobalShortcuts = (e) => {
+            const isCtrl = e.ctrlKey || e.metaKey;
+            const isInput = e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable;
+            if (isInput) return;
+
+            // Ctrl+L: Launch Workspace from anywhere
+            if (isCtrl && (e.key === "l" || e.key === "L")) {
+                e.preventDefault();
+                navigateTo("workspace");
+                return;
+            }
+
+            // Ctrl+D: Launch Code Editor from anywhere
+            if (isCtrl && (e.key === "d" || e.key === "D") && !e.shiftKey && !e.altKey) {
+                if (view !== "workspace") {
+                    e.preventDefault();
+                    navigateTo("workspace");
+                    setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent("twinlab:toggle_code_editor"));
+                    }, 100);
+                }
+            }
+        };
+
+        window.addEventListener("keydown", handleGlobalShortcuts);
+        return () => window.removeEventListener("keydown", handleGlobalShortcuts);
+    }, [view]);
+
     return (
         <ErrorBoundary>
             <AnimatePresence mode="wait">

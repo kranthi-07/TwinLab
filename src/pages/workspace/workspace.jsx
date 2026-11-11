@@ -16,9 +16,76 @@ import ComponentSearchModal from "../../components/workspace/SearchModal/Compone
 import { McuExecutionSession, DEFAULT_SKETCHES } from "../../simulation/mcuRuntime";
 import cloudProjectService from "../../services/cloudProjectService";
 import authService from "../../services/authService";
+import { soundManager } from "../../utils/audioManager";
 
 const STORAGE_KEY = "twinlab_active_project";
 const DRAFT_KEY = "twinlab_workspace_draft";
+
+// Symmetrical Centering Algorithm: takes circuit wherever created in space and centers it symmetrically in viewport
+function calculateSymmetricalCenter(compsList, wiresList) {
+    if (!compsList || compsList.length === 0) {
+        return { pan: { x: 0, y: 0 }, zoom: 1 };
+    }
+
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    compsList.forEach(c => {
+        const compW = c.type?.startsWith("breadboard") ? (c.type === "breadboard-full" ? 560 : 320) :
+                      c.type?.includes("arduino") ? 140 :
+                      c.type?.includes("esp32") ? 100 :
+                      c.type === "sensor-pir" ? 110 :
+                      c.type === "sensor-ultrasonic" ? 90 :
+                      c.type === "motor-dc" ? 96 :
+                      c.type?.startsWith("lcd") ? 180 : 70;
+        const compH = c.type?.startsWith("breadboard") ? 288 :
+                      c.type?.includes("arduino") ? 100 :
+                      c.type?.includes("esp32") ? 130 :
+                      c.type === "sensor-pir" ? 80 :
+                      c.type === "sensor-ultrasonic" ? 60 :
+                      c.type === "motor-dc" ? 96 :
+                      c.type?.startsWith("lcd") ? 75 : 70;
+        minX = Math.min(minX, c.x || 0);
+        maxX = Math.max(maxX, (c.x || 0) + compW);
+        minY = Math.min(minY, c.y || 0);
+        maxY = Math.max(maxY, (c.y || 0) + compH);
+    });
+
+    if (wiresList && wiresList.length > 0) {
+        wiresList.forEach(w => {
+            (w.points || []).forEach(pt => {
+                minX = Math.min(minX, pt.x);
+                maxX = Math.max(maxX, pt.x);
+                minY = Math.min(minY, pt.y);
+                maxY = Math.max(maxY, pt.y);
+            });
+        });
+    }
+
+    const circuitCenterX = (minX + maxX) / 2;
+    const circuitCenterY = (minY + maxY) / 2;
+    const circuitW = Math.max(120, maxX - minX);
+    const circuitH = Math.max(120, maxY - minY);
+
+    const viewW = typeof window !== "undefined" ? (window.innerWidth || 1200) : 1200;
+    const viewH = typeof window !== "undefined" ? (window.innerHeight || 800) : 800;
+
+    let optimalZoom = 1;
+    const availW = viewW * 0.78;
+    const availH = viewH * 0.72;
+    if (circuitW > availW || circuitH > availH) {
+        const scaleX = availW / circuitW;
+        const scaleY = availH / circuitH;
+        optimalZoom = Math.max(0.4, Math.min(1, Math.min(scaleX, scaleY)));
+        optimalZoom = Math.round(optimalZoom * 20) / 20;
+    }
+
+    return {
+        zoom: optimalZoom,
+        pan: {
+            x: Math.round(viewW / 2 - circuitCenterX * optimalZoom),
+            y: Math.round(viewH / 2 - circuitCenterY * optimalZoom)
+        }
+    };
+}
 
 function Workspace({ onBackToHome }) {
     // Load initial project: check saved project or draft on reload
@@ -96,7 +163,28 @@ function Workspace({ onBackToHome }) {
     const [routingMode, setRoutingMode] = useState("curved"); // "curved" | "manhattan" | "straight"
 
     // Infinite Workspace Viewport, Zoom, Lock & Focus Mode
-    const [viewport, setViewport] = useState({ pan: { x: 0, y: 0 }, zoom: 1 });
+    // Symmetrical Auto-Center: wherever circuit is created in space, centers it right on screen
+    const [viewport, setViewport] = useState(() => {
+        try {
+            const draft = sessionStorage.getItem(DRAFT_KEY);
+            const saved = localStorage.getItem(STORAGE_KEY);
+            const parsed = draft ? JSON.parse(draft) : (saved ? JSON.parse(saved) : null);
+            const initComps = parsed?.components?.filter(c => c.id !== "breadboard-default") || [];
+            const initWires = parsed?.wires || [];
+            if (initComps.length > 0) {
+                return calculateSymmetricalCenter(initComps, initWires);
+            }
+        } catch (e) {}
+        return { pan: { x: 0, y: 0 }, zoom: 1 };
+    });
+
+    // Auto-center circuit symmetrically on initial workspace load so user never sees empty screen
+    useEffect(() => {
+        if (components && components.length > 0) {
+            const symmetrical = calculateSymmetricalCenter(components, wires);
+            setViewport(symmetrical);
+        }
+    }, []);
     const [isZoomLocked, setIsZoomLocked] = useState(false);
     const [isFocusMode, setIsFocusMode] = useState(false);
     const [isSimulating, setIsSimulating] = useState(false);
@@ -113,6 +201,13 @@ function Workspace({ onBackToHome }) {
     const [serialLogs, setSerialLogs] = useState([]);
     const [isFirmwareExecuting, setIsFirmwareExecuting] = useState(false);
     const mcuSessionsRef = useRef({});
+
+    // Listen to global toggle code editor event (Ctrl+D from anywhere)
+    useEffect(() => {
+        const handleToggleCode = () => setIsCodeEditorOpen(true);
+        window.addEventListener("twinlab:toggle_code_editor", handleToggleCode);
+        return () => window.removeEventListener("twinlab:toggle_code_editor", handleToggleCode);
+    }, []);
 
     // Available MCU boards on canvas
     const availableMcuBoards = useMemo(() => {
@@ -134,6 +229,9 @@ function Workspace({ onBackToHome }) {
     // Sync MCU runtime when simulation starts or stops
     useEffect(() => {
         if (!isSimulating) {
+            // Stop all audio synthesis immediately on simulation stop
+            soundManager.stopAll();
+
             // Stop all MCU execution sessions
             Object.values(mcuSessionsRef.current).forEach(session => session.stop && session.stop());
             mcuSessionsRef.current = {};
@@ -313,6 +411,7 @@ function Workspace({ onBackToHome }) {
             ...projectMeta,
             components,
             wires,
+            viewport,
             status: "Saved",
             lastEdited: "Just now",
             updatedAt: new Date().toISOString()
@@ -658,10 +757,34 @@ function Workspace({ onBackToHome }) {
                 return;
             }
 
-            // 7. DUPLICATE: Ctrl+D / Cmd+D
-            if (isCtrl && (e.key === "d" || e.key === "D")) {
+            // 7. LAUNCH / TOGGLE CODE EDITOR: Ctrl+D / Cmd+D
+            if (isCtrl && (e.key === "d" || e.key === "D") && !e.shiftKey && !e.altKey) {
+                e.preventDefault();
+                setIsCodeEditorOpen(prev => !prev);
+                setToastMessage(isCodeEditorOpen ? "Firmware Editor Closed (Ctrl+D)" : "⚡ Firmware Studio Opened (Ctrl+D)");
+                setTimeout(() => setToastMessage(""), 1600);
+                return;
+            }
+
+            // DUPLICATE COMPONENT: Alt+D or Ctrl+Shift+D
+            if ((e.altKey && (e.key === "d" || e.key === "D")) || (isCtrl && e.shiftKey && (e.key === "d" || e.key === "D"))) {
                 e.preventDefault();
                 handleDuplicate();
+                return;
+            }
+
+            // LAUNCH / FOCUS WORKSPACE: Ctrl+L / Cmd+L
+            if (isCtrl && (e.key === "l" || e.key === "L")) {
+                e.preventDefault();
+                setToastMessage("⚡ Workspace Active (Ctrl+L)");
+                setTimeout(() => setToastMessage(""), 1500);
+                return;
+            }
+
+            // TOGGLE SERIAL MONITOR: Ctrl+M / Cmd+M
+            if (isCtrl && (e.key === "m" || e.key === "M")) {
+                e.preventDefault();
+                setIsSerialOpen(prev => !prev);
                 return;
             }
 
@@ -1075,28 +1198,7 @@ function Workspace({ onBackToHome }) {
     };
 
     const handleResetView = () => {
-        if (components.length > 0) {
-            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-            components.forEach(c => {
-                minX = Math.min(minX, c.x);
-                maxX = Math.max(maxX, c.x + (c.type?.startsWith("breadboard") ? 560 : 80));
-                minY = Math.min(minY, c.y);
-                maxY = Math.max(maxY, c.y + (c.type?.startsWith("breadboard") ? 288 : 80));
-            });
-            const centerX = (minX + maxX) / 2;
-            const centerY = (minY + maxY) / 2;
-            const viewW = window.innerWidth || 1200;
-            const viewH = window.innerHeight || 800;
-            setViewport({
-                zoom: 1,
-                pan: {
-                    x: Math.round(viewW / 2 - centerX),
-                    y: Math.round(viewH / 2 - centerY)
-                }
-            });
-        } else {
-            setViewport({ pan: { x: 0, y: 0 }, zoom: 1 });
-        }
+        setViewport(calculateSymmetricalCenter(components, wires));
     };
 
     const handlePanTo = ({ x, y }) => {
@@ -1307,6 +1409,26 @@ function Workspace({ onBackToHome }) {
                         isSerialOpen={isSerialOpen}
                         baudRate={baudRate}
                         onChangeBaudRate={setBaudRate}
+                        serialLogs={serialLogs}
+                        onClearSerialLogs={() => setSerialLogs([])}
+                        onSendSerialInput={(text) => {
+                            if (!text || !text.trim()) return;
+                            const now = new Date();
+                            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+                            const logItem = {
+                                id: `serial-in-${Date.now()}`,
+                                timestamp: timeStr,
+                                source: "USER_TX",
+                                text: `> ${text.trim()}`,
+                                type: "input"
+                            };
+                            setSerialLogs(prev => [...prev.slice(-150), logItem]);
+                            if (activeTargetBoard && mcuSessionsRef.current[activeTargetBoard.id]) {
+                                try {
+                                    mcuSessionsRef.current[activeTargetBoard.id].receiveSerialInput?.(text.trim());
+                                } catch (e) {}
+                            }
+                        }}
                     />
                 )}
             </AnimatePresence>

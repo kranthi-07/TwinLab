@@ -1100,13 +1100,14 @@
 .compact-two-row-bar {
     width: max-content;
     min-width: 320px;
-    max-width: min(720px, calc(100vw - 120px));
+    max-width: min(960px, calc(100vw - 100px));
     padding: 7px 14px;
     flex-direction: column;
     align-items: stretch;
     gap: 6px;
     margin-left: 80px; /* Offset right so it never overlaps the left sidebar */
     margin-top: 4px;
+    overflow: visible;
 }
 
 .inspector-two-rows {
@@ -1254,12 +1255,12 @@
     color: #0f172a;
 }
 
-/* ROW 2: Values & Properties */
+/* ROW 2: Values & Properties with Auto-wrapping to prevent overflow */
 .inspector-row-bottom {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 8px 12px;
     min-height: 32px;
 }
 
@@ -1942,4 +1943,295 @@
 
 .battery-switch-toggle-btn.is-off .switch-status-dot {
     background: #ef4444;
+}
+
+/* Electrolytic Cap & Transistor Inspector Controls */
+.inspector-elec-cap-controls,
+.inspector-transistor-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.inspector-label-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.inspector-label-inline i {
+    font-size: 13px;
+    color: var(--project-accent, #FF8A00);
+}
+
+.compact-pill-selector-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(15, 23, 42, 0.4);
+    padding: 3px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.compact-pill-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.compact-pill-btn:hover {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.compact-pill-btn.active {
+    background: var(--project-accent, #FF8A00);
+    color: #0f172a;
+    font-weight: 700;
+    box-shadow: 0 1px 4px rgba(255, 138, 0, 0.35);
+}
+
+.inspector-separator {
+    width: 1px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.transistor-pinout-strip {
+    display: flex;
+    align-items: center;
+}
+
+.pinout-tag {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.02em;
+}
+
+.pinout-tag.mosfet-tag {
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+}
+
+.pinout-tag.bjt-tag {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: #fbbf24;
+}
+
+/* ============================================================
+   DC MOTOR 2D/3D & 360° JOYSTICK CONTROLS
+============================================================ */
+.inspector-motor-controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.motor-mode-toggle-group {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+}
+
+.motor-mode-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.motor-mode-btn:hover {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.motor-mode-btn.active {
+    background: var(--project-accent, #FF8A00);
+    color: #0f172a;
+    font-weight: 800;
+    box-shadow: 0 1px 4px rgba(255, 138, 0, 0.35);
+}
+
+.motor-joystick-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.joystick-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.joystick-angle-badge {
+    font-size: 10px;
+    font-family: monospace;
+    font-weight: 800;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+.joystick-control-cluster {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.motor-joystick-pad {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, #1e293b 0%, #090d16 85%);
+    border: 1.5px solid rgba(56, 189, 248, 0.4);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.7), 0 0 10px rgba(56, 189, 248, 0.2);
+    cursor: crosshair;
+    user-select: none;
+    touch-action: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.motor-joystick-pad:hover,
+.motor-joystick-pad.active-drag {
+    border-color: #38bdf8;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8), 0 0 14px rgba(56, 189, 248, 0.4);
+}
+
+.joystick-crosshair-h {
+    position: absolute;
+    top: 50%;
+    left: 4px;
+    right: 4px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.joystick-crosshair-v {
+    position: absolute;
+    left: 50%;
+    top: 4px;
+    bottom: 4px;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.joystick-center-well {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    pointer-events: none;
+}
+
+.joystick-tick {
+    position: absolute;
+    font-size: 7px;
+    font-family: monospace;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.4);
+    pointer-events: none;
+    line-height: 1;
+}
+
+.tick-0 { top: 2px; left: 50%; transform: translateX(-50%); }
+.tick-90 { right: 2px; top: 50%; transform: translateY(-50%); }
+.tick-180 { bottom: 2px; left: 50%; transform: translateX(-50%); }
+.tick-270 { left: 2px; top: 50%; transform: translateY(-50%); }
+
+.motor-joystick-thumb {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #94a3b8 0%, #334155 70%, #0f172a 100%);
+    border: 1.5px solid #38bdf8;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), 0 0 6px rgba(56, 189, 248, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    transition: transform 0.05s linear;
+}
+
+.thumb-led-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #38bdf8;
+    box-shadow: 0 0 4px #38bdf8;
+}
+
+.joystick-presets-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+}
+
+.joystick-snap-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.joystick-snap-btn:hover {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.joystick-snap-btn.snap-active {
+    background: rgba(56, 189, 248, 0.16);
+    border-color: rgba(56, 189, 248, 0.45);
+    color: #38bdf8;
+    font-weight: 800;
 }

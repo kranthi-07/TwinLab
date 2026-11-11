@@ -225,7 +225,6 @@ function WireLayer({
                                         e.stopPropagation();
                                         onStartWireAtPoint && onStartWireAtPoint({ x: pt.x, y: pt.y });
                                     }}
-                                    title={isEndpoint ? "Wire Terminal (Click/Double-click to branch wire)" : "Bend Waypoint (Drag to move, Double-click to branch wire)"}
                                 />
                             );
                         })}

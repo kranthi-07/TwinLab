@@ -199,24 +199,614 @@ const itemVariants = {
 
 // ============================================================
 // DYNAMIC REAL PROJECT LIVE CIRCUIT MINI PREVIEW
-// Accurately renders the user's actual saved components and wires!
+// 90%-100% Close-to-Real Hardware Renderers with Symmetrical Centering
 // ============================================================
+function renderMiniComponent(c, id) {
+    const cx = c.x || 0;
+    const cy = c.y || 0;
+    const rot = c.rotation || 0;
+
+    // 1. Breadboards (Full, Half, Mini)
+    if (c.type?.startsWith("breadboard")) {
+        const bbW = c.type === "breadboard-full" ? 540 : c.type === "breadboard-mini" ? 180 : 320;
+        const bbH = c.type === "breadboard-mini" ? 95 : 110;
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                {/* Real Cream Beveled Chassis */}
+                <rect width={bbW} height={bbH} rx="6" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.5" />
+                <rect x="3" y="3" width={bbW - 6} height={bbH - 6} rx="4" fill="none" stroke="#e2e8f0" strokeWidth="1" />
+                {/* Power Bus Rails (+ Red / - Blue) */}
+                <line x1="12" y1="12" x2={bbW - 12} y2="12" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round" />
+                <line x1="12" y1="20" x2={bbW - 12} y2="20" stroke="#3b82f6" strokeWidth="1.8" strokeLinecap="round" />
+                <line x1="12" y1={bbH - 20} x2={bbW - 12} y2={bbH - 20} stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round" />
+                <line x1="12" y1={bbH - 12} x2={bbW - 12} y2={bbH - 12} stroke="#3b82f6" strokeWidth="1.8" strokeLinecap="round" />
+                {/* Center IC DIP Valley Trough */}
+                <rect x="8" y={bbH / 2 - 5} width={bbW - 16} height="10" rx="2" fill="#e2e8f0" stroke="#cbd5e1" strokeWidth="0.8" />
+                {/* Terminal Tie Dots across rows */}
+                {[...Array(Math.floor(bbW / 18))].map((_, i) => (
+                    <g key={i} transform={`translate(${16 + i * 18}, 0)`}>
+                        <circle cx="0" cy="30" r="1.2" fill="#64748b" />
+                        <circle cx="0" cy="36" r="1.2" fill="#64748b" />
+                        <circle cx="0" cy="42" r="1.2" fill="#64748b" />
+                        <circle cx="0" cy={bbH - 42} r="1.2" fill="#64748b" />
+                        <circle cx="0" cy={bbH - 36} r="1.2" fill="#64748b" />
+                        <circle cx="0" cy={bbH - 30} r="1.2" fill="#64748b" />
+                    </g>
+                ))}
+                <text x={bbW / 2} y={bbH / 2 + 2.5} fill="#94a3b8" fontSize="6" fontWeight="bold" textAnchor="middle" letterSpacing="0.1em">BREADBOARD</text>
+            </g>
+        );
+    }
+
+    // 2. Arduino Uno / Mega / Nano
+    if (c.type?.includes("arduino")) {
+        const isNano = c.type === "arduino-nano";
+        if (isNano) {
+            return (
+                <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                    <rect width="80" height="36" rx="4" fill="#008784" stroke="#004d40" strokeWidth="1.2" />
+                    <rect x="0" y="8" width="14" height="20" rx="1.5" fill="#cbd5e1" stroke="#64748b" strokeWidth="0.8" />
+                    <rect x="34" y="10" width="16" height="16" rx="2" fill="#09090b" transform="rotate(45 42 18)" />
+                    <rect x="4" y="2" width="72" height="4" fill="#0f172a" />
+                    <rect x="4" y="30" width="72" height="4" fill="#0f172a" />
+                    <circle cx="22" cy="18" r="2" fill="#ef4444" />
+                    <circle cx="68" cy="14" r="1.5" fill="#10b981" />
+                    <text x="56" y="22" fill="#ffffff" fontSize="5" fontWeight="900">NANO</text>
+                </g>
+            );
+        }
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                {/* Official Teal Arduino PCB */}
+                <rect width="138" height="98" rx="6" fill="#008784" stroke="#004d40" strokeWidth="1.5" />
+                {/* Silver USB-B Jack */}
+                <rect x="0" y="10" width="24" height="22" rx="2" fill="#e2e8f0" stroke="#64748b" strokeWidth="1" />
+                <rect x="4" y="14" width="16" height="14" rx="1" fill="#ffffff" stroke="#94a3b8" strokeWidth="0.8" />
+                {/* Black DC Barrel Jack with Center Pin */}
+                <rect x="0" y="66" width="28" height="22" rx="2" fill="#0f172a" stroke="#334155" strokeWidth="1" />
+                <circle cx="14" cy="77" r="4" fill="#64748b" />
+                <circle cx="14" cy="77" r="1.5" fill="#000000" />
+                {/* ATmega328P DIP-28 Chip & Socket */}
+                <rect x="42" y="40" width="56" height="18" rx="2" fill="#09090b" stroke="#27272a" strokeWidth="1" />
+                <circle cx="45" cy="49" r="1.8" fill="#3f3f46" />
+                <text x="70" y="52" fill="#ffffff" fontSize="6.5" fontWeight="bold" textAnchor="middle">ATmega328P</text>
+                {/* 16.000 MHz Crystal Oscillator */}
+                <ellipse cx="38" cy="24" rx="7" ry="4" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="0.8" />
+                {/* Dual Female Header Strips (Digital top, Power/Analog bottom) */}
+                <rect x="34" y="4" width="98" height="9" rx="1.5" fill="#18181b" stroke="#27272a" strokeWidth="0.8" />
+                <rect x="34" y="85" width="98" height="9" rx="1.5" fill="#18181b" stroke="#27272a" strokeWidth="0.8" />
+                {/* Reset Pushbutton */}
+                <circle cx="28" cy="38" r="4.5" fill="#ef4444" stroke="#991b1b" strokeWidth="0.8" />
+                {/* Status LEDs (PWR Green, Pin 13 Yellow, TX/RX) */}
+                <circle cx="120" cy="20" r="2.8" fill="#10b981" filter="drop-shadow(0 0 3px #10b981)" />
+                <circle cx="120" cy="32" r="2.8" fill="#f59e0b" filter="drop-shadow(0 0 3px #f59e0b)" />
+                <text x="74" y="74" fill="#ffffff" fontSize="8" fontWeight="900" textAnchor="middle" letterSpacing="0.08em">ARDUINO UNO</text>
+            </g>
+        );
+    }
+
+    // 3. ESP32 DevKit / ESP32-S3
+    if (c.type?.includes("esp32")) {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                {/* Matte Black PCB */}
+                <rect width="90" height="130" rx="5" fill="#18181b" stroke="#27272a" strokeWidth="1.5" />
+                {/* Gold PCB Meander Antenna at top */}
+                <path d="M 28 6 L 28 14 L 36 14 L 36 6 L 44 6 L 44 14 L 52 14 L 52 6 L 60 6" fill="none" stroke="#d97706" strokeWidth="1.5" strokeLinecap="round" />
+                {/* Silver RF Metal Shield Can */}
+                <rect x="18" y="20" width="54" height="46" rx="3" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1" />
+                <text x="45" y="42" fill="#334155" fontSize="6.5" fontWeight="900" textAnchor="middle">ESPRESSIF</text>
+                <text x="45" y="52" fill="#475569" fontSize="6" fontWeight="bold" textAnchor="middle">ESP32-S3</text>
+                {/* USB-C Receptacle at bottom */}
+                <rect x="34" y="118" width="22" height="12" rx="2" fill="#94a3b8" stroke="#475569" strokeWidth="1" />
+                {/* EN & BOOT gold tactile switches */}
+                <circle cx="22" cy="116" r="3.5" fill="#d97706" />
+                <circle cx="68" cy="116" r="3.5" fill="#d97706" />
+                {/* Dual 19-Pin Black Headers along left and right */}
+                <rect x="4" y="10" width="8" height="110" rx="1" fill="#09090b" stroke="#27272a" strokeWidth="0.8" />
+                <rect x="78" y="10" width="8" height="110" rx="1" fill="#09090b" stroke="#27272a" strokeWidth="0.8" />
+                {/* PWR Red and GPIO Blue LEDs */}
+                <circle cx="24" cy="80" r="2.5" fill="#ef4444" filter="drop-shadow(0 0 3px #ef4444)" />
+                <circle cx="66" cy="80" r="2.5" fill="#3b82f6" filter="drop-shadow(0 0 3px #3b82f6)" />
+            </g>
+        );
+    }
+
+    // 4. PIR Motion Sensor (HC-SR501)
+    if (c.type === "sensor-pir") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <rect width="105" height="75" rx="5" fill="#15803d" stroke="#166534" strokeWidth="1.5" />
+                <circle cx="8" cy="8" r="3" fill="#ca8a04" stroke="#78350f" strokeWidth="0.8" />
+                <circle cx="97" cy="8" r="3" fill="#ca8a04" stroke="#78350f" strokeWidth="0.8" />
+                <circle cx="8" cy="67" r="3" fill="#ca8a04" stroke="#78350f" strokeWidth="0.8" />
+                <circle cx="97" cy="67" r="3" fill="#ca8a04" stroke="#78350f" strokeWidth="0.8" />
+                {/* Concentric Faceted Fresnel Dome Lens */}
+                <circle cx="52.5" cy="36" r="28" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.5" />
+                <circle cx="52.5" cy="36" r="21" fill="none" stroke="#e2e8f0" strokeWidth="1" />
+                <circle cx="52.5" cy="36" r="14" fill="none" stroke="#e2e8f0" strokeWidth="1" />
+                <circle cx="52.5" cy="36" r="7" fill="none" stroke="#cbd5e1" strokeWidth="1" />
+                <line x1="24.5" y1="36" x2="80.5" y2="36" stroke="#e2e8f0" strokeWidth="0.8" />
+                <line x1="52.5" y1="8" x2="52.5" y2="64" stroke="#e2e8f0" strokeWidth="0.8" />
+                {/* Dual Orange Sensitivity & Time Trimmers */}
+                <rect x="12" y="28" width="10" height="16" rx="2" fill="#ea580c" />
+                <circle cx="17" cy="36" r="3" fill="#fb923c" />
+                <rect x="83" y="28" width="10" height="16" rx="2" fill="#ea580c" />
+                <circle cx="88" cy="36" r="3" fill="#fb923c" />
+                {/* 3 Header Pins at bottom */}
+                <rect x="44" y="68" width="17" height="7" rx="1" fill="#0f172a" />
+                <circle cx="47" cy="72" r="1.5" fill="#ca8a04" />
+                <circle cx="52.5" cy="72" r="1.5" fill="#ca8a04" />
+                <circle cx="58" cy="72" r="1.5" fill="#ca8a04" />
+                <text x="52.5" y="14" fill="#ffffff" fontSize="4.5" fontWeight="900" textAnchor="middle" letterSpacing="0.06em">PIR MOTION SENSOR</text>
+            </g>
+        );
+    }
+
+    // 5. Ultrasonic Sensor (HC-SR04)
+    if (c.type === "sensor-ultrasonic") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <rect width="84" height="48" rx="4" fill="#0284c7" stroke="#0369a1" strokeWidth="1.2" />
+                {/* Dual Aluminum Transducer Cylinders (T and R) */}
+                <circle cx="22" cy="22" r="16" fill="#e2e8f0" stroke="#64748b" strokeWidth="1.5" />
+                <circle cx="22" cy="22" r="12" fill="#0f172a" />
+                <circle cx="62" cy="22" r="16" fill="#e2e8f0" stroke="#64748b" strokeWidth="1.5" />
+                <circle cx="62" cy="22" r="12" fill="#0f172a" />
+                <text x="22" y="26" fill="#ffffff" fontSize="9" fontWeight="900" textAnchor="middle">T</text>
+                <text x="62" y="26" fill="#ffffff" fontSize="9" fontWeight="900" textAnchor="middle">R</text>
+                {/* Crystal Oscillator */}
+                <rect x="38" y="18" width="8" height="14" rx="1.5" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="0.8" />
+                {/* 4 Header Pins at bottom */}
+                <rect x="32" y="42" width="20" height="6" rx="1" fill="#0f172a" />
+                <circle cx="35" cy="45" r="1.2" fill="#ca8a04" />
+                <circle cx="39" cy="45" r="1.2" fill="#ca8a04" />
+                <circle cx="43" cy="45" r="1.2" fill="#ca8a04" />
+                <circle cx="47" cy="45" r="1.2" fill="#ca8a04" />
+                <text x="42" y="10" fill="#ffffff" fontSize="4" fontWeight="bold" textAnchor="middle">HC-SR04</text>
+            </g>
+        );
+    }
+
+    // 6. Mabuchi 130 DC Motor (Matching Image 1: Bare Axle or Propeller)
+    if (c.type === "motor-dc") {
+        const isAxle = c.accessory === "axle";
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                {/* Brushed Steel Can (Diameter 80px centered at 24, -58) */}
+                <circle cx="24" cy="-58" r="40" fill="#94a3b8" stroke="#475569" strokeWidth="2" />
+                <circle cx="24" cy="-58" r="36" fill="#cbd5e1" />
+                <circle cx="24" cy="-58" r="32" fill="#64748b" opacity="0.15" />
+                {/* Stamped Ventilation Louvers */}
+                <path d="M -8 -66 C -12 -62, -12 -54, -8 -50" stroke="#334155" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                <path d="M 56 -66 C 60 -62, 60 -54, 56 -50" stroke="#334155" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                {/* Two Threaded M2 Screw Mounting Holes */}
+                <circle cx="8" cy="-58" r="2.8" fill="#1e293b" stroke="#475569" strokeWidth="0.8" />
+                <circle cx="40" cy="-58" r="2.8" fill="#1e293b" stroke="#475569" strokeWidth="0.8" />
+                {/* Center Raised Zinc Collar Boss */}
+                <circle cx="24" cy="-58" r="14" fill="#f8fafc" stroke="#64748b" strokeWidth="1.5" />
+                {/* Sintered Bronze Bushing */}
+                <circle cx="24" cy="-58" r="7" fill="#d97706" stroke="#92400e" strokeWidth="1" />
+                {/* Hardened Steel Axle Shaft */}
+                <circle cx="24" cy="-58" r="3.2" fill="#334155" />
+                {/* 3-Blade Aviation Propeller (if not bare axle) */}
+                {!isAxle && (
+                    <g transform="translate(24, -58)">
+                        <path d="M 0 0 C -5 -16, -10 -28, 0 -34 C 10 -28, 5 -16, 0 0" fill="#0ea5e9" stroke="#0284c7" strokeWidth="1" />
+                        <path d="M 0 0 C -5 -16, -10 -28, 0 -34 C 10 -28, 5 -16, 0 0" fill="#0ea5e9" stroke="#0284c7" strokeWidth="1" transform="rotate(120)" />
+                        <path d="M 0 0 C -5 -16, -10 -28, 0 -34 C 10 -28, 5 -16, 0 0" fill="#0ea5e9" stroke="#0284c7" strokeWidth="1" transform="rotate(240)" />
+                        <circle cx="0" cy="0" r="6" fill="#0284c7" stroke="#ffffff" strokeWidth="1" />
+                    </g>
+                )}
+                {/* Flexible Hookup Leads to (0, 0) and (48, 0) */}
+                <path d="M 10 -35 C 6 -15, 2 -8, 0 0" stroke="#ef4444" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                <path d="M 38 -35 C 42 -15, 46 -8, 48 0" stroke="#18181b" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                <circle cx="0" cy="0" r="3" fill="#ca8a04" stroke="#78350f" strokeWidth="0.8" />
+                <circle cx="48" cy="0" r="3" fill="#ca8a04" stroke="#78350f" strokeWidth="0.8" />
+                <text x="24" y="-84" fill="#ffffff" fontSize="4.5" fontWeight="900" textAnchor="middle">130 DC MOTOR</text>
+            </g>
+        );
+    }
+
+    // 6b. TT Geared DC Motor (Yellow BO Motor - Image 2)
+    if (c.type === "motor-geared" || c.type === "motor-bo") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                {/* Yellow ABS Gearbox Body */}
+                <rect x="-6" y="-98" width="60" height="52" rx="5" fill="#facc15" stroke="#ca8a04" strokeWidth="1.8" />
+                {/* Assembly Screws on Gearbox */}
+                <circle cx="0" cy="-92" r="2" fill="#e2e8f0" stroke="#64748b" strokeWidth="0.6" />
+                <circle cx="48" cy="-92" r="2" fill="#e2e8f0" stroke="#64748b" strokeWidth="0.6" />
+                <circle cx="48" cy="-52" r="2" fill="#e2e8f0" stroke="#64748b" strokeWidth="0.6" />
+                {/* White Nylon D-Shaft */}
+                <circle cx="24" cy="-72" r="10" fill="#eab308" stroke="#ca8a04" strokeWidth="1" />
+                <circle cx="24" cy="-72" r="6.5" fill="#ffffff" stroke="#cbd5e1" strokeWidth="0.8" />
+                <rect x="22" y="-78.5" width="4" height="13" fill="#e2e8f0" />
+                <circle cx="24" cy="-72" r="1.5" fill="#64748b" />
+                {/* Rear 130 DC Motor Casing */}
+                <rect x="6" y="-46" width="36" height="24" rx="3" fill="#cbd5e1" stroke="#64748b" strokeWidth="1.2" />
+                {/* Clear Plastic Retention Strap (Translucent Clip) */}
+                <rect x="3" y="-39" width="42" height="9" rx="2" fill="rgba(241,245,249,0.55)" stroke="#94a3b8" strokeWidth="0.8" />
+                {/* Endbell Solder Terminals */}
+                <rect x="12" y="-22" width="24" height="5" rx="1.5" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="0.8" />
+                {/* Flexible Hookup Leads */}
+                <path d="M 15 -18 C 10 -10, 4 -5, 0 0" stroke="#ef4444" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                <path d="M 33 -18 C 38 -10, 44 -5, 48 0" stroke="#18181b" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                <circle cx="0" cy="0" r="3" fill="#ca8a04" stroke="#78350f" strokeWidth="0.8" />
+                <circle cx="48" cy="0" r="3" fill="#ca8a04" stroke="#78350f" strokeWidth="0.8" />
+                <text x="24" y="-103" fill="#ffffff" fontSize="4.5" fontWeight="900" textAnchor="middle">TT BO MOTOR</text>
+            </g>
+        );
+    }
+
+    // 7. Micro Servo SG90
+    if (c.type === "servo-sg90") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <rect width="64" height="38" rx="3" fill="#0284c7" stroke="#0369a1" strokeWidth="1.2" />
+                <circle cx="20" cy="19" r="12" fill="#0369a1" />
+                <rect x="18" y="5" width="4" height="28" rx="2" fill="#ffffff" transform="rotate(35 20 19)" />
+                <circle cx="20" cy="19" r="4" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
+                <rect x="-6" y="15" width="6" height="8" rx="1" fill="#0284c7" />
+                <circle cx="-3" cy="19" r="1.5" fill="#ca8a04" />
+                <rect x="64" y="15" width="6" height="8" rx="1" fill="#0284c7" />
+                <circle cx="67" cy="19" r="1.5" fill="#ca8a04" />
+                <text x="44" y="23" fill="#ffffff" fontSize="5.5" fontWeight="900" textAnchor="middle">SG90 9g</text>
+            </g>
+        );
+    }
+
+    // 8. 9V Battery
+    if (c.type === "battery-9v") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <rect width="48" height="68" rx="4" fill="#0f172a" stroke="#1e293b" strokeWidth="1.5" />
+                <rect x="0" y="0" width="48" height="12" rx="2" fill="#d97706" />
+                <rect x="10" y="-8" width="9" height="9" rx="1.5" fill="#cbd5e1" stroke="#475569" strokeWidth="1" />
+                <circle cx="34" cy="-4" r="4.5" fill="#cbd5e1" stroke="#475569" strokeWidth="1" />
+                <rect x="8" y="24" width="32" height="16" rx="2" fill="#0284c7" opacity="0.85" />
+                <text x="24" y="35" fill="#ffffff" fontSize="6.5" fontWeight="900" textAnchor="middle">9.0V</text>
+                <text x="24" y="56" fill="#94a3b8" fontSize="4.5" fontWeight="bold" textAnchor="middle">TWINLAB</text>
+            </g>
+        );
+    }
+
+    // 9. AA / AAA Battery Pack
+    if (c.type?.startsWith("battery-aa")) {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <rect width="76" height="52" rx="4" fill="#18181b" stroke="#27272a" strokeWidth="1.5" />
+                <rect x="6" y="8" width="28" height="36" rx="2" fill="#334155" />
+                <rect x="42" y="8" width="28" height="36" rx="2" fill="#334155" />
+                <rect x="18" y="5" width="4" height="4" fill="#d97706" />
+                <rect x="54" y="5" width="4" height="4" fill="#d97706" />
+                <text x="20" y="28" fill="#ffffff" fontSize="6" fontWeight="bold" textAnchor="middle">AA</text>
+                <text x="56" y="28" fill="#ffffff" fontSize="6" fontWeight="bold" textAnchor="middle">AA</text>
+            </g>
+        );
+    }
+
+    // 10. Coin Cell CR2032 3V
+    if (c.type === "battery-coin") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <circle cx="18" cy="18" r="17" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1.5" />
+                <circle cx="18" cy="18" r="14" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="0.8" />
+                <text x="18" y="13" fill="#ef4444" fontSize="7" fontWeight="bold" textAnchor="middle">+</text>
+                <text x="18" y="20" fill="#334155" fontSize="5" fontWeight="900" textAnchor="middle">CR2032</text>
+                <text x="18" y="26" fill="#64748b" fontSize="4" fontWeight="bold" textAnchor="middle">3V</text>
+            </g>
+        );
+    }
+
+    // 11. Electrolytic Capacitor
+    if (c.type === "capacitor-electrolytic") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <rect width="24" height="36" rx="4" fill="#1d4ed8" stroke="#1e3a8a" strokeWidth="1.2" />
+                <rect x="2" y="0" width="20" height="5" rx="1" fill="#cbd5e1" />
+                <rect x="17" y="0" width="5" height="36" fill="#ffffff" />
+                <text x="19.5" y="14" fill="#1e3a8a" fontSize="6" fontWeight="bold" textAnchor="middle">−</text>
+                <text x="19.5" y="26" fill="#1e3a8a" fontSize="6" fontWeight="bold" textAnchor="middle">−</text>
+                <line x1="6" y1="36" x2="6" y2="48" stroke="#cbd5e1" strokeWidth="1.5" />
+                <line x1="18" y1="36" x2="18" y2="48" stroke="#cbd5e1" strokeWidth="1.5" />
+                <circle cx="6" cy="48" r="2" fill="#ca8a04" />
+                <circle cx="18" cy="48" r="2" fill="#ca8a04" />
+                <text x="10" y="22" fill="#ffffff" fontSize="4" fontWeight="bold" textAnchor="middle">100µF</text>
+            </g>
+        );
+    }
+
+    // 12. Ceramic Capacitor
+    if (c.type === "capacitor-ceramic") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <circle cx="12" cy="12" r="11" fill="#d97706" stroke="#b45309" strokeWidth="1" />
+                <text x="12" y="14" fill="#ffffff" fontSize="5.5" fontWeight="bold" textAnchor="middle">104</text>
+                <path d="M 7 22 L 7 28 L 5 32 L 5 38" fill="none" stroke="#cbd5e1" strokeWidth="1.2" />
+                <path d="M 17 22 L 17 28 L 19 32 L 19 38" fill="none" stroke="#cbd5e1" strokeWidth="1.2" />
+                <circle cx="5" cy="38" r="1.8" fill="#ca8a04" />
+                <circle cx="19" cy="38" r="1.8" fill="#ca8a04" />
+            </g>
+        );
+    }
+
+    // 13. Potentiometer
+    if (c.type === "potentiometer") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <circle cx="18" cy="18" r="17" fill="#0284c7" stroke="#0369a1" strokeWidth="1.2" />
+                <circle cx="18" cy="18" r="11" fill="#e2e8f0" stroke="#64748b" strokeWidth="1" />
+                <line x1="18" y1="18" x2="26" y2="10" stroke="#0284c7" strokeWidth="2.5" strokeLinecap="round" />
+                <line x1="6" y1="35" x2="6" y2="44" stroke="#cbd5e1" strokeWidth="1.5" />
+                <line x1="18" y1="35" x2="18" y2="44" stroke="#cbd5e1" strokeWidth="1.5" />
+                <line x1="30" y1="35" x2="30" y2="44" stroke="#cbd5e1" strokeWidth="1.5" />
+                <circle cx="6" cy="44" r="2" fill="#ca8a04" />
+                <circle cx="18" cy="44" r="2" fill="#ca8a04" />
+                <circle cx="30" cy="44" r="2" fill="#ca8a04" />
+                <text x="18" y="30" fill="#ffffff" fontSize="4.5" fontWeight="bold" textAnchor="middle">10kΩ</text>
+            </g>
+        );
+    }
+
+    // 14. Transistor (TO-92 NPN / PNP)
+    if (c.type?.includes("transistor")) {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <path d="M 2 4 C 2 -4, 22 -4, 22 4 L 22 18 C 22 22, 2 22, 2 18 Z" fill="#09090b" stroke="#27272a" strokeWidth="1" />
+                <text x="12" y="11" fill="#cbd5e1" fontSize="4.5" fontWeight="bold" textAnchor="middle">2N2222</text>
+                <line x1="5" y1="21" x2="2" y2="34" stroke="#cbd5e1" strokeWidth="1.2" />
+                <line x1="12" y1="21" x2="12" y2="34" stroke="#cbd5e1" strokeWidth="1.2" />
+                <line x1="19" y1="21" x2="22" y2="34" stroke="#cbd5e1" strokeWidth="1.2" />
+                <circle cx="2" cy="34" r="1.8" fill="#ca8a04" />
+                <circle cx="12" cy="34" r="1.8" fill="#ca8a04" />
+                <circle cx="22" cy="34" r="1.8" fill="#ca8a04" />
+            </g>
+        );
+    }
+
+    // 15. N-MOSFET (TO-220 IRF540N)
+    if (c.type?.includes("mosfet")) {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <rect x="4" y="0" width="28" height="14" rx="2" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1" />
+                <circle cx="18" cy="7" r="3" fill="#0f172a" stroke="#64748b" strokeWidth="0.8" />
+                <rect x="0" y="14" width="36" height="26" rx="2" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+                <text x="18" y="30" fill="#ffffff" fontSize="5.5" fontWeight="bold" textAnchor="middle">IRF540N</text>
+                <line x1="6" y1="40" x2="6" y2="54" stroke="#cbd5e1" strokeWidth="1.5" />
+                <line x1="18" y1="40" x2="18" y2="54" stroke="#cbd5e1" strokeWidth="1.5" />
+                <line x1="30" y1="40" x2="30" y2="54" stroke="#cbd5e1" strokeWidth="1.5" />
+                <circle cx="6" cy="54" r="2" fill="#ca8a04" />
+                <circle cx="18" cy="54" r="2" fill="#ca8a04" />
+                <circle cx="30" cy="54" r="2" fill="#ca8a04" />
+            </g>
+        );
+    }
+
+    // 16. Piezo Buzzer
+    if (c.type === "buzzer") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <circle cx="18" cy="18" r="17" fill="#0f172a" stroke="#334155" strokeWidth="1.2" />
+                <circle cx="18" cy="18" r="7" fill="#000000" />
+                <circle cx="18" cy="18" r="13" fill="none" stroke="#334155" strokeWidth="0.8" strokeDasharray="3 3" />
+                <text x="28" y="14" fill="#ef4444" fontSize="6" fontWeight="bold">+</text>
+                <text x="18" y="30" fill="#94a3b8" fontSize="4.5" textAnchor="middle">BUZZER</text>
+            </g>
+        );
+    }
+
+    // 17. Pushbutton
+    if (c.type === "pushbutton" || c.type === "button") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <rect width="28" height="28" rx="3" fill="#18181b" stroke="#334155" strokeWidth="1" />
+                <rect x="3" y="3" width="22" height="22" rx="2" fill="#94a3b8" />
+                <circle cx="14" cy="14" r="7" fill="#ef4444" stroke="#b91c1c" strokeWidth="1" />
+                <circle cx="5" cy="5" r="1" fill="#475569" />
+                <circle cx="23" cy="5" r="1" fill="#475569" />
+                <circle cx="5" cy="23" r="1" fill="#475569" />
+                <circle cx="23" cy="23" r="1" fill="#475569" />
+            </g>
+        );
+    }
+
+    // 18. Slide / Toggle Switch
+    if (c.type?.includes("switch")) {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <rect width="32" height="16" rx="2" fill="#cbd5e1" stroke="#64748b" strokeWidth="1" />
+                <rect x="4" y="3" width="10" height="10" rx="1.5" fill="#0f172a" />
+                <line x1="6" y1="16" x2="6" y2="24" stroke="#cbd5e1" strokeWidth="1.5" />
+                <line x1="16" y1="16" x2="16" y2="24" stroke="#cbd5e1" strokeWidth="1.5" />
+                <line x1="26" y1="16" x2="26" y2="24" stroke="#cbd5e1" strokeWidth="1.5" />
+            </g>
+        );
+    }
+
+    // 19. DIP IC Logic Gates (74HC08, 74HC00, L293D)
+    if (c.type?.startsWith("ic-")) {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <rect width="68" height="26" rx="2" fill="#09090b" stroke="#27272a" strokeWidth="1" />
+                <path d="M 0 9 A 4 4 0 0 1 0 17" fill="none" stroke="#27272a" strokeWidth="1" />
+                <circle cx="6" cy="6" r="1.5" fill="#3f3f46" />
+                {[0, 1, 2, 3, 4, 5, 6].map(i => (
+                    <g key={i}>
+                        <rect x={10 + i * 8} y="-4" width="3.5" height="4" fill="#cbd5e1" />
+                        <rect x={10 + i * 8} y="26" width="3.5" height="4" fill="#cbd5e1" />
+                    </g>
+                ))}
+                <text x="36" y="16" fill="#ffffff" fontSize="5.5" fontWeight="bold" textAnchor="middle" letterSpacing="0.05em">
+                    {c.name?.slice(0, 7) || "74HC08"}
+                </text>
+            </g>
+        );
+    }
+
+    // 20. 16x2 Character LCD Module
+    if (c.type?.startsWith("lcd")) {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <rect width="140" height="54" rx="4" fill="#15803d" stroke="#166534" strokeWidth="1.2" />
+                <rect x="12" y="8" width="116" height="38" rx="2" fill="#09090b" stroke="#334155" strokeWidth="1" />
+                <rect x="18" y="13" width="104" height="28" rx="2" fill="#0284c7" />
+                <text x="24" y="24" fill="#ffffff" fontSize="6" fontFamily="monospace" fontWeight="bold">TWINLAB X LIVE</text>
+                <text x="24" y="34" fill="#ffffff" fontSize="5" fontFamily="monospace">120 FPS NATIVE</text>
+                <rect x="14" y="2" width="48" height="4" fill="#ca8a04" />
+            </g>
+        );
+    }
+
+    // 21. 5mm LED
+    if (c.type === "led") {
+        const ledCol = c.color || "#ef4444";
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <circle cx="12" cy="12" r="10" fill={ledCol} opacity="0.9" filter="drop-shadow(0 0 6px currentColor)" />
+                <circle cx="10" cy="9" r="4" fill="#ffffff" opacity="0.6" />
+                <line x1="7" y1="22" x2="7" y2="34" stroke="#cbd5e1" strokeWidth="1.2" />
+                <line x1="17" y1="22" x2="17" y2="34" stroke="#cbd5e1" strokeWidth="1.2" />
+                <circle cx="7" cy="34" r="1.8" fill="#ca8a04" />
+                <circle cx="17" cy="34" r="1.8" fill="#ca8a04" />
+            </g>
+        );
+    }
+
+    // 22. Resistor
+    if (c.type === "resistor") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <line x1="0" y1="10" x2="48" y2="10" stroke="#cbd5e1" strokeWidth="1.5" />
+                <rect x="10" y="4" width="28" height="12" rx="3" fill="#e2d9c8" stroke="#a89f91" strokeWidth="0.8" />
+                <rect x="14" y="4" width="3" height="12" fill="#78350f" />
+                <rect x="20" y="4" width="3" height="12" fill="#09090b" />
+                <rect x="26" y="4" width="3" height="12" fill="#dc2626" />
+                <rect x="33" y="4" width="2.5" height="12" fill="#ca8a04" />
+            </g>
+        );
+    }
+
+    // 23. Photoresistor LDR
+    if (c.type === "photoresistor") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <circle cx="14" cy="14" r="13" fill="#fef3c7" stroke="#d97706" strokeWidth="1" />
+                <path d="M 5 14 Q 9 8 14 14 T 23 14" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" />
+                <line x1="7" y1="27" x2="7" y2="38" stroke="#cbd5e1" strokeWidth="1.2" />
+                <line x1="21" y1="27" x2="21" y2="38" stroke="#cbd5e1" strokeWidth="1.2" />
+            </g>
+        );
+    }
+
+    // 24. Multimeter
+    if (c.type === "multimeter") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <rect width="80" height="110" rx="8" fill="#eab308" stroke="#ca8a04" strokeWidth="1.5" />
+                <rect x="8" y="8" width="64" height="32" rx="3" fill="#09090b" />
+                <text x="40" y="28" fill="#38bdf8" fontSize="12" fontFamily="monospace" fontWeight="bold" textAnchor="middle">5.00 V</text>
+                <circle cx="40" cy="68" r="18" fill="#18181b" stroke="#334155" strokeWidth="1.2" />
+                <circle cx="40" cy="68" r="6" fill="#ca8a04" />
+                <line x1="40" y1="68" x2="40" y2="52" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+                <circle cx="28" cy="98" r="4" fill="#ef4444" />
+                <circle cx="52" cy="98" r="4" fill="#09090b" />
+            </g>
+        );
+    }
+
+    // Default High-Fidelity Silicon Block Fallback
+    return (
+        <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+            <rect width="36" height="24" rx="3" fill="#1e293b" stroke="#475569" strokeWidth="1" />
+            <circle cx="4" cy="4" r="1.5" fill="#ca8a04" />
+            <text x="18" y="15" fill="#94a3b8" fontSize="5" fontWeight="bold" textAnchor="middle">{c.name?.slice(0, 6) || "MODULE"}</text>
+        </g>
+    );
+}
+
 function ProjectCircuitMiniPreview({ project, onOpen }) {
     const comps = project.components || [];
     const wires = project.wires || [];
     const hasComps = comps.length > 0;
 
-    // Calculate normalized bounding box
-    let minX = 0, minY = 0, maxX = 360, maxY = 160;
+    // Component dimension lookup for precise bounding box
+    const getCompBounds = (c) => {
+        const x = c.x || 0;
+        const y = c.y || 0;
+        let w = 48, h = 48;
+        if (c.type?.startsWith("breadboard")) {
+            w = c.type === "breadboard-full" ? 540 : c.type === "breadboard-mini" ? 180 : 320;
+            h = 105;
+        } else if (c.type?.includes("arduino")) {
+            w = 140; h = 100;
+        } else if (c.type?.includes("esp32")) {
+            w = 90; h = 130;
+        } else if (c.type === "sensor-pir") {
+            w = 105; h = 75;
+        } else if (c.type === "sensor-ultrasonic") {
+            w = 84; h = 48;
+        } else if (c.type === "motor-dc") {
+            w = 80; h = 80;
+        } else if (c.type?.startsWith("lcd")) {
+            w = 140; h = 54;
+        } else if (c.type === "battery-9v") {
+            w = 48; h = 68;
+        } else if (c.type?.startsWith("battery-aa")) {
+            w = 76; h = 52;
+        } else if (c.type?.startsWith("ic-")) {
+            w = 68; h = 26;
+        } else if (c.type === "multimeter") {
+            w = 80; h = 110;
+        } else if (c.type === "servo-sg90") {
+            w = 64; h = 38;
+        }
+        return { minX: x, maxX: x + w, minY: y, maxY: y + h };
+    };
+
+    // Calculate symmetrical bounding box centered around circuit coordinates
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     if (hasComps) {
-        minX = Math.min(...comps.map(c => c.x || 0));
-        minY = Math.min(...comps.map(c => c.y || 0));
-        maxX = Math.max(...comps.map(c => (c.x || 0) + (c.width || 120)));
-        maxY = Math.max(...comps.map(c => (c.y || 0) + (c.height || 90)));
+        comps.forEach(c => {
+            const b = getCompBounds(c);
+            minX = Math.min(minX, b.minX);
+            maxX = Math.max(maxX, b.maxX);
+            minY = Math.min(minY, b.minY);
+            maxY = Math.max(maxY, b.maxY);
+        });
+        if (wires.length > 0) {
+            wires.forEach(w => {
+                (w.points || []).forEach(pt => {
+                    minX = Math.min(minX, pt.x);
+                    maxX = Math.max(maxX, pt.x);
+                    minY = Math.min(minY, pt.y);
+                    maxY = Math.max(maxY, pt.y);
+                });
+            });
+        }
+    } else {
+        minX = 0; maxX = 360; minY = 0; maxY = 180;
     }
-    const width = Math.max(300, maxX - minX + 60);
-    const height = Math.max(140, maxY - minY + 60);
-    const viewBox = `${minX - 25} ${minY - 25} ${width} ${height}`;
+
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    const rawW = Math.max(260, maxX - minX);
+    const rawH = Math.max(130, maxY - minY);
+
+    // Maintain a comfortable 2.05:1 aspect ratio centered symmetrically with balanced margins!
+    const padding = 55;
+    const targetAspect = 2.05;
+    let finalW = rawW + padding * 2;
+    let finalH = rawH + padding * 2;
+    if (finalW / finalH < targetAspect) {
+        finalW = finalH * targetAspect;
+    } else {
+        finalH = finalW / targetAspect;
+    }
+
+    const viewBoxX = Math.round(centerX - finalW / 2);
+    const viewBoxY = Math.round(centerY - finalH / 2);
+    const viewBox = `${viewBoxX} ${viewBoxY} ${Math.round(finalW)} ${Math.round(finalH)}`;
 
     return (
         <motion.div 
@@ -251,7 +841,7 @@ function ProjectCircuitMiniPreview({ project, onOpen }) {
                             <circle cx="8" cy="8" r="0.6" fill="rgba(255,255,255,0.18)" />
                         </pattern>
                     </defs>
-                    <rect x={minX - 25} y={minY - 25} width={width} height={height} fill="url(#miniGrid)" />
+                    <rect x={viewBoxX} y={viewBoxY} width={finalW} height={finalH} fill="url(#miniGrid)" />
 
                     {/* Wires with Live Current Pulsing */}
                     {wires.map((w, idx) => {
@@ -263,7 +853,7 @@ function ProjectCircuitMiniPreview({ project, onOpen }) {
                                 key={w.id || idx}
                                 d={d}
                                 stroke={w.color || "#10b981"}
-                                strokeWidth="2.2"
+                                strokeWidth="2.4"
                                 fill="none"
                                 strokeDasharray="5 3"
                                 className="mini-signal-wire"
@@ -271,107 +861,8 @@ function ProjectCircuitMiniPreview({ project, onOpen }) {
                         );
                     })}
 
-                    {/* Components */}
-                    {comps.map((c) => {
-                        const cx = c.x || 0;
-                        const cy = c.y || 0;
-
-                        // 1. Breadboard
-                        if (c.type?.startsWith("breadboard")) {
-                            const bbW = c.type === "breadboard-full" ? 340 : 220;
-                            const bbH = 90;
-                            return (
-                                <g key={c.id} transform={`translate(${cx}, ${cy})`}>
-                                    <rect width={bbW} height={bbH} rx="5" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1" />
-                                    <line x1="8" y1="12" x2={bbW - 8} y2="12" stroke="#ef4444" strokeWidth="1.2" />
-                                    <line x1="8" y1="20" x2={bbW - 8} y2="20" stroke="#3b82f6" strokeWidth="1.2" />
-                                    <line x1="8" y1={bbH - 12} x2={bbW - 8} y2={bbH - 12} stroke="#3b82f6" strokeWidth="1.2" />
-                                    <text x={bbW / 2} y={bbH / 2 + 3} fill="#94a3b8" fontSize="7" fontWeight="bold" textAnchor="middle">BREADBOARD</text>
-                                </g>
-                            );
-                        }
-
-                        // 2. Arduino Uno
-                        if (c.type?.includes("arduino")) {
-                            return (
-                                <g key={c.id} transform={`translate(${cx}, ${cy})`}>
-                                    <rect width="115" height="85" rx="5" fill="#008784" stroke="#004d40" strokeWidth="1.2" />
-                                    <rect x="5" y="10" width="18" height="15" rx="2" fill="#cbd5e1" />
-                                    <rect x="35" y="35" width="45" height="16" rx="2" fill="#09090b" />
-                                    <text x="57" y="46" fill="#ffffff" fontSize="6" fontWeight="bold" textAnchor="middle">ATmega328P</text>
-                                    <circle cx="95" cy="20" r="3" fill="#10b981" className="mini-led-glow" />
-                                    <text x="57" y="72" fill="#ffffff" fontSize="8" fontWeight="bold" textAnchor="middle">ARDUINO</text>
-                                </g>
-                            );
-                        }
-
-                        // 3. ESP32 DevKit
-                        if (c.type?.includes("esp32")) {
-                            return (
-                                <g key={c.id} transform={`translate(${cx}, ${cy})`}>
-                                    <rect width="80" height="105" rx="5" fill="#18181b" stroke="#27272a" strokeWidth="1.2" />
-                                    <rect x="15" y="20" width="50" height="45" rx="3" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="0.8" />
-                                    <text x="40" y="46" fill="#334155" fontSize="7" fontWeight="bold" textAnchor="middle">ESP32-S3</text>
-                                    <circle cx="20" cy="80" r="2.5" fill="#ef4444" className="mini-led-glow" />
-                                    <circle cx="60" cy="80" r="2.5" fill="#3b82f6" className="mini-led-glow" />
-                                </g>
-                            );
-                        }
-
-                        // 4. 5mm LED
-                        if (c.type === "led") {
-                            const ledColor = c.color || "#ef4444";
-                            return (
-                                <g key={c.id} transform={`translate(${cx}, ${cy})`}>
-                                    <circle cx="10" cy="10" r="8" fill={ledColor} filter="drop-shadow(0 0 8px currentColor)" />
-                                    <circle cx="10" cy="10" r="4" fill="#ffffff" opacity="0.6" />
-                                </g>
-                            );
-                        }
-
-                        // 5. Resistor
-                        if (c.type === "resistor") {
-                            return (
-                                <g key={c.id} transform={`translate(${cx}, ${cy})`}>
-                                    <line x1="0" y1="5" x2="36" y2="5" stroke="#cbd5e1" strokeWidth="1.5" />
-                                    <rect x="8" y="1" width="20" height="8" rx="2" fill="#d97706" stroke="#b45309" strokeWidth="0.8" />
-                                </g>
-                            );
-                        }
-
-                        // 6. Micro Servo SG90
-                        if (c.type === "servo-sg90") {
-                            return (
-                                <g key={c.id} transform={`translate(${cx}, ${cy})`}>
-                                    <rect width="45" height="45" rx="3" fill="#0284c7" stroke="#0369a1" strokeWidth="1" />
-                                    <circle cx="22" cy="22" r="10" fill="#0369a1" />
-                                    <rect x="20" y="8" width="4" height="20" rx="2" fill="#ffffff" transform="rotate(45 22 22)" />
-                                    <text x="22" y="39" fill="#ffffff" fontSize="5" fontWeight="bold" textAnchor="middle">SG90</text>
-                                </g>
-                            );
-                        }
-
-                        // 7. Ultrasonic Sensor
-                        if (c.type === "sensor-ultrasonic") {
-                            return (
-                                <g key={c.id} transform={`translate(${cx}, ${cy})`}>
-                                    <rect width="60" height="32" rx="4" fill="#0284c7" stroke="#0369a1" strokeWidth="1" />
-                                    <circle cx="16" cy="16" r="10" fill="#94a3b8" stroke="#475569" strokeWidth="1" />
-                                    <circle cx="44" cy="16" r="10" fill="#94a3b8" stroke="#475569" strokeWidth="1" />
-                                    <text x="16" y="18" fill="#ffffff" fontSize="5" fontWeight="bold" textAnchor="middle">T</text>
-                                    <text x="44" y="18" fill="#ffffff" fontSize="5" fontWeight="bold" textAnchor="middle">R</text>
-                                </g>
-                            );
-                        }
-
-                        // Default Generic Component
-                        return (
-                            <g key={c.id} transform={`translate(${cx}, ${cy})`}>
-                                <rect width="28" height="20" rx="3" fill="#1e293b" stroke="#475569" strokeWidth="1" />
-                                <text x="14" y="13" fill="#94a3b8" fontSize="5" textAnchor="middle">{c.name?.slice(0, 4) || "COMP"}</text>
-                            </g>
-                        );
-                    })}
+                    {/* Highly-Detailed 90%-100% Real Components */}
+                    {comps.map((c, idx) => renderMiniComponent(c, idx))}
                 </svg>
             </div>
 

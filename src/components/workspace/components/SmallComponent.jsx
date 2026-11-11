@@ -1,6 +1,7 @@
 import "./SmallComponent.css";
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, Fragment } from "react";
 import { soundManager } from "../../../utils/audioManager";
+import ThreeMotorView from "./ThreeMotorView";
 
 // Helper to calculate exact realistic dark shades for any LED color hex
 function getLedColors(hex = "#ef4444") {
@@ -98,16 +99,28 @@ function SmallComponent({
     lcdTextColor = "#ffffff",
     angle = 90,
     distanceCm = 25,
+    is3D = true,
+    viewMode = "3d",
+    rot3D = 35,
+    pitch3D = 20,
+    speed = 100,
+    accessory = "propeller",
+    gearRatio = "1:48",
+    direction = "cw",
     onUpdate
 }) {
     const [hoveredTerminal, setHoveredTerminal] = useState(null);
     const lastMouseDownRef = useRef({ time: 0, key: "" });
+    const rotorRef = useRef(null);
+    const tachRpmRef = useRef(null);
+    const liveAngleRef = useRef(0);
+    const liveRpmRef = useRef(0);
     const voltageDisplay = voltage != null ? `${voltage}V` : "9V";
 
     // Play/stop electronic chime tone for buzzer
     useEffect(() => {
         if (type === "buzzer") {
-            if (simState?.isBeeping) {
+            if (isSimulating && simState?.isBeeping) {
                 soundManager.startBuzzer(id, 880);
             } else {
                 soundManager.stopBuzzer(id);
@@ -118,7 +131,81 @@ function SmallComponent({
                 soundManager.stopBuzzer(id);
             }
         };
-    }, [type, id, simState?.isBeeping]);
+    }, [type, id, isSimulating, simState?.isBeeping]);
+
+    // Play/stop realistic mechanical audio for DC motors
+    useEffect(() => {
+        const isMotor = type === "motor-dc" || type === "motor-geared" || type === "motor-bo";
+        if (isMotor) {
+            const motorSim = simState || {};
+            const isSpinning = Boolean(isSimulating && motorSim.isSpinning && (motorSim.rpm > 0 || motorSim.voltage >= 1.0));
+            if (isSpinning) {
+                const isGeared = type === "motor-geared" || type === "motor-bo";
+                soundManager.startMotorSound(id, {
+                    type: isGeared ? "motor-geared" : "motor-dc",
+                    rpm: motorSim.rpm || (isGeared ? 220 : 12500),
+                    voltage: motorSim.voltage || 6.0
+                });
+            } else {
+                soundManager.stopMotorSound(id);
+            }
+        }
+        return () => {
+            if (isMotor) {
+                soundManager.stopMotorSound(id);
+            }
+        };
+    }, [type, id, isSimulating, simState?.isSpinning, simState?.rpm, simState?.voltage]);
+
+    // Smooth physical rotor acceleration loop (initially slow, ramping up quickly to full speed, and coasting down!)
+    useEffect(() => {
+        const isMotor = type === "motor-dc" || type === "motor-geared" || type === "motor-bo";
+        if (!isMotor) return;
+
+        const motorSim = simState || {};
+        const isSpinning = Boolean(isSimulating && motorSim.isSpinning && (motorSim.rpm > 0 || motorSim.voltage >= 1.0));
+        const isGeared = type === "motor-geared" || type === "motor-bo";
+        const baseRpm = isGeared ? 220 : 12500;
+        const targetRpm = isSpinning ? (motorSim.rpm || baseRpm) : 0;
+        const dirSign = (motorSim.direction || direction) === "ccw" ? -1 : 1;
+
+        let animFrame;
+        let lastTime = performance.now();
+
+        const updateAnimation = (now) => {
+            const dt = Math.min(0.08, (now - lastTime) / 1000);
+            lastTime = now;
+
+            // Physical acceleration curve: starts slow, accelerates fast, and coasts down with inertia
+            const accelRate = liveRpmRef.current < targetRpm ? 2.6 : 2.2;
+            liveRpmRef.current += (targetRpm - liveRpmRef.current) * Math.min(1, dt * accelRate);
+
+            if (liveRpmRef.current > 0.5) {
+                liveAngleRef.current = (liveAngleRef.current + dirSign * (liveRpmRef.current / 60) * 360 * dt) % 360;
+                if (rotorRef.current) {
+                    rotorRef.current.style.transform = `rotate(${liveAngleRef.current.toFixed(2)}deg)`;
+                }
+                if (tachRpmRef.current) {
+                    tachRpmRef.current.textContent = Math.round(liveRpmRef.current).toLocaleString();
+                }
+            } else if (!isSpinning && liveRpmRef.current <= 0.5) {
+                liveRpmRef.current = 0;
+                if (tachRpmRef.current) {
+                    tachRpmRef.current.textContent = "0";
+                }
+            }
+
+            if (isSpinning || liveRpmRef.current > 0.5) {
+                animFrame = requestAnimationFrame(updateAnimation);
+            }
+        };
+
+        animFrame = requestAnimationFrame(updateAnimation);
+
+        return () => {
+            if (animFrame) cancelAnimationFrame(animFrame);
+        };
+    }, [type, isSimulating, simState?.isSpinning, simState?.rpm, simState?.voltage, simState?.direction, direction]);
 
     const getTerminalWorldCoords = (localX, localY) => {
         const rad = ((rotation || 0) * Math.PI) / 180;
@@ -176,6 +263,7 @@ function SmallComponent({
             }}
             onMouseLeave={() => setHoveredTerminal(null)}
             onMouseDown={(e) => {
+                e.stopPropagation();
                 onSelect && onSelect(id);
                 onMouseDown && onMouseDown(e, id);
             }}
@@ -481,7 +569,7 @@ function SmallComponent({
                         </div>
                         <span 
                             className={`terminal-pin pin-1 ${hoveredTerminal === "cap1" ? "targeted" : ""}`}
-                            style={{ left: 0, top: 0 }}
+                            style={{ left: 0, top: 0, transform: "translate(-50%, -50%)" }}
                             onMouseEnter={() => setHoveredTerminal("cap1")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "cap1", 0, 0)}
@@ -496,7 +584,7 @@ function SmallComponent({
                         )}
                         <span 
                             className={`terminal-pin pin-2 ${hoveredTerminal === "cap2" ? "targeted" : ""}`}
-                            style={{ left: 16, top: 0 }}
+                            style={{ left: 16, top: 0, transform: "translate(-50%, -50%)" }}
                             onMouseEnter={() => setHoveredTerminal("cap2")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "cap2", 16, 0)}
@@ -641,7 +729,6 @@ function SmallComponent({
                                 className="pot-rotary-knob"
                                 style={{ transform: `rotate(${curAngle}deg)` }}
                                 onMouseDown={handleDialMouseDown}
-                                title="Click and drag around knob to rotate resistance"
                             >
                                 <div className="pot-knob-ridge-ring"></div>
                                 <div className="pot-pointer-knot"></div>
@@ -844,25 +931,25 @@ function SmallComponent({
                     {/* 3. MINIMAL MATTE DARK BODY WITH REALISTIC DIGITAL LCD DISPLAY & DISCHARGE STATUS */}
                     <div className="battery-minimal-body">
                         <div className="battery-digital-display">
-                            <div className={`display-bezel ${simState?.isDischarging ? "bezel-discharging" : ""}`}>
-                                <div className={`lcd-screen ${simState?.isDischarging ? "screen-discharging" : ""}`}>
+                            <div className={`display-bezel ${isSimulating && simState?.isDischarging ? "bezel-discharging" : ""}`}>
+                                <div className={`lcd-screen ${isSimulating && simState?.isDischarging ? "screen-discharging" : ""}`}>
                                     <div className="lcd-header-row">
                                         <span className="lcd-text">{voltageDisplay}</span>
-                                        {simState?.isDischarging && (
-                                            <span className="lcd-drain-bolt" title="Discharging circuit active">⚡</span>
+                                        {isSimulating && simState?.isDischarging && (
+                                            <span className="lcd-drain-bolt">⚡</span>
                                         )}
                                     </div>
-                                    {simState?.isDischarging && (
+                                    {isSimulating && simState?.isDischarging && (
                                         <div className="battery-drain-track">
                                             <div className="battery-drain-pulse"></div>
                                         </div>
                                     )}
                                 </div>
                             </div>
-                            <div className={`display-subtext ${simState?.isShortCircuit ? "subtext-short" : (simState?.isDischarging ? "subtext-discharging" : "")}`}>
-                                {simState?.isShortCircuit 
+                            <div className={`display-subtext ${isSimulating && simState?.isShortCircuit ? "subtext-short" : (isSimulating && simState?.isDischarging ? "subtext-discharging" : "")}`}>
+                                {isSimulating && simState?.isShortCircuit 
                                     ? "⚠️ SHORT CIRCUIT" 
-                                    : simState?.isDischarging 
+                                    : (isSimulating && simState?.isDischarging) 
                                         ? `DRAIN • ${simState.currentMa}mA` 
                                         : "DC VOLTAGE"}
                             </div>
@@ -931,7 +1018,7 @@ function SmallComponent({
 
                 return (
                     <div 
-                        className={`aa-battery-case ${simState?.isDischarging ? "active-discharging" : ""} ${simState?.isShortCircuit ? "short-circuited" : ""}`} 
+                        className={`aa-battery-case ${isSimulating && simState?.isDischarging ? "active-discharging" : ""} ${isSimulating && simState?.isShortCircuit ? "short-circuited" : ""}`} 
                         style={{ width: totalWidth, "--case-bg": caseColor }}
                     >
                         {/* Terminal Lead Wires */}
@@ -986,12 +1073,11 @@ function SmallComponent({
                                     const nextState = !hasSwitch;
                                     onUpdate && onUpdate({ switchState: nextState, isOn: nextState });
                                 }}
-                                title="Click to toggle Battery Case switch ON / OFF"
                             >
                                 <div className="lid-switch-thumb"></div>
                                 <span className="lid-switch-label">{hasSwitch ? "ON" : "OFF"}</span>
                             </div>
-                            <span className={`battery-power-led ${hasSwitch && simState?.isDischarging ? "glowing" : ""}`} title={hasSwitch ? "Power Active" : "Power Off"}></span>
+                            <span className={`battery-power-led ${hasSwitch && isSimulating && simState?.isDischarging ? "glowing" : ""}`}></span>
                         </div>
 
                         {/* Molded ABS Enclosure with Cells */}
@@ -1043,7 +1129,7 @@ function SmallComponent({
             {/* REALISTIC 16x2 & 20x4 CHARACTER LCD (HD44780 / I2C DISPLAY) */}
             {(type === "lcd-1602" || type === "lcd-2004") && (() => {
                 const is2004 = type === "lcd-2004";
-                const isPowered = Boolean(isSimulating || simState?.isPowered);
+                const isPowered = Boolean(isSimulating && simState?.isPowered);
                 const bgColor = backlightColor || "#0284c7";
                 const txtColor = lcdTextColor || "#ffffff";
 
@@ -1059,10 +1145,10 @@ function SmallComponent({
                         {/* 4-Pin I2C Header at Top (GND, VCC, SDA, SCL) */}
                         <div className="lcd-i2c-header">
                             {[
-                                { name: "GND", x: 16, isGnd: true },
-                                { name: "VCC", x: 32, is5V: true },
-                                { name: "SDA", x: 48, isGpio: true },
-                                { name: "SCL", x: 64, isGpio: true }
+                                { name: "GND", x: 16, isGnd: true, desc: "Ground (0V)" },
+                                { name: "VCC", x: 32, is5V: true, desc: "Power (+5V)" },
+                                { name: "SDA", x: 48, isGpio: true, desc: "I2C Data (SDA)" },
+                                { name: "SCL", x: 64, isGpio: true, desc: "I2C Clock (SCL)" }
                             ].map((pin) => (
                                 <div
                                     key={pin.name}
@@ -1078,8 +1164,8 @@ function SmallComponent({
                                     <div className="socket-inner-metal"></div>
                                     <span className="lcd-pin-label">{pin.name}</span>
                                     {hoveredTerminal === `lcd_${pin.name}` && (
-                                        <div className="terminal-hover-tooltip" style={{ left: pin.x, top: -10, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
-                                            {pin.name} (I2C)
+                                        <div className="terminal-hover-tooltip" style={{ left: "50%", top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                            {pin.name}: {pin.desc}
                                         </div>
                                     )}
                                 </div>
@@ -1135,7 +1221,6 @@ function SmallComponent({
                             e.stopPropagation();
                             onUpdate && onUpdate({ isOn: !switchActive, switchState: switchActive ? "open" : "closed" });
                         }}
-                        title={`SPST Switch: ${switchActive ? "ON (Closed)" : "OFF (Open)"} - Click to Toggle`}
                     >
                         <div className="switch-metal-plate">
                             <span className="switch-legend-off">0</span>
@@ -1148,7 +1233,7 @@ function SmallComponent({
                         {/* Terminal 1 (0, 16) */}
                         <span 
                             className={`terminal-pin pin-sw-1 ${hoveredTerminal === "sw1" ? "targeted" : ""}`}
-                            style={{ left: 0, top: 16 }}
+                            style={{ left: 0, top: 16, transform: "translate(-50%, -50%)" }}
                             onMouseEnter={() => setHoveredTerminal("sw1")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "sw1", 0, 16)}
@@ -1165,7 +1250,7 @@ function SmallComponent({
                         {/* Terminal 2 (32, 16) */}
                         <span 
                             className={`terminal-pin pin-sw-2 ${hoveredTerminal === "sw2" ? "targeted" : ""}`}
-                            style={{ left: 32, top: 16 }}
+                            style={{ left: 32, top: 16, transform: "translate(-50%, -50%)" }}
                             onMouseEnter={() => setHoveredTerminal("sw2")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "sw2", 32, 16)}
@@ -1190,7 +1275,7 @@ function SmallComponent({
                 const isConducting = Boolean(isSimulating && (simState?.isPowered || simState?.isDischarging));
 
                 return (
-                    <div className={`photoresistor-container ${isConducting ? "is-sensing" : ""}`} title={`Photoresistor (LDR): ${currentLux}% Lux (~${calculatedR > 1000 ? (calculatedR/1000).toFixed(1) + 'k' : calculatedR}Ω)`}>
+                    <div className={`photoresistor-container ${isConducting ? "is-sensing" : ""}`}>
                         {/* Realistic Silver Wire Leads linking Pin 1 (0, 16) and Pin 2 (32, 16) to LDR Disc */}
                         <svg className="ldr-leads-svg" viewBox="-4 0 40 18" width="40" height="18" style={{ position: "absolute", top: 0, left: -4, pointerEvents: "none" }}>
                             <line x1="4" y1="16" x2="10" y2="2" stroke="#cbd5e1" strokeWidth="2.2" strokeLinecap="round" />
@@ -1236,7 +1321,7 @@ function SmallComponent({
                         {/* Terminal 1 (0, 16) */}
                         <span 
                             className={`terminal-pin pin-ldr-1 ${hoveredTerminal === "ldr1" ? "targeted" : ""}`}
-                            style={{ left: 0, top: 16 }}
+                            style={{ left: 0, top: 16, transform: "translate(-50%, -50%)" }}
                             onMouseEnter={() => setHoveredTerminal("ldr1")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "ldr1", 0, 16)}
@@ -1253,7 +1338,7 @@ function SmallComponent({
                         {/* Terminal 2 (32, 16) */}
                         <span 
                             className={`terminal-pin pin-ldr-2 ${hoveredTerminal === "ldr2" ? "targeted" : ""}`}
-                            style={{ left: 32, top: 16 }}
+                            style={{ left: 32, top: 16, transform: "translate(-50%, -50%)" }}
                             onMouseEnter={() => setHoveredTerminal("ldr2")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "ldr2", 32, 16)}
@@ -1270,72 +1355,162 @@ function SmallComponent({
                 );
             })()}
 
-            {/* NPN & PNP BIPOLAR TRANSISTORS (TO-92 / 2N2222 / 2N3906 / MOSFET): Terminals (0, 16), (16, 16), (32, 16) */}
-            {(type === "transistor" || type === "transistor-npn" || type === "transistor-pnp" || type === "mosfet-n") && (
-                <div className="transistor-to92-container" title={`${type === "transistor-pnp" ? "PNP (2N3906)" : type === "mosfet-n" ? "N-MOSFET (IRF540N)" : "NPN (2N2222)"} Transistor`}>
-                    {/* 3 Realistic Silver Wire Leads linking to Pins at (0, 16), (16, 16), (32, 16) */}
-                    <svg className="trans-leads-svg" viewBox="-4 0 40 18" width="40" height="18" style={{ position: "absolute", top: 0, left: -4, pointerEvents: "none" }}>
-                        <line x1="4" y1="16" x2="8" y2="4" stroke="#cbd5e1" strokeWidth="2.2" strokeLinecap="round" />
-                        <line x1="20" y1="16" x2="20" y2="4" stroke="#cbd5e1" strokeWidth="2.2" strokeLinecap="round" />
-                        <line x1="36" y1="16" x2="32" y2="4" stroke="#cbd5e1" strokeWidth="2.2" strokeLinecap="round" />
+            {/* NPN & PNP BIPOLAR TRANSISTORS (TO-92 / 2N2222 / 2N3904 / 2N3906): Terminals (0, 0), (16, 0), (32, 0) */}
+            {(type === "transistor" || type === "transistor-npn" || type === "transistor-pnp") && (
+                <div className="transistor-to92-container">
+                    {/* 3 Realistic Tinned Copper Wire Leads linking down to Pins at (0, 0), (16, 0), (32, 0) */}
+                    <svg className="trans-leads-svg" viewBox="-6 -36 44 40" width="44" height="40" style={{ position: "absolute", top: -36, left: -6, pointerEvents: "none" }}>
+                        <line x1="0" y1="-14" x2="0" y2="0" stroke="#cbd5e1" strokeWidth="2.4" strokeLinecap="round" />
+                        <line x1="16" y1="-14" x2="16" y2="0" stroke="#cbd5e1" strokeWidth="2.4" strokeLinecap="round" />
+                        <line x1="32" y1="-14" x2="32" y2="0" stroke="#cbd5e1" strokeWidth="2.4" strokeLinecap="round" />
                     </svg>
 
+                    {/* TO-92 Molded Epoxy Case Body sitting above pins */}
                     <div className="to92-body">
-                        <div className="to92-flat-face">
-                            <span className="transistor-part-text">{type === "transistor-pnp" ? "2N3906" : type === "mosfet-n" ? "IRF540" : "2N2222"}</span>
-                            <span className="transistor-x-mark">X</span>
-                        </div>
                         <div className="to92-curved-back"></div>
+                        <div className="to92-flat-face">
+                            <span className="transistor-part-text font-mono">{type === "transistor-pnp" ? "2N3906" : "2N2222"}</span>
+                            <span className="transistor-x-mark font-mono">E B C</span>
+                        </div>
                     </div>
 
-                    {/* Pin 1: Collector / Drain (0, 16) */}
-                    <span 
-                        className={`terminal-pin pin-trans-c ${hoveredTerminal === "trC" ? "targeted" : ""}`}
-                        style={{ left: 0, top: 16 }}
-                        onMouseEnter={() => setHoveredTerminal("trC")}
-                        onMouseLeave={() => setHoveredTerminal(null)}
-                        onMouseDown={(e) => handleTerminalMouseDown(e, "trC", 0, 16)}
-                        onMouseUp={(e) => handleTerminalMouseUp(e, 0, 16)}
-                        onClick={(e) => handleTerminalPress(e, "trC", 0, 16)}
-                        onDoubleClick={(e) => handleTerminalAction(e, 0, 16)}
-                    />
-                    {hoveredTerminal === "trC" && (
-                        <div className="terminal-hover-tooltip" style={{ left: 0, top: 16, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
-                            {type === "mosfet-n" ? "Drain (D)" : "Collector (C)"}
-                        </div>
-                    )}
-
-                    {/* Pin 2: Base / Gate (16, 16) */}
-                    <span 
-                        className={`terminal-pin pin-trans-b ${hoveredTerminal === "trB" ? "targeted" : ""}`}
-                        style={{ left: 16, top: 16 }}
-                        onMouseEnter={() => setHoveredTerminal("trB")}
-                        onMouseLeave={() => setHoveredTerminal(null)}
-                        onMouseDown={(e) => handleTerminalMouseDown(e, "trB", 16, 16)}
-                        onMouseUp={(e) => handleTerminalMouseUp(e, 16, 16)}
-                        onClick={(e) => handleTerminalPress(e, "trB", 16, 16)}
-                        onDoubleClick={(e) => handleTerminalAction(e, 16, 16)}
-                    />
-                    {hoveredTerminal === "trB" && (
-                        <div className="terminal-hover-tooltip" style={{ left: 16, top: 16, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
-                            {type === "mosfet-n" ? "Gate (G)" : "Base (B)"}
-                        </div>
-                    )}
-
-                    {/* Pin 3: Emitter / Source (32, 16) */}
+                    {/* Pin 1: Emitter (E) (0, 0) */}
                     <span 
                         className={`terminal-pin pin-trans-e ${hoveredTerminal === "trE" ? "targeted" : ""}`}
-                        style={{ left: 32, top: 16 }}
+                        style={{ left: 0, top: 0, transform: "translate(-50%, -50%)" }}
                         onMouseEnter={() => setHoveredTerminal("trE")}
                         onMouseLeave={() => setHoveredTerminal(null)}
-                        onMouseDown={(e) => handleTerminalMouseDown(e, "trE", 32, 16)}
-                        onMouseUp={(e) => handleTerminalMouseUp(e, 32, 16)}
-                        onClick={(e) => handleTerminalPress(e, "trE", 32, 16)}
-                        onDoubleClick={(e) => handleTerminalAction(e, 32, 16)}
+                        onMouseDown={(e) => handleTerminalMouseDown(e, "trE", 0, 0)}
+                        onMouseUp={(e) => handleTerminalMouseUp(e, 0, 0)}
+                        onClick={(e) => handleTerminalPress(e, "trE", 0, 0)}
+                        onDoubleClick={(e) => handleTerminalAction(e, 0, 0)}
                     />
                     {hoveredTerminal === "trE" && (
-                        <div className="terminal-hover-tooltip" style={{ left: 32, top: 16, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
-                            {type === "mosfet-n" ? "Source (S)" : "Emitter (E)"}
+                        <div className="terminal-hover-tooltip" style={{ left: 0, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                            Emitter (E)
+                        </div>
+                    )}
+
+                    {/* Pin 2: Base (B) (16, 0) */}
+                    <span 
+                        className={`terminal-pin pin-trans-b ${hoveredTerminal === "trB" ? "targeted" : ""}`}
+                        style={{ left: 16, top: 0, transform: "translate(-50%, -50%)" }}
+                        onMouseEnter={() => setHoveredTerminal("trB")}
+                        onMouseLeave={() => setHoveredTerminal(null)}
+                        onMouseDown={(e) => handleTerminalMouseDown(e, "trB", 16, 0)}
+                        onMouseUp={(e) => handleTerminalMouseUp(e, 16, 0)}
+                        onClick={(e) => handleTerminalPress(e, "trB", 16, 0)}
+                        onDoubleClick={(e) => handleTerminalAction(e, 16, 0)}
+                    />
+                    {hoveredTerminal === "trB" && (
+                        <div className="terminal-hover-tooltip" style={{ left: 16, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                            Base (B)
+                        </div>
+                    )}
+
+                    {/* Pin 3: Collector (C) (32, 0) */}
+                    <span 
+                        className={`terminal-pin pin-trans-c ${hoveredTerminal === "trC" ? "targeted" : ""}`}
+                        style={{ left: 32, top: 0, transform: "translate(-50%, -50%)" }}
+                        onMouseEnter={() => setHoveredTerminal("trC")}
+                        onMouseLeave={() => setHoveredTerminal(null)}
+                        onMouseDown={(e) => handleTerminalMouseDown(e, "trC", 32, 0)}
+                        onMouseUp={(e) => handleTerminalMouseUp(e, 32, 0)}
+                        onClick={(e) => handleTerminalPress(e, "trC", 32, 0)}
+                        onDoubleClick={(e) => handleTerminalAction(e, 32, 0)}
+                    />
+                    {hoveredTerminal === "trC" && (
+                        <div className="terminal-hover-tooltip" style={{ left: 32, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                            Collector (C)
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* POWER MOSFET (TO-220 / IRF540N): Terminals Gate (0, 0), Drain (16, 0), Source (32, 0) */}
+            {(type === "mosfet-n" || type === "mosfet-p") && (
+                <div className="mosfet-to220-container">
+                    {/* TO-220 Metal Heatsink Tab + Black Molded Case + 3 Straight Pin Leads */}
+                    <svg className="to220-svg" viewBox="-6 -44 44 48" width="44" height="48" style={{ position: "absolute", top: -44, left: -6, pointerEvents: "none" }}>
+                        <defs>
+                            {/* Silver Metal Tab Gradient */}
+                            <linearGradient id={`to220-tab-grad-${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#94a3b8" />
+                                <stop offset="50%" stopColor="#f1f5f9" />
+                                <stop offset="100%" stopColor="#64748b" />
+                            </linearGradient>
+                            {/* Black Molded Body Gradient */}
+                            <linearGradient id={`to220-body-grad-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor="#27272a" />
+                                <stop offset="100%" stopColor="#09090b" />
+                            </linearGradient>
+                        </defs>
+
+                        {/* 1. Metal Heat Sink Tab (Top) */}
+                        <path d="M 0 -38 L 32 -38 L 32 -18 L 0 -18 Z" fill={`url(#to220-tab-grad-${id})`} stroke="#475569" strokeWidth="0.8" rx="2" />
+                        {/* Tab Screw Mounting Hole */}
+                        <circle cx="16" cy="-28" r="4.5" fill="#0f172a" stroke="#475569" strokeWidth="0.8" />
+
+                        {/* 2. Black Molded Epoxy Body */}
+                        <rect x="-2" y="-20" width="36" height="15" rx="2" fill={`url(#to220-body-grad-${id})`} stroke="#18181b" strokeWidth="1" />
+                        <line x1="2" y1="-18" x2="30" y2="-18" stroke="rgba(255,255,255,0.15)" strokeWidth="0.8" />
+                        <text x="16" y="-10" fill="#e2e8f0" fontSize="5" fontWeight="900" fontFamily="monospace" textAnchor="middle">IRF540N</text>
+                        <text x="16" y="-6" fill="#a1a1aa" fontSize="3.5" fontWeight="700" fontFamily="monospace" textAnchor="middle">G  D  S</text>
+
+                        {/* 3. Three Heavy-Duty Leads extending to Pins at 0, 16, 32 */}
+                        <line x1="0" y1="-5" x2="0" y2="0" stroke="#cbd5e1" strokeWidth="2.5" strokeLinecap="round" />
+                        <line x1="16" y1="-5" x2="16" y2="0" stroke="#cbd5e1" strokeWidth="2.5" strokeLinecap="round" />
+                        <line x1="32" y1="-5" x2="32" y2="0" stroke="#cbd5e1" strokeWidth="2.5" strokeLinecap="round" />
+                    </svg>
+
+                    {/* Pin 1: Gate (G) (0, 0) */}
+                    <span 
+                        className={`terminal-pin pin-mosfet-g ${hoveredTerminal === "mosG" ? "targeted" : ""}`}
+                        style={{ left: 0, top: 0, transform: "translate(-50%, -50%)" }}
+                        onMouseEnter={() => setHoveredTerminal("mosG")}
+                        onMouseLeave={() => setHoveredTerminal(null)}
+                        onMouseDown={(e) => handleTerminalMouseDown(e, "mosG", 0, 0)}
+                        onMouseUp={(e) => handleTerminalMouseUp(e, 0, 0)}
+                        onClick={(e) => handleTerminalPress(e, "mosG", 0, 0)}
+                        onDoubleClick={(e) => handleTerminalAction(e, 0, 0)}
+                    />
+                    {hoveredTerminal === "mosG" && (
+                        <div className="terminal-hover-tooltip" style={{ left: 0, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                            Gate (G)
+                        </div>
+                    )}
+
+                    {/* Pin 2: Drain (D) (16, 0) */}
+                    <span 
+                        className={`terminal-pin pin-mosfet-d ${hoveredTerminal === "mosD" ? "targeted" : ""}`}
+                        style={{ left: 16, top: 0, transform: "translate(-50%, -50%)" }}
+                        onMouseEnter={() => setHoveredTerminal("mosD")}
+                        onMouseLeave={() => setHoveredTerminal(null)}
+                        onMouseDown={(e) => handleTerminalMouseDown(e, "mosD", 16, 0)}
+                        onMouseUp={(e) => handleTerminalMouseUp(e, 16, 0)}
+                        onClick={(e) => handleTerminalPress(e, "mosD", 16, 0)}
+                        onDoubleClick={(e) => handleTerminalAction(e, 16, 0)}
+                    />
+                    {hoveredTerminal === "mosD" && (
+                        <div className="terminal-hover-tooltip" style={{ left: 16, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                            Drain (D)
+                        </div>
+                    )}
+
+                    {/* Pin 3: Source (S) (32, 0) */}
+                    <span 
+                        className={`terminal-pin pin-mosfet-s ${hoveredTerminal === "mosS" ? "targeted" : ""}`}
+                        style={{ left: 32, top: 0, transform: "translate(-50%, -50%)" }}
+                        onMouseEnter={() => setHoveredTerminal("mosS")}
+                        onMouseLeave={() => setHoveredTerminal(null)}
+                        onMouseDown={(e) => handleTerminalMouseDown(e, "mosS", 32, 0)}
+                        onMouseUp={(e) => handleTerminalMouseUp(e, 32, 0)}
+                        onClick={(e) => handleTerminalPress(e, "mosS", 32, 0)}
+                        onDoubleClick={(e) => handleTerminalAction(e, 32, 0)}
+                    />
+                    {hoveredTerminal === "mosS" && (
+                        <div className="terminal-hover-tooltip" style={{ left: 32, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                            Source (S)
                         </div>
                     )}
                 </div>
@@ -1343,7 +1518,7 @@ function SmallComponent({
 
             {/* COIN CELL BATTERY (CR2032 3V): Terminals Negative (16, 32), Positive (48, 32) */}
             {type === "battery-coin" && (
-                <div className="coin-cell-container" title="CR2032 3V Coin Battery">
+                <div className="coin-cell-container">
                     <div className="coin-metal-disc">
                         <span className="coin-plus-sign">+</span>
                         <span className="coin-model-label">CR2032</span>
@@ -1353,65 +1528,104 @@ function SmallComponent({
                     {/* Negative Pin (16, 32) */}
                     <span 
                         className={`terminal-pin pin-coin-neg ${hoveredTerminal === "coinNeg" ? "targeted" : ""}`}
-                        style={{ left: 16, top: 32 }}
+                        style={{ left: 16, top: 32, transform: "translate(-50%, -50%)" }}
                         onMouseEnter={() => setHoveredTerminal("coinNeg")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "coinNeg", 16, 32)}
                         onMouseUp={(e) => handleTerminalMouseUp(e, 16, 32)}
                         onClick={(e) => handleTerminalPress(e, "coinNeg", 16, 32)}
                         onDoubleClick={(e) => handleTerminalAction(e, 16, 32)}
-                    />
+                    >
+                        <span className="coin-pin-badge badge-neg">−</span>
+                    </span>
                     {hoveredTerminal === "coinNeg" && (
                         <div className="terminal-hover-tooltip" style={{ left: 16, top: 32, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
-                            Negative (−)
+                            Negative (−) GND
                         </div>
                     )}
 
                     {/* Positive Pin (48, 32) */}
                     <span 
                         className={`terminal-pin pin-coin-pos ${hoveredTerminal === "coinPos" ? "targeted" : ""}`}
-                        style={{ left: 48, top: 32 }}
+                        style={{ left: 48, top: 32, transform: "translate(-50%, -50%)" }}
                         onMouseEnter={() => setHoveredTerminal("coinPos")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "coinPos", 48, 32)}
                         onMouseUp={(e) => handleTerminalMouseUp(e, 48, 32)}
                         onClick={(e) => handleTerminalPress(e, "coinPos", 48, 32)}
                         onDoubleClick={(e) => handleTerminalAction(e, 48, 32)}
-                    />
+                    >
+                        <span className="coin-pin-badge badge-pos">+</span>
+                    </span>
                     {hoveredTerminal === "coinPos" && (
                         <div className="terminal-hover-tooltip" style={{ left: 48, top: 32, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
-                            Positive (+) 3V
+                            Positive (+) 3V DC
                         </div>
                     )}
                 </div>
             )}
 
-            {/* ELECTROLYTIC CAPACITOR: Anode (0, 0), Cathode (16, 0) */}
+            {/* ELECTROLYTIC CAPACITOR (REALISTIC CYLINDRICAL CAN): Anode (0, 0), Cathode (16, 0) */}
             {type === "capacitor-electrolytic" && (() => {
                 const isCharged = Boolean(isSimulating && (simState?.isPowered || simState?.isDischarging));
+                const capVal = capacitance || "10µF";
                 return (
-                    <div className={`elec-cap-container ${isCharged ? "is-charged" : ""}`} title="Electrolytic Capacitor (10µF 50V)">
-                        {/* Realistic Silver Wire Leads linking Pin 1 (0,0) and Pin 2 (16,0) to Can Body */}
-                        <svg className="elec-leads-svg" viewBox="-4 -16 24 18" width="24" height="18" style={{ position: "absolute", top: -16, left: -4, pointerEvents: "none" }}>
-                            <line x1="4" y1="16" x2="6" y2="4" stroke="#cbd5e1" strokeWidth="2.2" strokeLinecap="round" />
-                            <line x1="20" y1="16" x2="18" y2="4" stroke="#cbd5e1" strokeWidth="2.2" strokeLinecap="round" />
+                    <div className={`elec-cap-container ${isCharged ? "is-charged" : ""}`}>
+                        {/* High-Fidelity SVG Aluminum Can Body + Polarity Negative Stripe + Two Vertical Wire Leads */}
+                        <svg className="elec-realistic-svg" viewBox="-12 -54 40 58" width="40" height="58" style={{ position: "absolute", top: -54, left: -12, pointerEvents: "auto", cursor: "move" }}>
+                            <defs>
+                                {/* Aluminum Can Sleeve Gradient */}
+                                <linearGradient id={`elec-sleeve-grad-${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#0369a1" />
+                                    <stop offset="35%" stopColor="#0284c7" />
+                                    <stop offset="70%" stopColor="#0369a1" />
+                                    <stop offset="100%" stopColor="#082f49" />
+                                </linearGradient>
+                                {/* Top Aluminum Vent Gradient */}
+                                <linearGradient id={`elec-vent-grad-${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#cbd5e1" />
+                                    <stop offset="50%" stopColor="#f8fafc" />
+                                    <stop offset="100%" stopColor="#94a3b8" />
+                                </linearGradient>
+                            </defs>
+
+                            {/* 1. Scored Aluminum Safety Relief Vent (Top) */}
+                            <ellipse cx="8" cy="-44" rx="13" ry="4" fill={`url(#elec-vent-grad-${id})`} stroke="#64748b" strokeWidth="0.8" />
+                            {/* Vent Cross Etching lines */}
+                            <line x1="3" y1="-44" x2="13" y2="-44" stroke="#475569" strokeWidth="0.8" />
+                            <line x1="8" y1="-46.5" x2="8" y2="-41.5" stroke="#475569" strokeWidth="0.8" />
+
+                            {/* 2. Cylindrical Sleeve Can Body */}
+                            <path d="M -5 -44 L 21 -44 L 21 -12 L -5 -12 Z" fill={`url(#elec-sleeve-grad-${id})`} stroke="#0284c7" strokeWidth="0.8" />
+                            
+                            {/* 3. Negative Polarity White Stripe (Right side, aligned with Cathode pin at x=16) */}
+                            <rect x="12" y="-44" width="7" height="32" fill="#f8fafc" opacity="0.95" />
+                            <text x="15.5" y="-35" fill="#0369a1" fontSize="7" fontWeight="900" textAnchor="middle">-</text>
+                            <text x="15.5" y="-24" fill="#0369a1" fontSize="7" fontWeight="900" textAnchor="middle">-</text>
+                            <text x="15.5" y="-14" fill="#0369a1" fontSize="7" fontWeight="900" textAnchor="middle">-</text>
+
+                            {/* 4. Silkscreen Ratings Stamp */}
+                            <text x="3.5" y="-28" fill="#ffffff" fontSize="4.5" fontWeight="900" fontFamily="monospace" textAnchor="middle">{capVal}</text>
+                            <text x="3.5" y="-21" fill="#93c5fd" fontSize="3.8" fontWeight="700" fontFamily="monospace" textAnchor="middle">50V</text>
+                            <text x="3.5" y="-14" fill="rgba(255,255,255,0.7)" fontSize="3.2" fontWeight="700" fontFamily="monospace" textAnchor="middle">105°C</text>
+
+                            {/* 5. Bottom Molded Rubber Sealing Bung */}
+                            <ellipse cx="8" cy="-12" rx="13" ry="3" fill="#18181b" stroke="#27272a" strokeWidth="0.8" />
+
+                            {/* 6. Two Sturdy Tinned Copper Wire Leads going down into breadboard holes (0, 0) and (16, 0) */}
+                            {/* Anode (+) Lead */}
+                            <line x1="0" y1="-12" x2="0" y2="0" stroke="#cbd5e1" strokeWidth="2.4" strokeLinecap="round" />
+                            {/* Cathode (−) Lead */}
+                            <line x1="16" y1="-12" x2="16" y2="0" stroke="#cbd5e1" strokeWidth="2.4" strokeLinecap="round" />
                         </svg>
 
-                        <div className={`elec-can-body ${isCharged ? "active-dielectric" : ""}`}>
-                            <div className="elec-vent-top">
-                                <div className="vent-cross-line"></div>
-                            </div>
-                            <div className="elec-negative-stripe">
-                                <span>-</span><span>-</span>
-                            </div>
-                            <span className="elec-value-stamp">{capacitance || "10µF"}</span>
-                            {isCharged && <div className="elec-charge-pulse"></div>}
-                        </div>
+                        {/* Active Electric Field Glow Pulse during Simulation */}
+                        {isCharged && <div className="elec-field-glow-pulse" style={{ left: -5, top: -46, width: 26, height: 34 }} />}
 
-                        {/* Anode Pin (0, 0) */}
+                        {/* Anode (+) Pin at (0, 0) */}
                         <span 
                             className={`terminal-pin pin-elec-anode ${hoveredTerminal === "elAnode" ? "targeted" : ""}`}
-                            style={{ left: 0, top: 0 }}
+                            style={{ left: 0, top: 0, transform: "translate(-50%, -50%)" }}
                             onMouseEnter={() => setHoveredTerminal("elAnode")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "elAnode", 0, 0)}
@@ -1425,10 +1639,10 @@ function SmallComponent({
                             </div>
                         )}
 
-                        {/* Cathode Pin (16, 0) */}
+                        {/* Cathode (−) Pin at (16, 0) */}
                         <span 
                             className={`terminal-pin pin-elec-cathode ${hoveredTerminal === "elCathode" ? "targeted" : ""}`}
-                            style={{ left: 16, top: 0 }}
+                            style={{ left: 16, top: 0, transform: "translate(-50%, -50%)" }}
                             onMouseEnter={() => setHoveredTerminal("elCathode")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "elCathode", 16, 0)}
@@ -1445,61 +1659,247 @@ function SmallComponent({
                 );
             })()}
 
-            {/* DC MOTOR (LARGE REALISTIC BRUSHED STEEL CAN & ROTATING PROPELLER): Terminals Pos (0, 48), Neg (48, 48) */}
-            {/* DC MOTOR (HUGE REALISTIC BRUSHED STEEL CAN & ROTATING PROPELLER): Terminals Pos (0, 0), Neg (48, 0) */}
+            {/* DC MOTOR: Ultra-Realistic 2D & 3D Interactive Model with 360° Joystick Rotation & Dynamic 3D Leads */}
             {type === "motor-dc" && (() => {
-                const isSpinning = Boolean(isSimulating && (simState?.isSpinning || (simState?.voltage && simState.voltage > 1.2)));
+                const isMotor3D = is3D !== false && viewMode !== "2d";
+                const currentRot = rot3D != null ? rot3D : 35;
+                const currentPitch = pitch3D != null ? pitch3D : 20;
+                const motorSpeed = speed != null ? speed : 100;
+
+                // Live electrical simulation state
+                const motorSim = simState || {};
+                const isSpinning = Boolean(
+                    isSimulating && motorSim.isSpinning && (motorSim.rpm > 0 || motorSim.voltage >= 1.0)
+                );
+                const actualRpm = isSpinning 
+                    ? (motorSim.rpm || Math.round((motorSpeed / 100) * 12500)) 
+                    : 0;
+                const actualVoltage = isSpinning ? (motorSim.voltage || 0) : 0;
+                const actualCurrent = isSpinning ? (motorSim.currentMa || 0) : 0;
+                const actualDir = motorSim.direction || direction || "cw";
+                const isAxleOnly = accessory === "axle";
+
+                // Dynamic spin rotation speed for 2D animation
+                const spinDuration = isSpinning && actualRpm > 0 
+                    ? `${Math.max(0.02, (60 / actualRpm)).toFixed(3)}s` 
+                    : "0.12s";
+
+                // 3D Lug projection math for the flexible hookup leads
+                // Motor center is at (24, -65) in canvas local coordinates.
+                const radY = (currentRot * Math.PI) / 180;
+                const radX = (currentPitch * Math.PI) / 180;
+
+                const projectLug = (x0, y0, z0) => {
+                    const x1 = x0 * Math.cos(radY) + z0 * Math.sin(radY);
+                    const y1 = y0;
+                    const z1 = -x0 * Math.sin(radY) + z0 * Math.cos(radY);
+
+                    const y2 = y1 * Math.cos(radX) - z1 * Math.sin(radX);
+                    const z2 = y1 * Math.sin(radX) + z1 * Math.cos(radX);
+
+                    return {
+                        x: Math.round(24 + x1),
+                        y: Math.round(-65 + y2),
+                        z: z2
+                    };
+                };
+
+                const posLug = projectLug(-16, 16, -26);
+                const negLug = projectLug(16, 16, -26);
+
+                // Natural flexible silicone hookup leads drooping down to breadboard pins (0, 0) and (48, 0)
+                const redC1X = Math.round(posLug.x + (0 - posLug.x) * 0.35);
+                const redC1Y = Math.round(posLug.y + Math.max(16, (0 - posLug.y) * 0.45));
+                const redC2X = Math.round(0 + (posLug.x - 0) * 0.15);
+                const redC2Y = -18;
+                const redLeadPath = `M ${posLug.x} ${posLug.y} C ${redC1X} ${redC1Y}, ${redC2X} ${redC2Y}, 0 0`;
+
+                const blkC1X = Math.round(negLug.x + (48 - negLug.x) * 0.35);
+                const blkC1Y = Math.round(negLug.y + Math.max(16, (0 - negLug.y) * 0.45));
+                const blkC2X = Math.round(48 + (negLug.x - 48) * 0.15);
+                const blkC2Y = -18;
+                const blkLeadPath = `M ${negLug.x} ${negLug.y} C ${blkC1X} ${blkC1Y}, ${blkC2X} ${blkC2Y}, 48 0`;
+
                 return (
-                    <div className={`dc-motor-container ${isSpinning ? "is-spinning" : ""}`} title="DC Hobby Motor with Aerodynamic Propeller Fan (3-12V)">
-                        <svg className="dc-motor-svg" viewBox="-36 -115 120 125" width="120" height="125" style={{ position: "absolute", left: -36, top: -115, pointerEvents: "auto", cursor: "move" }}>
+                    <div className={`dc-motor-container ${isSpinning ? "is-spinning" : ""} ${isMotor3D ? "mode-3d" : "mode-2d"}`}>
+                        {/* DYNAMIC FLEXIBLE SILICONE HOOKUP LEADS (SVG) */}
+                        <svg className="dc-motor-dynamic-leads-svg" viewBox="-50 -130 150 145" style={{ position: "absolute", left: -50, top: -130, width: 150, height: 145, pointerEvents: "none", overflow: "visible" }}>
                             <defs>
-                                <radialGradient id={`motor-can-grad-${id}`} cx="38%" cy="32%" r="68%">
-                                    <stop offset="0%" stopColor="#f8fafc" />
-                                    <stop offset="30%" stopColor="#cbd5e1" />
-                                    <stop offset="65%" stopColor="#64748b" />
-                                    <stop offset="100%" stopColor="#1e293b" />
-                                </radialGradient>
                                 <linearGradient id={`motor-tab-grad-${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
                                     <stop offset="0%" stopColor="#f59e0b" />
                                     <stop offset="50%" stopColor="#d97706" />
                                     <stop offset="100%" stopColor="#78350f" />
                                 </linearGradient>
+                                <radialGradient id={`solder-droplet-grad-${id}`} cx="35%" cy="35%" r="65%">
+                                    <stop offset="0%" stopColor="#f8fafc" />
+                                    <stop offset="40%" stopColor="#cbd5e1" />
+                                    <stop offset="100%" stopColor="#64748b" />
+                                </radialGradient>
+                                <filter id={`wire-shadow-${id}`} x="-20%" y="-20%" width="140%" height="140%">
+                                    <feDropShadow dx="0" dy="4" stdDeviation="3" floodColor="#000000" floodOpacity="0.55" />
+                                </filter>
                             </defs>
 
-                            {/* Two Flexible Insulated Leads linking from Motor back to Pins (0, 0) and (48, 0) */}
-                            {/* Pos (+) Red Lead */}
-                            <path d="M 12 -15 C 6 -10, 2 -5, 0 0" stroke="#ef4444" strokeWidth="3.2" strokeLinecap="round" fill="none" />
+                            {/* Drop Shadows for Wires */}
+                            <path d={redLeadPath} stroke="rgba(0,0,0,0.4)" strokeWidth="5.5" strokeLinecap="round" fill="none" filter={`url(#wire-shadow-${id})`} />
+                            <path d={blkLeadPath} stroke="rgba(0,0,0,0.4)" strokeWidth="5.5" strokeLinecap="round" fill="none" filter={`url(#wire-shadow-${id})`} />
+
+                            {/* Positive (+) Flexible Red Silicone Lead */}
+                            <path d={redLeadPath} stroke="#dc2626" strokeWidth="3.6" strokeLinecap="round" fill="none" />
+                            <path d={redLeadPath} stroke="#f87171" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.8" />
+
+                            {/* Negative (-) Flexible Black Silicone Lead */}
+                            <path d={blkLeadPath} stroke="#18181b" strokeWidth="3.6" strokeLinecap="round" fill="none" />
+                            <path d={blkLeadPath} stroke="#52525b" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.8" />
+
+                            {/* Solder Lugs attached directly at projected 3D coordinates */}
+                            <g transform={`translate(${posLug.x}, ${posLug.y})`}>
+                                <rect x="-3.5" y="-5" width="7" height="10" rx="1.5" fill={`url(#motor-tab-grad-${id})`} stroke="#78350f" strokeWidth="0.8" />
+                                <circle cx="0" cy="0" r="2.8" fill={`url(#solder-droplet-grad-${id})`} stroke="#475569" strokeWidth="0.6" />
+                                <text x="0" y="-6.5" fill="#ef4444" fontSize="5" fontWeight="900" textAnchor="middle">+</text>
+                            </g>
+
+                            <g transform={`translate(${negLug.x}, ${negLug.y})`}>
+                                <rect x="-3.5" y="-5" width="7" height="10" rx="1.5" fill={`url(#motor-tab-grad-${id})`} stroke="#78350f" strokeWidth="0.8" />
+                                <circle cx="0" cy="0" r="2.8" fill={`url(#solder-droplet-grad-${id})`} stroke="#475569" strokeWidth="0.6" />
+                                <text x="0" y="-6.5" fill="#38bdf8" fontSize="5" fontWeight="900" textAnchor="middle">−</text>
+                            </g>
+
+                            {/* Breadboard Header Solder Collars at (0, 0) and (48, 0) */}
                             <circle cx="0" cy="0" r="3.2" fill="#ca8a04" stroke="#78350f" strokeWidth="1" />
-                            <text x="0" y="-8" fill="#ef4444" fontSize="4.8" fontWeight="900" textAnchor="middle">+</text>
-
-                            {/* Neg (-) Black Lead */}
-                            <path d="M 36 -15 C 42 -10, 46 -5, 48 0" stroke="#1e293b" strokeWidth="3.2" strokeLinecap="round" fill="none" />
                             <circle cx="48" cy="0" r="3.2" fill="#ca8a04" stroke="#78350f" strokeWidth="1" />
-                            <text x="48" y="-8" fill="#3b82f6" fontSize="4.8" fontWeight="900" textAnchor="middle">−</text>
-
-                            {/* Main Cylindrical Steel Can (Diameter 100px, radius 50px at center (24, -65)) */}
-                            <circle cx="24" cy="-65" r="48" fill={`url(#motor-can-grad-${id})`} stroke="#475569" strokeWidth="2.5" filter="drop-shadow(0 10px 22px rgba(0,0,0,0.65))" />
-                            <circle cx="24" cy="-65" r="44" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.2" />
-                            <circle cx="24" cy="-65" r="38" fill="#0f172a" opacity="0.12" />
-
-                            {/* Front Bearing Hub Boss */}
-                            <circle cx="24" cy="-65" r="14" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1.5" />
-                            <circle cx="24" cy="-65" r="4.5" fill="#0f172a" />
-
-                            {/* Silkscreen text on can */}
-                            <text x="24" y="-95" fill="#ffffff" fontSize="6.5" fontWeight="900" textAnchor="middle" letterSpacing="0.06em">DC MOTOR 3-6V</text>
-                            <text x="24" y="-30" fill="rgba(255,255,255,0.8)" fontSize="4.5" fontWeight="bold" textAnchor="middle">TWINLAB X</text>
                         </svg>
 
-                        {/* High-Speed Spinning 3-Blade Aerofoil Propeller Fan (Diameter 96px, center 24,-65) */}
-                        <div 
-                            className={`motor-propeller-fan ${isSpinning ? "spin-blur" : ""}`}
-                            style={{ position: "absolute", left: 24 - 48, top: -65 - 48, width: 96, height: 96 }}
-                        >
-                            <div className="fan-blade blade-1"></div>
-                            <div className="fan-blade blade-2"></div>
-                            <div className="fan-blade blade-3"></div>
-                            <div className="fan-hub-cap"></div>
+                        {/* 3D WEBGL MOTOR (POWERED BY THREE.JS) */}
+                        {isMotor3D ? (
+                            <div className="motor-3d-webgl-wrapper" style={{ position: "absolute", left: -56, top: -145, width: 160, height: 160, pointerEvents: "auto", cursor: "move" }}>
+                                <ThreeMotorView 
+                                    type="motor-dc"
+                                    rot3D={currentRot}
+                                    pitch3D={currentPitch}
+                                    isSpinning={isSpinning}
+                                    rpm={actualRpm}
+                                    accessory={accessory}
+                                    direction={actualDir}
+                                />
+                            </div>
+                        ) : (
+                            /* 2D HIGH-FIDELITY MABUCHI 130 MOTOR (MATCHING IMAGE 1 WITH ZERO-OFFSET PROPELLER) */
+                            <div className="motor-2d-stage" style={{ position: "absolute", left: -36, top: -125, width: 120, height: 135, pointerEvents: "auto", cursor: "move" }}>
+                                <svg viewBox="-36 -125 120 135" width="120" height="135" style={{ overflow: "visible" }}>
+                                    <defs>
+                                        <radialGradient id={`motor-can-grad-2d-${id}`} cx="38%" cy="32%" r="68%">
+                                            <stop offset="0%" stopColor="#ffffff" />
+                                            <stop offset="25%" stopColor="#e2e8f0" />
+                                            <stop offset="60%" stopColor="#94a3b8" />
+                                            <stop offset="90%" stopColor="#475569" />
+                                            <stop offset="100%" stopColor="#1e293b" />
+                                        </radialGradient>
+
+                                        <radialGradient id={`zinc-boss-grad-${id}`} cx="35%" cy="35%" r="65%">
+                                            <stop offset="0%" stopColor="#f8fafc" />
+                                            <stop offset="45%" stopColor="#cbd5e1" />
+                                            <stop offset="85%" stopColor="#64748b" />
+                                            <stop offset="100%" stopColor="#475569" />
+                                        </radialGradient>
+
+                                        <radialGradient id={`bronze-bushing-grad-${id}`} cx="35%" cy="35%" r="65%">
+                                            <stop offset="0%" stopColor="#fef3c7" />
+                                            <stop offset="40%" stopColor="#f59e0b" />
+                                            <stop offset="80%" stopColor="#b45309" />
+                                            <stop offset="100%" stopColor="#78350f" />
+                                        </radialGradient>
+
+                                        <linearGradient id={`prop-blade-grad-${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stopColor="#38bdf8" />
+                                            <stop offset="50%" stopColor="#0284c7" />
+                                            <stop offset="100%" stopColor="#0369a1" />
+                                        </linearGradient>
+                                    </defs>
+
+                                    {/* Main 130 Cylindrical Brushed Steel Can (Diameter 92px centered at 24, -65) */}
+                                    <circle cx="24" cy="-65" r="46" fill={`url(#motor-can-grad-2d-${id})`} stroke="#475569" strokeWidth="2.5" filter="drop-shadow(0 10px 22px rgba(0,0,0,0.65))" />
+                                    <circle cx="24" cy="-65" r="43" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1" />
+                                    <circle cx="24" cy="-65" r="39" fill="#0f172a" opacity="0.08" />
+
+                                    {/* Stamped Curved Side Ventilation Louvers (Left & Right as in Image 1) */}
+                                    <g>
+                                        <path d="M -11 -75 C -15 -70, -15 -60, -11 -55" stroke="#1e293b" strokeWidth="3.2" strokeLinecap="round" fill="none" />
+                                        <path d="M -11 -75 C -15 -70, -15 -60, -11 -55" stroke="#cbd5e1" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.7" />
+                                        <line x1="-13" y1="-67" x2="-10" y2="-67" stroke="#d97706" strokeWidth="2" />
+                                        <line x1="-13" y1="-63" x2="-10" y2="-63" stroke="#b45309" strokeWidth="2" />
+                                    </g>
+                                    <g>
+                                        <path d="M 59 -75 C 63 -70, 63 -60, 59 -55" stroke="#1e293b" strokeWidth="3.2" strokeLinecap="round" fill="none" />
+                                        <path d="M 59 -75 C 63 -70, 63 -60, 59 -55" stroke="#cbd5e1" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.7" />
+                                        <line x1="57" y1="-67" x2="60" y2="-67" stroke="#d97706" strokeWidth="2" />
+                                        <line x1="57" y1="-63" x2="60" y2="-63" stroke="#b45309" strokeWidth="2" />
+                                    </g>
+
+                                    {/* Two Threaded M2 Mounting Screw Holes Flanking Center Collar */}
+                                    <circle cx="5" cy="-65" r="3.2" fill="#0f172a" stroke="#475569" strokeWidth="1" />
+                                    <circle cx="5" cy="-65" r="1.8" fill="#1e293b" stroke="#94a3b8" strokeWidth="0.6" strokeDasharray="1.5 1.5" />
+                                    <circle cx="43" cy="-65" r="3.2" fill="#0f172a" stroke="#475569" strokeWidth="1" />
+                                    <circle cx="43" cy="-65" r="1.8" fill="#1e293b" stroke="#94a3b8" strokeWidth="0.6" strokeDasharray="1.5 1.5" />
+
+                                    {/* Laser Engraved Hardware Spec Stamping */}
+                                    <text x="24" y="-95" fill="#ffffff" fontSize="6" fontWeight="900" textAnchor="middle" letterSpacing="0.08em" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}>MABUCHI 130</text>
+                                    <text x="24" y="-88" fill="#94a3b8" fontSize="4.5" fontWeight="bold" textAnchor="middle">3V - 6V DC</text>
+
+                                    {/* Center Raised Zinc Bearing Boss Collar (Matching Image 1) */}
+                                    <circle cx="24" cy="-65" r="16" fill={`url(#zinc-boss-grad-${id})`} stroke="#64748b" strokeWidth="1.8" filter="drop-shadow(0 3px 6px rgba(0,0,0,0.45))" />
+                                    <circle cx="24" cy="-65" r="13" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="0.8" />
+
+                                    {/* Sintered Bronze Bushing Ring */}
+                                    <circle cx="24" cy="-65" r="8" fill={`url(#bronze-bushing-grad-${id})`} stroke="#78350f" strokeWidth="1" />
+                                    <circle cx="24" cy="-65" r="5" fill="#451a03" opacity="0.3" />
+
+                                    {/* Hardened Steel Axle Rod in Center */}
+                                    <circle cx="24" cy="-65" r="3.6" fill="#f8fafc" stroke="#334155" strokeWidth="1" />
+                                    <circle cx="23" cy="-66" r="1.2" fill="#ffffff" />
+
+                                    {/* 3-Blade Aerofoil Propeller Fan: 100% Centered directly at axle (24, -65) */}
+                                    {!isAxleOnly && (
+                                        <g transform="translate(24, -65)">
+                                            <g 
+                                                ref={rotorRef}
+                                                style={{ transformOrigin: "0px 0px" }}
+                                            >
+                                                <path d="M 0 0 C -6 -16, -11 -32, 0 -42 C 11 -32, 6 -16, 0 0" fill={`url(#prop-blade-grad-${id})`} stroke="#0284c7" strokeWidth="1.2" filter="drop-shadow(0 2px 5px rgba(0,0,0,0.4))" />
+                                                <path d="M 0 0 C -6 -16, -11 -32, 0 -42 C 11 -32, 6 -16, 0 0" fill={`url(#prop-blade-grad-${id})`} stroke="#0284c7" strokeWidth="1.2" filter="drop-shadow(0 2px 5px rgba(0,0,0,0.4))" transform="rotate(120)" />
+                                                <path d="M 0 0 C -6 -16, -11 -32, 0 -42 C 11 -32, 6 -16, 0 0" fill={`url(#prop-blade-grad-${id})`} stroke="#0284c7" strokeWidth="1.2" filter="drop-shadow(0 2px 5px rgba(0,0,0,0.4))" transform="rotate(240)" />
+
+                                                <circle cx="0" cy="0" r="7.5" fill="radial-gradient(circle, #ffffff 0%, #cbd5e1 50%, #0284c7 100%)" stroke="#0369a1" strokeWidth="1.5" />
+                                                <circle cx="0" cy="0" r="3.2" fill="#f8fafc" stroke="#94a3b8" strokeWidth="0.8" />
+                                            </g>
+                                        </g>
+                                    )}
+
+                                    <text x="24" y="-28" fill="rgba(255,255,255,0.7)" fontSize="4.5" fontWeight="bold" textAnchor="middle">
+                                        {isAxleOnly ? "BARE STEEL AXLE" : "3-BLADE PROPELLER"}
+                                    </text>
+                                </svg>
+                            </div>
+                        )}
+
+                        {/* LIVE DIGITAL TACHOMETER / RPM OLED HUD TELEMETRY DISPLAY */}
+                        <div className="motor-tachometer-hud" style={{ position: "absolute", left: 24, top: -140, transform: "translateX(-50%)" }}>
+                            <div className={`tachometer-screen ${isSpinning ? "is-running" : "is-standby"}`}>
+                                <div className="tachometer-top-row">
+                                    <span className={`tach-pulse-led ${isSpinning ? "pulsing" : ""}`}></span>
+                                    <span className="tach-title">130 TACHOMETER</span>
+                                    <span className="tach-dir-badge">{actualDir.toUpperCase()}</span>
+                                </div>
+                                <div className="tachometer-main-val">
+                                    <span ref={tachRpmRef} className="tach-number">{isSpinning ? actualRpm.toLocaleString() : "0"}</span>
+                                    <span className="tach-unit">RPM</span>
+                                </div>
+                                <div className="tachometer-sub-bar">
+                                    <span>{actualVoltage > 0 ? `${actualVoltage.toFixed(1)}V` : "0.0V"}</span>
+                                    <span>•</span>
+                                    <span>{actualCurrent > 0 ? `${actualCurrent}mA` : "0mA"}</span>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Positive Terminal Pin (0, 0) */}
@@ -1539,12 +1939,314 @@ function SmallComponent({
                 );
             })()}
 
+            {/* TT GEARED DC MOTOR (YELLOW BO MOTOR): Ultra-Realistic 2D & 3D Interactive Model (Image 2) */}
+            {(type === "motor-geared" || type === "motor-bo") && (() => {
+                const isMotor3D = is3D !== false && viewMode !== "2d";
+                const currentRot = rot3D != null ? rot3D : 35;
+                const currentPitch = pitch3D != null ? pitch3D : 20;
+                const motorSpeed = speed != null ? speed : 100;
+                const currentRatio = gearRatio || "1:48";
+
+                // Gearbox calculation: 1:48 -> ~220 RPM, 1:120 -> ~90 RPM, 1:220 -> ~45 RPM
+                const baseRpm = currentRatio === "1:220" ? 45 : currentRatio === "1:120" ? 90 : 220;
+
+                // Live electrical simulation state
+                const motorSim = simState || {};
+                const isSpinning = Boolean(
+                    isSimulating && motorSim.isSpinning && (motorSim.rpm > 0 || motorSim.voltage >= 1.0)
+                );
+                const actualRpm = isSpinning 
+                    ? (motorSim.rpm || Math.round((motorSpeed / 100) * baseRpm)) 
+                    : 0;
+                const actualVoltage = isSpinning ? (motorSim.voltage || 0) : 0;
+                const actualCurrent = isSpinning ? (motorSim.currentMa || 0) : 0;
+                const actualDir = motorSim.direction || direction || "cw";
+
+                const shaftDuration = isSpinning && actualRpm > 0 
+                    ? `${Math.max(0.04, (60 / actualRpm)).toFixed(3)}s` 
+                    : "0.27s";
+
+                // 3D Lug projection math for the flexible hookup leads
+                const radY = (currentRot * Math.PI) / 180;
+                const radX = (currentPitch * Math.PI) / 180;
+
+                const projectLug = (x0, y0, z0) => {
+                    const x1 = x0 * Math.cos(radY) + z0 * Math.sin(radY);
+                    const y1 = y0;
+                    const z1 = -x0 * Math.sin(radY) + z0 * Math.cos(radY);
+
+                    const y2 = y1 * Math.cos(radX) - z1 * Math.sin(radX);
+                    const z2 = y1 * Math.sin(radX) + z1 * Math.cos(radX);
+
+                    return {
+                        x: Math.round(24 + x1),
+                        y: Math.round(-70 + y2),
+                        z: z2
+                    };
+                };
+
+                const posLug = projectLug(-14, 22, -24);
+                const negLug = projectLug(14, 22, -24);
+
+                // Natural flexible silicone hookup leads drooping down to breadboard pins (0, 0) and (48, 0)
+                const redC1X = Math.round(posLug.x + (0 - posLug.x) * 0.35);
+                const redC1Y = Math.round(posLug.y + Math.max(16, (0 - posLug.y) * 0.45));
+                const redC2X = Math.round(0 + (posLug.x - 0) * 0.15);
+                const redC2Y = -18;
+                const redLeadPath = `M ${posLug.x} ${posLug.y} C ${redC1X} ${redC1Y}, ${redC2X} ${redC2Y}, 0 0`;
+
+                const blkC1X = Math.round(negLug.x + (48 - negLug.x) * 0.35);
+                const blkC1Y = Math.round(negLug.y + Math.max(16, (0 - negLug.y) * 0.45));
+                const blkC2X = Math.round(48 + (negLug.x - 48) * 0.15);
+                const blkC2Y = -18;
+                const blkLeadPath = `M ${negLug.x} ${negLug.y} C ${blkC1X} ${blkC1Y}, ${blkC2X} ${blkC2Y}, 48 0`;
+
+                return (
+                    <div className={`geared-motor-container ${isSpinning ? "is-spinning" : ""} ${isMotor3D ? "mode-3d" : "mode-2d"}`}>
+                        {/* DYNAMIC FLEXIBLE SILICONE HOOKUP LEADS (SVG) */}
+                        <svg className="dc-motor-dynamic-leads-svg" viewBox="-50 -140 150 155" style={{ position: "absolute", left: -50, top: -140, width: 150, height: 155, pointerEvents: "none", overflow: "visible" }}>
+                            <defs>
+                                <linearGradient id={`geared-tab-grad-${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stopColor="#f59e0b" />
+                                    <stop offset="50%" stopColor="#d97706" />
+                                    <stop offset="100%" stopColor="#78350f" />
+                                </linearGradient>
+                                <radialGradient id={`geared-solder-grad-${id}`} cx="35%" cy="35%" r="65%">
+                                    <stop offset="0%" stopColor="#f8fafc" />
+                                    <stop offset="40%" stopColor="#cbd5e1" />
+                                    <stop offset="100%" stopColor="#64748b" />
+                                </radialGradient>
+                                <filter id={`geared-wire-shadow-${id}`} x="-20%" y="-20%" width="140%" height="140%">
+                                    <feDropShadow dx="0" dy="4" stdDeviation="3" floodColor="#000000" floodOpacity="0.55" />
+                                </filter>
+                            </defs>
+
+                            {/* Drop Shadows */}
+                            <path d={redLeadPath} stroke="rgba(0,0,0,0.4)" strokeWidth="5.5" strokeLinecap="round" fill="none" filter={`url(#geared-wire-shadow-${id})`} />
+                            <path d={blkLeadPath} stroke="rgba(0,0,0,0.4)" strokeWidth="5.5" strokeLinecap="round" fill="none" filter={`url(#geared-wire-shadow-${id})`} />
+
+                            {/* Red Lead (+) */}
+                            <path d={redLeadPath} stroke="#dc2626" strokeWidth="3.6" strokeLinecap="round" fill="none" />
+                            <path d={redLeadPath} stroke="#f87171" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.8" />
+
+                            {/* Black Lead (−) */}
+                            <path d={blkLeadPath} stroke="#18181b" strokeWidth="3.6" strokeLinecap="round" fill="none" />
+                            <path d={blkLeadPath} stroke="#52525b" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.8" />
+
+                            {/* Solder Tabs */}
+                            <g transform={`translate(${posLug.x}, ${posLug.y})`}>
+                                <rect x="-3.5" y="-5" width="7" height="10" rx="1.5" fill={`url(#geared-tab-grad-${id})`} stroke="#78350f" strokeWidth="0.8" />
+                                <circle cx="0" cy="0" r="2.8" fill={`url(#geared-solder-grad-${id})`} stroke="#475569" strokeWidth="0.6" />
+                                <text x="0" y="-6.5" fill="#ef4444" fontSize="5" fontWeight="900" textAnchor="middle">+</text>
+                            </g>
+                            <g transform={`translate(${negLug.x}, ${negLug.y})`}>
+                                <rect x="-3.5" y="-5" width="7" height="10" rx="1.5" fill={`url(#geared-tab-grad-${id})`} stroke="#78350f" strokeWidth="0.8" />
+                                <circle cx="0" cy="0" r="2.8" fill={`url(#geared-solder-grad-${id})`} stroke="#475569" strokeWidth="0.6" />
+                                <text x="0" y="-6.5" fill="#38bdf8" fontSize="5" fontWeight="900" textAnchor="middle">−</text>
+                            </g>
+
+                            {/* Breadboard Header Pins at (0, 0) and (48, 0) */}
+                            <circle cx="0" cy="0" r="3.2" fill="#ca8a04" stroke="#78350f" strokeWidth="1" />
+                            <circle cx="48" cy="0" r="3.2" fill="#ca8a04" stroke="#78350f" strokeWidth="1" />
+                        </svg>
+
+                        {/* 3D WEBGL YELLOW BO GEARBOX MOTOR (POWERED BY THREE.JS) */}
+                        {isMotor3D ? (
+                            <div className="geared-motor-3d-webgl-wrapper" style={{ position: "absolute", left: -56, top: -150, width: 160, height: 160, pointerEvents: "auto", cursor: "move" }}>
+                                <ThreeMotorView 
+                                    type="motor-geared"
+                                    rot3D={currentRot}
+                                    pitch3D={currentPitch}
+                                    isSpinning={isSpinning}
+                                    rpm={actualRpm}
+                                    direction={actualDir}
+                                    gearRatio={currentRatio}
+                                />
+                            </div>
+                        ) : (
+                            /* 2D HIGH-FIDELITY TT BO GEARED MOTOR (IMAGE 2) */
+                            <div className="geared-motor-2d-stage" style={{ position: "absolute", left: -36, top: -140, width: 120, height: 145, pointerEvents: "auto", cursor: "move" }}>
+                                <svg viewBox="-36 -140 120 145" width="120" height="145" style={{ overflow: "visible" }}>
+                                    <defs>
+                                        <linearGradient id={`yellow-abs-grad-${id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stopColor="#fef08a" />
+                                            <stop offset="25%" stopColor="#facc15" />
+                                            <stop offset="85%" stopColor="#eab308" />
+                                            <stop offset="100%" stopColor="#ca8a04" />
+                                        </linearGradient>
+
+                                        <linearGradient id={`silver-can-grad-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                            <stop offset="0%" stopColor="#ffffff" />
+                                            <stop offset="30%" stopColor="#cbd5e1" />
+                                            <stop offset="70%" stopColor="#94a3b8" />
+                                            <stop offset="100%" stopColor="#475569" />
+                                        </linearGradient>
+
+                                        <linearGradient id={`clear-strap-grad-${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" stopColor="rgba(255,255,255,0.7)" />
+                                            <stop offset="40%" stopColor="rgba(241,245,249,0.35)" />
+                                            <stop offset="70%" stopColor="rgba(241,245,249,0.55)" />
+                                            <stop offset="100%" stopColor="rgba(203,213,225,0.75)" />
+                                        </linearGradient>
+
+                                        <radialGradient id={`nylon-dshaft-grad-${id}`} cx="35%" cy="35%" r="65%">
+                                            <stop offset="0%" stopColor="#ffffff" />
+                                            <stop offset="65%" stopColor="#f1f5f9" />
+                                            <stop offset="100%" stopColor="#cbd5e1" />
+                                        </radialGradient>
+                                    </defs>
+
+                                    {/* Ambient Drop Shadow */}
+                                    <rect x="-14" y="-128" width="76" height="96" rx="8" fill="rgba(0,0,0,0.55)" filter="blur(6px)" />
+
+                                    {/* 1. Yellow ABS Gearbox Main Body */}
+                                    <path 
+                                        d="M -12 -124 L 56 -124 Q 60 -124 60 -120 L 60 -64 Q 60 -60 56 -60 L 46 -60 L 46 -38 Q 46 -34 42 -34 L 6 -34 Q 2 -34 2 -38 L 2 -60 L -8 -60 Q -12 -60 -12 -64 Z" 
+                                        fill={`url(#yellow-abs-grad-${id})`} 
+                                        stroke="#a16207" 
+                                        strokeWidth="2" 
+                                    />
+
+                                    <path d="M -10 -122 L 54 -122" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" strokeLinecap="round" />
+                                    <path d="M -10 -122 L -10 -62" stroke="rgba(255,255,255,0.4)" strokeWidth="1" strokeLinecap="round" />
+
+                                    {/* Assembly Screws (Silver Phillips Screws as seen in Image 2) */}
+                                    <circle cx="-4" cy="-116" r="3" fill="#e2e8f0" stroke="#64748b" strokeWidth="0.8" />
+                                    <line x1="-5.5" y1="-116" x2="-2.5" y2="-116" stroke="#475569" strokeWidth="0.8" />
+                                    <line x1="-4" y1="-117.5" x2="-4" y2="-114.5" stroke="#475569" strokeWidth="0.8" />
+
+                                    <circle cx="50" cy="-116" r="3" fill="#e2e8f0" stroke="#64748b" strokeWidth="0.8" />
+                                    <line x1="48.5" y1="-116" x2="51.5" y2="-116" stroke="#475569" strokeWidth="0.8" />
+                                    <line x1="50" y1="-117.5" x2="50" y2="-114.5" stroke="#475569" strokeWidth="0.8" />
+
+                                    <circle cx="50" cy="-68" r="3" fill="#e2e8f0" stroke="#64748b" strokeWidth="0.8" />
+                                    <line x1="48.5" y1="-68" x2="51.5" y2="-68" stroke="#475569" strokeWidth="0.8" />
+                                    <line x1="50" y1="-69.5" x2="50" y2="-66.5" stroke="#475569" strokeWidth="0.8" />
+
+                                    {/* Molded Mounting Eyelet Hole */}
+                                    <circle cx="-3" cy="-72" r="3.5" fill="#ca8a04" stroke="#854d0e" strokeWidth="1" />
+                                    <circle cx="-3" cy="-72" r="1.8" fill="#0f172a" />
+
+                                    {/* 2. Rear Cylindrical 130 DC Motor Casing */}
+                                    <rect x="4" y="-56" width="40" height="30" rx="4" fill={`url(#silver-can-grad-${id})`} stroke="#475569" strokeWidth="1.5" />
+                                    <line x1="6" y1="-42" x2="42" y2="-42" stroke="rgba(255,255,255,0.7)" strokeWidth="1" />
+
+                                    {/* 3. Translucent Clear Plastic Retention Strap (Iconic White/Clear Strap in Image 2) */}
+                                    <rect x="1" y="-48" width="46" height="12" rx="2.5" fill={`url(#clear-strap-grad-${id})`} stroke="rgba(203,213,225,0.9)" strokeWidth="1.2" />
+                                    <rect x="-1" y="-49" width="4" height="14" rx="1.5" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="0.8" />
+                                    <rect x="45" y="-49" width="4" height="14" rx="1.5" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="0.8" />
+
+                                    {/* Rear White Nylon Endbell with Solder Eyelets */}
+                                    <rect x="10" y="-27" width="28" height="7" rx="2" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1" />
+                                    <rect x="12" y="-22" width="6" height="4" rx="1" fill="#d97706" stroke="#92400e" strokeWidth="0.8" />
+                                    <circle cx="15" cy="-20" r="1.5" fill="#e2e8f0" />
+                                    <rect x="30" y="-22" width="6" height="4" rx="1" fill="#d97706" stroke="#92400e" strokeWidth="0.8" />
+                                    <circle cx="33" cy="-20" r="1.5" fill="#e2e8f0" />
+
+                                    {/* 4. Output Shaft Boss & White Nylon D-Shaft (Image 2) */}
+                                    <circle cx="24" cy="-92" r="15" fill="#eab308" stroke="#a16207" strokeWidth="1.5" />
+                                    <circle cx="24" cy="-92" r="11" fill="#facc15" stroke="rgba(255,255,255,0.5)" strokeWidth="1" />
+
+                                    {/* High-Contrast Slotted Optical Speed Encoder Disc & Neon Indicator Cross */}
+                                    <g transform="translate(24, -92)">
+                                        <g 
+                                            ref={rotorRef}
+                                            style={{ transformOrigin: "0px 0px" }}
+                                        >
+                                            {/* Optical Speed Encoder Outer Strobe Ring (38px diameter) */}
+                                            <circle cx="0" cy="0" r="19" fill="#18181b" stroke="#3f3f46" strokeWidth="1.2" filter="drop-shadow(0 3px 6px rgba(0,0,0,0.5))" />
+                                            <circle cx="0" cy="0" r="15" fill="none" stroke="#facc15" strokeWidth="2.8" strokeDasharray="3.2 2.5" />
+                                            <circle cx="0" cy="0" r="11" fill="#27272a" stroke="#52525b" strokeWidth="0.8" />
+
+                                            {/* High-Visibility Neon Orange Radial Cross Indicator Arms */}
+                                            <rect x="-16" y="-2" width="32" height="4" rx="1.5" fill="#f97316" stroke="#c2410c" strokeWidth="0.6" />
+                                            <rect x="-2" y="-16" width="4" height="32" rx="1.5" fill="#f97316" stroke="#c2410c" strokeWidth="0.6" />
+
+                                            {/* Direction Indicator Tip Beacon (neon green) */}
+                                            <circle cx="13" cy="0" r="2.8" fill="#22c55e" stroke="#15803d" strokeWidth="0.6" filter="drop-shadow(0 0 4px #22c55e)" />
+                                            <circle cx="13" cy="0" r="1" fill="#ffffff" />
+
+                                            {/* Central Nylon Shaft Boss with Double-Flat D-Shaft Keyway */}
+                                            <circle cx="0" cy="0" r="6" fill={`url(#nylon-dshaft-grad-${id})`} stroke="#94a3b8" strokeWidth="0.8" />
+                                            <path d="M -3 -5.5 L 3 -5.5 L 5.5 -2 L 5.5 2 L 3 5.5 L -3 5.5 L -5.5 2 L -5.5 -2 Z" fill="#ffffff" stroke="#cbd5e1" strokeWidth="0.6" />
+                                            <circle cx="0" cy="0" r="1.8" fill="#64748b" />
+                                        </g>
+                                    </g>
+
+                                    {/* Gearbox Specs Label */}
+                                    <text x="24" y="-112" fill="#78350f" fontSize="6.5" fontWeight="900" textAnchor="middle" letterSpacing="0.04em">TT BO MOTOR</text>
+                                    <text x="24" y="-76" fill="#854d0e" fontSize="5" fontWeight="bold" textAnchor="middle">
+                                        {currentRatio} • {actualRpm} RPM
+                                    </text>
+                                </svg>
+                            </div>
+                        )}
+
+                        {/* LIVE DIGITAL TACHOMETER / RPM OLED HUD TELEMETRY DISPLAY */}
+                        <div className="motor-tachometer-hud" style={{ position: "absolute", left: 24, top: -145, transform: "translateX(-50%)" }}>
+                            <div className={`tachometer-screen ${isSpinning ? "is-running" : "is-standby"}`}>
+                                <div className="tachometer-top-row">
+                                    <span className={`tach-pulse-led ${isSpinning ? "pulsing" : ""}`}></span>
+                                    <span className="tach-title">TT TACHOMETER</span>
+                                    <span className="tach-dir-badge">{actualDir.toUpperCase()}</span>
+                                </div>
+                                <div className="tachometer-main-val">
+                                    <span ref={tachRpmRef} className="tach-number">{isSpinning ? actualRpm.toLocaleString() : "0"}</span>
+                                    <span className="tach-unit">RPM</span>
+                                </div>
+                                <div className="tachometer-sub-bar">
+                                    <span>{actualVoltage > 0 ? `${actualVoltage.toFixed(1)}V` : "0.0V"}</span>
+                                    <span>•</span>
+                                    <span>{actualCurrent > 0 ? `${actualCurrent}mA` : "0mA"}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Positive Terminal Pin (0, 0) */}
+                        <span 
+                            className={`terminal-pin pin-geared-pos ${hoveredTerminal === "gbPos" ? "targeted" : ""}`}
+                            style={{ left: 0, top: 0, transform: "translate(-50%, -50%)" }}
+                            onMouseEnter={() => setHoveredTerminal("gbPos")}
+                            onMouseLeave={() => setHoveredTerminal(null)}
+                            onMouseDown={(e) => handleTerminalMouseDown(e, "gbPos", 0, 0)}
+                            onMouseUp={(e) => handleTerminalMouseUp(e, 0, 0)}
+                            onClick={(e) => handleTerminalPress(e, "gbPos", 0, 0)}
+                            onDoubleClick={(e) => handleTerminalAction(e, 0, 0)}
+                        />
+                        {hoveredTerminal === "gbPos" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 0, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Motor (+) [Red]
+                            </div>
+                        )}
+
+                        {/* Negative Terminal Pin (48, 0) */}
+                        <span 
+                            className={`terminal-pin pin-geared-neg ${hoveredTerminal === "gbNeg" ? "targeted" : ""}`}
+                            style={{ left: 48, top: 0, transform: "translate(-50%, -50%)" }}
+                            onMouseEnter={() => setHoveredTerminal("gbNeg")}
+                            onMouseLeave={() => setHoveredTerminal(null)}
+                            onMouseDown={(e) => handleTerminalMouseDown(e, "gbNeg", 48, 0)}
+                            onMouseUp={(e) => handleTerminalMouseUp(e, 48, 0)}
+                            onClick={(e) => handleTerminalPress(e, "gbNeg", 48, 0)}
+                            onDoubleClick={(e) => handleTerminalAction(e, 48, 0)}
+                        />
+                        {hoveredTerminal === "gbNeg" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 48, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Motor (−) [Black]
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
+
             {/* SG90 MICRO SERVO (HUGE REALISTIC FULL-SCALE SVG WITH ROTATING HORN): Pins GND (0, 0), 5V (16, 0), PWM (32, 0) */}
             {type === "servo-sg90" && (() => {
                 const hornAngle = angle != null ? angle : 90;
                 return (
-                    <div className="servo-sg90-container" title={`SG90 9g Micro Servo (${hornAngle}°)`}>
+                    <div className="servo-sg90-container">
                         <svg className="servo-realistic-svg" viewBox="-80 -165 192 175" width="192" height="175" style={{ position: "absolute", left: -80, top: -165, pointerEvents: "auto", cursor: "move" }}>
+                            {/* Full Hit-Box to ensure 100% reliable click-to-select anywhere on servo */}
+                            <rect x="-80" y="-165" width="192" height="175" fill="transparent" pointerEvents="all" cursor="pointer" />
                             {/* Translucent Cobalt Sky Blue Servo Enclosure: Width 140px, Height 86px from Y=-146 to Y=-60 */}
                             <rect x="-54" y="-146" width="140" height="86" rx="7" fill="#0284c7" stroke="#0369a1" strokeWidth="2.5" filter="drop-shadow(0 10px 24px rgba(0,0,0,0.65))" />
                             <rect x="-48" y="-140" width="128" height="4" fill="rgba(255,255,255,0.4)" rx="2" />
@@ -1587,32 +2289,41 @@ function SmallComponent({
                             {/* Molded Black DuPont Connector Housing Block from Y=-14 to Y=-4 */}
                             <rect x="-6" y="-14" width="44" height="10" rx="2" fill="#18181b" stroke="#3f3f46" strokeWidth="1.2" />
 
+                            {/* Crisp Silkscreen Pin Badges on Connector */}
+                            <rect x="-6" y="-22" width="44" height="7.5" rx="1.5" fill="rgba(15, 23, 42, 0.9)" stroke="#334155" strokeWidth="0.8" />
+                            <text x="0" y="-16.5" fill="#f8fafc" fontSize="5" fontWeight="900" textAnchor="middle" fontFamily="monospace">GND</text>
+                            <text x="16" y="-16.5" fill="#f8fafc" fontSize="5" fontWeight="900" textAnchor="middle" fontFamily="monospace">5V</text>
+                            <text x="32" y="-16.5" fill="#f8fafc" fontSize="5" fontWeight="900" textAnchor="middle" fontFamily="monospace">PWM</text>
+
                             {/* 3 Gold Header Terminal Pins extending to (0, 0), (16, 0), (32, 0) */}
                             <rect x="-2.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
                             <rect x="13.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
                             <rect x="29.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
-                            <text x="0" y="-17" fill="#cbd5e1" fontSize="4.2" fontWeight="bold" textAnchor="middle">GND</text>
-                            <text x="16" y="-17" fill="#cbd5e1" fontSize="4.2" fontWeight="bold" textAnchor="middle">5V</text>
-                            <text x="32" y="-17" fill="#cbd5e1" fontSize="4.2" fontWeight="bold" textAnchor="middle">PWM</text>
                         </svg>
 
-                        {/* 3 Header Pins at Y=0 */}
+                        {/* 3 Header Pins with Interactive Hover Tooltips */}
                         {[
-                            { name: "GND", x: 0, isGnd: true, color: "#78350f" },
-                            { name: "5V", x: 16, is5V: true, color: "#dc2626" },
-                            { name: "PWM", x: 32, isSignal: true, color: "#f97316" }
+                            { name: "GND", x: 0, label: "GND (Brown Wire • Ground)", color: "#78350f" },
+                            { name: "5V", x: 16, label: "5V (Red Wire • Power +5V)", color: "#dc2626" },
+                            { name: "PWM", x: 32, label: "PWM (Orange Wire • Signal)", color: "#f97316" }
                         ].map((pin) => (
-                            <span
-                                key={pin.name}
-                                className={`terminal-pin pin-servo-${pin.name.toLowerCase()} ${hoveredTerminal === `servo_${pin.name}` ? "targeted" : ""}`}
-                                style={{ left: pin.x, top: 0, transform: "translate(-50%, -50%)" }}
-                                onMouseEnter={() => setHoveredTerminal(`servo_${pin.name}`)}
-                                onMouseLeave={() => setHoveredTerminal(null)}
-                                onMouseDown={(e) => handleTerminalMouseDown(e, `servo_${pin.name}`, pin.x, 0)}
-                                onMouseUp={(e) => handleTerminalMouseUp(e, pin.x, 0)}
-                                onClick={(e) => handleTerminalPress(e, `servo_${pin.name}`, pin.x, 0)}
-                                onDoubleClick={(e) => handleTerminalAction(e, pin.x, 0)}
-                            />
+                            <React.Fragment key={pin.name}>
+                                <span
+                                    className={`terminal-pin pin-servo-${pin.name.toLowerCase()} ${hoveredTerminal === `servo_${pin.name}` ? "targeted" : ""}`}
+                                    style={{ left: pin.x, top: 0, transform: "translate(-50%, -50%)" }}
+                                    onMouseEnter={() => setHoveredTerminal(`servo_${pin.name}`)}
+                                    onMouseLeave={() => setHoveredTerminal(null)}
+                                    onMouseDown={(e) => handleTerminalMouseDown(e, `servo_${pin.name}`, pin.x, 0)}
+                                    onMouseUp={(e) => handleTerminalMouseUp(e, pin.x, 0)}
+                                    onClick={(e) => handleTerminalPress(e, `servo_${pin.name}`, pin.x, 0)}
+                                    onDoubleClick={(e) => handleTerminalAction(e, pin.x, 0)}
+                                />
+                                {hoveredTerminal === `servo_${pin.name}` && (
+                                    <div className="terminal-hover-tooltip" style={{ left: pin.x, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                        {pin.label}
+                                    </div>
+                                )}
+                            </React.Fragment>
                         ))}
                     </div>
                 );
@@ -1636,35 +2347,35 @@ function SmallComponent({
                 // Top row 14-8 at Y=0 (Plugs into breadboard Row e)
                 // Bottom row 1-7 at Y=32 (Plugs into breadboard Row f)
                 const topPins = [
-                    { num: 14, name: "VCC", x: 0, is5V: true },
-                    { num: 13, name: "4B", x: 16 },
-                    { num: 12, name: "4A", x: 32 },
-                    { num: 11, name: "4Y", x: 48, isOut: true },
-                    { num: 10, name: "3B", x: 64 },
-                    { num: 9, name: "3A", x: 80 },
-                    { num: 8, name: "3Y", x: 96, isOut: true }
+                    { num: 14, name: "VCC", x: 0, is5V: true, desc: "Power +5V" },
+                    { num: 13, name: "4B", x: 16, desc: "Input 4B" },
+                    { num: 12, name: "4A", x: 32, desc: "Input 4A" },
+                    { num: 11, name: "4Y", x: 48, isOut: true, desc: "Output 4Y" },
+                    { num: 10, name: "3B", x: 64, desc: "Input 3B" },
+                    { num: 9, name: "3A", x: 80, desc: "Input 3A" },
+                    { num: 8, name: "3Y", x: 96, isOut: true, desc: "Output 3Y" }
                 ];
                 const bottomPins = [
-                    { num: 1, name: "1A", x: 0 },
-                    { num: 2, name: "1B", x: 16 },
-                    { num: 3, name: "1Y", x: 32, isOut: true },
-                    { num: 4, name: "2A", x: 48 },
-                    { num: 5, name: "2B", x: 64 },
-                    { num: 6, name: "2Y", x: 80, isOut: true },
-                    { num: 7, name: "GND", x: 96, isGnd: true }
+                    { num: 1, name: "1A", x: 0, desc: "Input 1A" },
+                    { num: 2, name: "1B", x: 16, desc: "Input 1B" },
+                    { num: 3, name: "1Y", x: 32, isOut: true, desc: "Output 1Y" },
+                    { num: 4, name: "2A", x: 48, desc: "Input 2A" },
+                    { num: 5, name: "2B", x: 64, desc: "Input 2B" },
+                    { num: 6, name: "2Y", x: 80, isOut: true, desc: "Output 2Y" },
+                    { num: 7, name: "GND", x: 96, isGnd: true, desc: "Ground 0V" }
                 ];
-                const isPowered = Boolean(isSimulating || simState?.isPowered);
+                const isPowered = Boolean(isSimulating && simState?.isPowered);
 
                 return (
-                    <div className={`dip14-ic-container ${isPowered ? "is-powered" : ""}`} title={`${icCode} - ${partTitle}`}>
+                    <div className={`dip14-ic-container ${isPowered ? "is-powered" : ""}`}>
                         {/* Metallic Through-Hole DIP Lead Fingers Connecting to Row e (Y=0) and Row f (Y=32) */}
                         <svg className="dip-leads-svg" viewBox="-4 -2 108 36" width="108" height="36" style={{ position: "absolute", top: -2, left: -4, pointerEvents: "none" }}>
                             {[0, 16, 32, 48, 64, 80, 96].map(px => (
                                 <g key={`lead-${px}`}>
                                     {/* Top Pin Lead Line from Body (Y=6) to Breadboard Row e (Y=0) */}
-                                    <line x1={px + 4} y1="0" x2={px + 4} y2="8" stroke="#cbd5e1" strokeWidth="2.8" strokeLinecap="round" />
+                                    <line x1={px} y1="0" x2={px} y2="8" stroke="#cbd5e1" strokeWidth="2.8" strokeLinecap="round" />
                                     {/* Bottom Pin Lead Line from Body (Y=26) to Breadboard Row f (Y=32) */}
-                                    <line x1={px + 4} y1="24" x2={px + 4} y2="32" stroke="#cbd5e1" strokeWidth="2.8" strokeLinecap="round" />
+                                    <line x1={px} y1="24" x2={px} y2="32" stroke="#cbd5e1" strokeWidth="2.8" strokeLinecap="round" />
                                 </g>
                             ))}
                         </svg>
@@ -1679,38 +2390,50 @@ function SmallComponent({
                             {isPowered && <div className="ic-power-led-dot"></div>}
                         </div>
 
-                        {/* Top Pins (14 down to 8 at Y=0) */}
+                        {/* Top Pins (14 down to 8 at Y=0) with Interactive Tooltips */}
                         {topPins.map((p) => (
-                            <span
-                                key={`top-${p.num}`}
-                                className={`terminal-pin pin-ic-top ${hoveredTerminal === `ic_${p.num}` ? "targeted" : ""}`}
-                                style={{ left: p.x, top: 0, transform: "translate(-50%, -50%)" }}
-                                onMouseEnter={() => setHoveredTerminal(`ic_${p.num}`)}
-                                onMouseLeave={() => setHoveredTerminal(null)}
-                                onMouseDown={(e) => handleTerminalMouseDown(e, `ic_${p.num}`, p.x, 0)}
-                                onMouseUp={(e) => handleTerminalMouseUp(e, p.x, 0)}
-                                onClick={(e) => handleTerminalPress(e, `ic_${p.num}`, p.x, 0)}
-                                onDoubleClick={(e) => handleTerminalAction(e, p.x, 0)}
-                            >
-                                {isPowered && p.isOut && <span className="ic-logic-status-dot"></span>}
-                            </span>
+                            <React.Fragment key={`top-${p.num}`}>
+                                <span
+                                    className={`terminal-pin pin-ic-top ${hoveredTerminal === `ic_${p.num}` ? "targeted" : ""}`}
+                                    style={{ left: p.x, top: 0, transform: "translate(-50%, -50%)" }}
+                                    onMouseEnter={() => setHoveredTerminal(`ic_${p.num}`)}
+                                    onMouseLeave={() => setHoveredTerminal(null)}
+                                    onMouseDown={(e) => handleTerminalMouseDown(e, `ic_${p.num}`, p.x, 0)}
+                                    onMouseUp={(e) => handleTerminalMouseUp(e, p.x, 0)}
+                                    onClick={(e) => handleTerminalPress(e, `ic_${p.num}`, p.x, 0)}
+                                    onDoubleClick={(e) => handleTerminalAction(e, p.x, 0)}
+                                >
+                                    {isPowered && p.isOut && <span className="ic-logic-status-dot"></span>}
+                                </span>
+                                {hoveredTerminal === `ic_${p.num}` && (
+                                    <div className="terminal-hover-tooltip" style={{ left: p.x, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                        Pin {p.num}: {p.name} ({p.desc})
+                                    </div>
+                                )}
+                            </React.Fragment>
                         ))}
 
-                        {/* Bottom Pins (1 to 7 at Y=32) */}
+                        {/* Bottom Pins (1 to 7 at Y=32) with Interactive Tooltips */}
                         {bottomPins.map((p) => (
-                            <span
-                                key={`bot-${p.num}`}
-                                className={`terminal-pin pin-ic-bot ${hoveredTerminal === `ic_${p.num}` ? "targeted" : ""}`}
-                                style={{ left: p.x, top: 32, transform: "translate(-50%, -50%)" }}
-                                onMouseEnter={() => setHoveredTerminal(`ic_${p.num}`)}
-                                onMouseLeave={() => setHoveredTerminal(null)}
-                                onMouseDown={(e) => handleTerminalMouseDown(e, `ic_${p.num}`, p.x, 32)}
-                                onMouseUp={(e) => handleTerminalMouseUp(e, p.x, 32)}
-                                onClick={(e) => handleTerminalPress(e, `ic_${p.num}`, p.x, 32)}
-                                onDoubleClick={(e) => handleTerminalAction(e, p.x, 32)}
-                            >
-                                {isPowered && p.isOut && <span className="ic-logic-status-dot"></span>}
-                            </span>
+                            <React.Fragment key={`bot-${p.num}`}>
+                                <span
+                                    className={`terminal-pin pin-ic-bot ${hoveredTerminal === `ic_${p.num}` ? "targeted" : ""}`}
+                                    style={{ left: p.x, top: 32, transform: "translate(-50%, -50%)" }}
+                                    onMouseEnter={() => setHoveredTerminal(`ic_${p.num}`)}
+                                    onMouseLeave={() => setHoveredTerminal(null)}
+                                    onMouseDown={(e) => handleTerminalMouseDown(e, `ic_${p.num}`, p.x, 32)}
+                                    onMouseUp={(e) => handleTerminalMouseUp(e, p.x, 32)}
+                                    onClick={(e) => handleTerminalPress(e, `ic_${p.num}`, p.x, 32)}
+                                    onDoubleClick={(e) => handleTerminalAction(e, p.x, 32)}
+                                >
+                                    {isPowered && p.isOut && <span className="ic-logic-status-dot"></span>}
+                                </span>
+                                {hoveredTerminal === `ic_${p.num}` && (
+                                    <div className="terminal-hover-tooltip" style={{ left: p.x, top: 32, transform: `translate(-50%, 0) translateY(10px) rotate(${-(rotation || 0)}deg)` }}>
+                                        Pin {p.num}: {p.name} ({p.desc})
+                                    </div>
+                                )}
+                            </React.Fragment>
                         ))}
                     </div>
                 );
@@ -1719,10 +2442,12 @@ function SmallComponent({
             {/* HC-SR04 ULTRASONIC DISTANCE SENSOR (HUGE REALISTIC FULL-SCALE SVG): Pins VCC (0, 0), Trig (16, 0), Echo (32, 0), GND (48, 0) */}
             {type === "sensor-ultrasonic" && (() => {
                 const distCm = distanceCm != null ? distanceCm : 25;
-                const isPinging = Boolean(isSimulating);
+                const isPinging = Boolean(isSimulating && simState?.isPowered && simState?.isPinging);
                 return (
-                    <div className={`ultrasonic-container ${isPinging ? "is-pinging" : ""}`} title={`HC-SR04 Ultrasonic Distance Sensor (${distCm} cm)`}>
+                    <div className={`ultrasonic-container ${isPinging ? "is-pinging" : ""}`}>
                         <svg className="ultrasonic-realistic-svg" viewBox="-100 -115 248 120" width="248" height="120" style={{ position: "absolute", left: -100, top: -115, pointerEvents: "auto", cursor: "move" }}>
+                            {/* Full Hit-Box to ensure 100% reliable click-to-select anywhere on ultrasonic sensor */}
+                            <rect x="-100" y="-115" width="248" height="120" fill="transparent" pointerEvents="all" cursor="pointer" />
                             <defs>
                                 <radialGradient id={`sonar-transducer-grad-${id}`} cx="40%" cy="35%" r="65%">
                                     <stop offset="0%" stopColor="#f8fafc" />
@@ -1777,17 +2502,17 @@ function SmallComponent({
 
                             {/* Silkscreen Brand & Spec Labels */}
                             <text x="24" y="-88" fill="#ffffff" fontSize="9" fontWeight="900" textAnchor="middle" letterSpacing="0.05em">HC-SR04</text>
+                            <text x="24" y="-76" fill="rgba(255,255,255,0.75)" fontSize="5" fontWeight="700" textAnchor="middle">TWINLAB X</text>
                             <text x="24" y="-30" fill="#a7f3d0" fontSize="7.5" fontWeight="900" textAnchor="middle">{distCm} cm</text>
-                            <text x="24" y="-20" fill="rgba(255,255,255,0.8)" fontSize="5" fontWeight="700" textAnchor="middle">TWINLAB X</text>
 
                             {/* Black DuPont Connector Block at Y=-14 to Y=-4 */}
                             <rect x="-6" y="-14" width="60" height="10" rx="2" fill="#18181b" stroke="#3f3f46" strokeWidth="1.2" />
 
-                            {/* Pin Labels directly above the 4 pins */}
-                            <text x="0" y="-16" fill="#cbd5e1" fontSize="4.5" fontWeight="bold" textAnchor="middle">VCC</text>
-                            <text x="16" y="-16" fill="#cbd5e1" fontSize="4.5" fontWeight="bold" textAnchor="middle">Trig</text>
-                            <text x="32" y="-16" fill="#cbd5e1" fontSize="4.5" fontWeight="bold" textAnchor="middle">Echo</text>
-                            <text x="48" y="-16" fill="#cbd5e1" fontSize="4.5" fontWeight="bold" textAnchor="middle">GND</text>
+                            {/* Pin Labels directly above the 4 pins without colliding with TWINLAB X */}
+                            <text x="0" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">VCC</text>
+                            <text x="16" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">TRIG</text>
+                            <text x="32" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">ECHO</text>
+                            <text x="48" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">GND</text>
 
                             {/* 4 Gold Header Pins extending from Y=-6 to Y=0 */}
                             <rect x="-2.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
@@ -1822,24 +2547,30 @@ function SmallComponent({
                             </>
                         )}
 
-                        {/* 4 Header Pins at Y=0 snapped to 16px breadboard grid */}
+                        {/* 4 Header Pins at Y=0 snapped to 16px breadboard grid with Interactive Hover Tooltips */}
                         {[
-                            { name: "VCC", x: 0, is5V: true },
-                            { name: "Trig", x: 16, isGpio: true },
-                            { name: "Echo", x: 32, isGpio: true },
-                            { name: "GND", x: 48, isGnd: true }
+                            { name: "VCC", x: 0, label: "VCC (Power +5V)" },
+                            { name: "Trig", x: 16, label: "TRIG (Trigger Pulse)" },
+                            { name: "Echo", x: 32, label: "ECHO (Echo Receive)" },
+                            { name: "GND", x: 48, label: "GND (Ground)" }
                         ].map((pin) => (
-                            <span
-                                key={pin.name}
-                                className={`terminal-pin pin-sonar-${pin.name.toLowerCase()} ${hoveredTerminal === `sonar_${pin.name}` ? "targeted" : ""}`}
-                                style={{ left: pin.x, top: 0, transform: "translate(-50%, -50%)" }}
-                                onMouseEnter={() => setHoveredTerminal(`sonar_${pin.name}`)}
-                                onMouseLeave={() => setHoveredTerminal(null)}
-                                onMouseDown={(e) => handleTerminalMouseDown(e, `sonar_${pin.name}`, pin.x, 0)}
-                                onMouseUp={(e) => handleTerminalMouseUp(e, pin.x, 0)}
-                                onClick={(e) => handleTerminalPress(e, `sonar_${pin.name}`, pin.x, 0)}
-                                onDoubleClick={(e) => handleTerminalAction(e, pin.x, 0)}
-                            />
+                            <React.Fragment key={pin.name}>
+                                <span
+                                    className={`terminal-pin pin-sonar-${pin.name.toLowerCase()} ${hoveredTerminal === `sonar_${pin.name}` ? "targeted" : ""}`}
+                                    style={{ left: pin.x, top: 0, transform: "translate(-50%, -50%)" }}
+                                    onMouseEnter={() => setHoveredTerminal(`sonar_${pin.name}`)}
+                                    onMouseLeave={() => setHoveredTerminal(null)}
+                                    onMouseDown={(e) => handleTerminalMouseDown(e, `sonar_${pin.name}`, pin.x, 0)}
+                                    onMouseUp={(e) => handleTerminalMouseUp(e, pin.x, 0)}
+                                    onClick={(e) => handleTerminalPress(e, `sonar_${pin.name}`, pin.x, 0)}
+                                    onDoubleClick={(e) => handleTerminalAction(e, pin.x, 0)}
+                                />
+                                {hoveredTerminal === `sonar_${pin.name}` && (
+                                    <div className="terminal-hover-tooltip" style={{ left: pin.x, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                        {pin.label}
+                                    </div>
+                                )}
+                            </React.Fragment>
                         ))}
                     </div>
                 );
@@ -1847,10 +2578,12 @@ function SmallComponent({
 
             {/* PIR MOTION SENSOR (HUGE REALISTIC FULL-SCALE SVG): Pins VCC (0, 0), OUT (16, 0), GND (32, 0) */}
             {type === "sensor-pir" && (() => {
-                const isScanning = Boolean(isSimulating);
+                const isScanning = Boolean(isSimulating && simState?.isPowered && simState?.isScanning);
                 return (
-                    <div className={`pir-container ${isScanning ? "is-scanning" : ""}`} title="PIR Motion Sensor (HC-SR501)">
+                    <div className={`pir-container ${isScanning ? "is-scanning" : ""}`}>
                         <svg className="pir-realistic-svg" viewBox="-95 -145 220 150" width="220" height="150" style={{ position: "absolute", left: -95, top: -145, pointerEvents: "auto", cursor: "move" }}>
+                            {/* Full Hit-Box to ensure 100% reliable click-to-select anywhere on PIR motion sensor */}
+                            <rect x="-95" y="-145" width="220" height="150" fill="transparent" pointerEvents="all" cursor="pointer" />
                             {/* Dark Green FR-4 PCB: Width 200px, Height 124px from Y=-132 to Y=-8, X=-84 to X=116 */}
                             <rect x="-84" y="-132" width="200" height="124" rx="8" fill="#15803d" stroke="#166534" strokeWidth="2.5" filter="drop-shadow(0 10px 24px rgba(0,0,0,0.65))" />
 
@@ -1892,17 +2625,17 @@ function SmallComponent({
                             <line x1="16" y1="-110" x2="16" y2="-30" stroke="#94a3b8" strokeWidth="1.2" />
                             <line x1="-24" y1="-70" x2="56" y2="-70" stroke="#94a3b8" strokeWidth="1.2" />
 
-                            {/* Silkscreen text */}
+                            {/* Silkscreen text (Properly spaced without collision) */}
                             <text x="16" y="-118" fill="#bbf7d0" fontSize="8.5" fontWeight="900" textAnchor="middle" letterSpacing="0.05em">PIR MOTION SENSOR</text>
-                            <text x="16" y="-20" fill="rgba(255,255,255,0.8)" fontSize="5.5" fontWeight="700" textAnchor="middle">HC-SR501 • TWINLAB X</text>
+                            <text x="16" y="-106" fill="rgba(255,255,255,0.75)" fontSize="5.5" fontWeight="700" textAnchor="middle">HC-SR501 • TWINLAB X</text>
 
                             {/* Black DuPont Connector Block at Y=-14 to Y=-4 */}
                             <rect x="-6" y="-14" width="44" height="10" rx="2" fill="#18181b" stroke="#3f3f46" strokeWidth="1.2" />
 
-                            {/* Pin labels */}
-                            <text x="0" y="-16" fill="#cbd5e1" fontSize="4.5" fontWeight="bold" textAnchor="middle">VCC</text>
-                            <text x="16" y="-16" fill="#cbd5e1" fontSize="4.5" fontWeight="bold" textAnchor="middle">OUT</text>
-                            <text x="32" y="-16" fill="#cbd5e1" fontSize="4.5" fontWeight="bold" textAnchor="middle">GND</text>
+                            {/* Pin labels (Clean and separated from silkscreen brand) */}
+                            <text x="0" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">VCC</text>
+                            <text x="16" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">OUT</text>
+                            <text x="32" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">GND</text>
 
                             {/* 3 Gold Header Pins at Y=0 */}
                             <rect x="-2.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
@@ -1918,22 +2651,29 @@ function SmallComponent({
                             </div>
                         )}
 
+                        {/* 3 Header Pins with Interactive Hover Tooltips */}
                         {[
-                            { name: "VCC", x: 0, is5V: true },
-                            { name: "OUT", x: 16, isGpio: true },
-                            { name: "GND", x: 32, isGnd: true }
+                            { name: "VCC", x: 0, label: "VCC (Power +5V)" },
+                            { name: "OUT", x: 16, label: "OUT (Digital Motion Detect)" },
+                            { name: "GND", x: 32, label: "GND (Ground)" }
                         ].map((pin) => (
-                            <span
-                                key={pin.name}
-                                className={`terminal-pin pin-pir-${pin.name.toLowerCase()} ${hoveredTerminal === `pir_${pin.name}` ? "targeted" : ""}`}
-                                style={{ left: pin.x, top: 0, transform: "translate(-50%, -50%)" }}
-                                onMouseEnter={() => setHoveredTerminal(`pir_${pin.name}`)}
-                                onMouseLeave={() => setHoveredTerminal(null)}
-                                onMouseDown={(e) => handleTerminalMouseDown(e, `pir_${pin.name}`, pin.x, 0)}
-                                onMouseUp={(e) => handleTerminalMouseUp(e, pin.x, 0)}
-                                onClick={(e) => handleTerminalPress(e, `pir_${pin.name}`, pin.x, 0)}
-                                onDoubleClick={(e) => handleTerminalAction(e, pin.x, 0)}
-                            />
+                            <React.Fragment key={pin.name}>
+                                <span
+                                    className={`terminal-pin pin-pir-${pin.name.toLowerCase()} ${hoveredTerminal === `pir_${pin.name}` ? "targeted" : ""}`}
+                                    style={{ left: pin.x, top: 0, transform: "translate(-50%, -50%)" }}
+                                    onMouseEnter={() => setHoveredTerminal(`pir_${pin.name}`)}
+                                    onMouseLeave={() => setHoveredTerminal(null)}
+                                    onMouseDown={(e) => handleTerminalMouseDown(e, `pir_${pin.name}`, pin.x, 0)}
+                                    onMouseUp={(e) => handleTerminalMouseUp(e, pin.x, 0)}
+                                    onClick={(e) => handleTerminalPress(e, `pir_${pin.name}`, pin.x, 0)}
+                                    onDoubleClick={(e) => handleTerminalAction(e, pin.x, 0)}
+                                />
+                                {hoveredTerminal === `pir_${pin.name}` && (
+                                    <div className="terminal-hover-tooltip" style={{ left: pin.x, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                        {pin.label}
+                                    </div>
+                                )}
+                            </React.Fragment>
                         ))}
                     </div>
                 );

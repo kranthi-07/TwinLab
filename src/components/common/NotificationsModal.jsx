@@ -51,7 +51,7 @@ export const SESSION_UPDATES = [
     }
 ];
 
-export function NotificationsModal({ isOpen, onClose }) {
+export function NotificationsModal({ isOpen, onClose, onUnreadChange }) {
     const [readIds, setReadIds] = useState(() => {
         try {
             const saved = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
@@ -66,7 +66,9 @@ export function NotificationsModal({ isOpen, onClose }) {
         setReadIds(allIds);
         try {
             localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(allIds));
+            window.dispatchEvent(new CustomEvent("twinlab:notifications_updated"));
         } catch (e) {}
+        onUnreadChange && onUnreadChange(0);
     };
 
     const markSingleAsRead = (id) => {
@@ -75,7 +77,9 @@ export function NotificationsModal({ isOpen, onClose }) {
             setReadIds(updated);
             try {
                 localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
+                window.dispatchEvent(new CustomEvent("twinlab:notifications_updated"));
             } catch (e) {}
+            onUnreadChange && onUnreadChange(SESSION_UPDATES.length - updated.length);
         }
     };
 

@@ -1,6 +1,6 @@
 import "./CodeEditor.css";
 import { useState, useRef, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { DEFAULT_SKETCHES } from "../../../simulation/mcuRuntime";
 
 /**
@@ -49,6 +49,85 @@ export function highlightArduinoCpp(code) {
     });
 }
 
+/**
+ * 100% Custom Dropdown Component - Zero Browser Native Elements
+ */
+function CustomIdeDropdown({
+    label,
+    icon,
+    value,
+    options = [],
+    onChange,
+    className = "",
+    title = "",
+    alignRight = false
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef(null);
+
+    const selectedOption = options.find(o => String(o.value) === String(value)) || options[0];
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (containerRef.current && !containerRef.current.contains(e.target)) {
+                setIsOpen(false);
+            }
+        };
+        if (isOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [isOpen]);
+
+    return (
+        <div className={`custom-ide-dropdown-wrapper ${className}`} ref={containerRef} title={title}>
+            <button
+                type="button"
+                className={`custom-ide-dropdown-trigger ${isOpen ? "active" : ""}`}
+                onClick={() => setIsOpen(prev => !prev)}
+            >
+                {icon && <i className={`${icon} ide-dropdown-icon`} />}
+                {label && <span className="ide-dropdown-label">{label}</span>}
+                <span className="ide-dropdown-value-text">{selectedOption ? selectedOption.label : value}</span>
+                <i className={`ri-arrow-down-s-line ide-dropdown-chevron ${isOpen ? "rotate" : ""}`} />
+            </button>
+
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        className={`custom-ide-dropdown-menu ${alignRight ? "align-right" : ""}`}
+                        initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                        transition={{ duration: 0.15 }}
+                    >
+                        {options.map((opt) => {
+                            const isSelected = String(opt.value) === String(value);
+                            return (
+                                <button
+                                    key={String(opt.value)}
+                                    type="button"
+                                    className={`custom-ide-dropdown-item ${isSelected ? "selected" : ""}`}
+                                    onClick={() => {
+                                        onChange && onChange(opt.value);
+                                        setIsOpen(false);
+                                    }}
+                                >
+                                    <div className="item-text-group">
+                                        <span className="item-label">{opt.label}</span>
+                                        {opt.desc && <span className="item-desc">{opt.desc}</span>}
+                                    </div>
+                                    {isSelected && <i className="ri-check-line item-check-icon" />}
+                                </button>
+                            );
+                        })}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
 function CodeEditor({
     isOpen = false,
     onClose,
@@ -61,16 +140,27 @@ function CodeEditor({
     onToggleSerialMonitor,
     isSerialOpen = false,
     baudRate = 9600,
-    onChangeBaudRate
+    onChangeBaudRate,
+    serialLogs = [],
+    onClearSerialLogs,
+    onSendSerialInput
 }) {
     const [selectedPreset, setSelectedPreset] = useState("blink");
     const [code, setCode] = useState(DEFAULT_SKETCHES.blink);
     const [uploadStatus, setUploadStatus] = useState("Ready");
     const [uploadProgress, setUploadProgress] = useState(null); // null or number 0-100
     const [errorMsg, setErrorMsg] = useState(null);
+
+    // Inbuilt Serial Monitor State
+    const [isInbuiltSerialOpen, setIsInbuiltSerialOpen] = useState(true);
+    const [serialInputText, setSerialInputText] = useState("");
+    const [autoScroll, setAutoScroll] = useState(true);
+    const [showTimestamps, setShowTimestamps] = useState(true);
+
     const textareaRef = useRef(null);
     const overlayRef = useRef(null);
     const lineNumbersRef = useRef(null);
+    const serialOutputRef = useRef(null);
 
     // Compute syntax highlighted HTML
     const highlightedCode = useMemo(() => highlightArduinoCpp(code), [code]);
@@ -78,6 +168,13 @@ function CodeEditor({
     // Sync line numbers count with code lines
     const lineCount = Math.max(1, code.split("\n").length);
     const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
+
+    // Auto-scroll serial output
+    useEffect(() => {
+        if (autoScroll && serialOutputRef.current && isInbuiltSerialOpen) {
+            serialOutputRef.current.scrollTop = serialOutputRef.current.scrollHeight;
+        }
+    }, [serialLogs, autoScroll, isInbuiltSerialOpen]);
 
     // Sync scroll between textarea, syntax overlay, and line numbers
     const handleScroll = () => {
@@ -117,7 +214,6 @@ function CodeEditor({
                 }
             }, 0);
         } else if (e.key === "Enter") {
-            // Auto indentation
             const start = textareaRef.current.selectionStart;
             const lineStart = code.lastIndexOf("\n", start - 1) + 1;
             const currentLine = code.substring(lineStart, start);
@@ -166,6 +262,17 @@ function CodeEditor({
         }, 250);
     };
 
+    // Serial Input Form Submit
+    const handleSendSerial = (e) => {
+        e && e.preventDefault();
+        const text = serialInputText.trim();
+        if (!text) return;
+        if (onSendSerialInput) {
+            onSendSerialInput(text);
+        }
+        setSerialInputText("");
+    };
+
     if (!isOpen) return null;
 
     const getBoardInfo = (board) => {
@@ -187,6 +294,34 @@ function CodeEditor({
 
     const currentBoard = getBoardInfo(targetBoard);
 
+    // Preset Options for Custom Dropdown
+    const PRESET_OPTIONS = [
+        { value: "blink", label: "Blink (1s)", desc: "Standard built-in LED cycle" },
+        { value: "strobe", label: "Fast Strobe (100ms)", desc: "High-frequency visual pulse" },
+        { value: "counter", label: "Serial Counter", desc: "Streams loop telemetry to serial" },
+        { value: "dual_pins", label: "Dual Pins (13 & 12)", desc: "Alternating dual channel phase" },
+        { value: "analog_serial", label: "Analog Monitor (A0)", desc: "ADC voltage telemetry loop" }
+    ];
+
+    // Baud Rate Options for Custom Dropdown
+    const BAUD_OPTIONS = [
+        { value: 9600, label: "9600 Baud", desc: "Standard Arduino default" },
+        { value: 19200, label: "19200 Baud", desc: "Medium speed serial" },
+        { value: 38400, label: "38400 Baud", desc: "Fast data link" },
+        { value: 57600, label: "57600 Baud", desc: "High throughput" },
+        { value: 115200, label: "115200 Baud", desc: "ESP32 native high-speed" }
+    ];
+
+    // Target Board Options for Custom Dropdown
+    const BOARD_OPTIONS = availableBoards.map(b => {
+        const info = getBoardInfo(b);
+        return {
+            value: b.id,
+            label: info.name,
+            desc: `${info.port} • ${info.arch}`
+        };
+    });
+
     return (
         <motion.div 
             className="code-editor-dock studio-dark-theme"
@@ -201,43 +336,32 @@ function CodeEditor({
                     {/* IDE Window Controls */}
                     <div className="ide-window-dots">
                         <span className="window-dot dot-close" onClick={onClose} title="Close Editor"></span>
-                        <span className="window-dot dot-min" title="Minimize"></span>
-                        <span className="window-dot dot-max" title="Full View"></span>
+                        <span className="window-dot dot-min" onClick={() => setIsInbuiltSerialOpen(prev => !prev)} title="Toggle Serial Monitor"></span>
+                        <span className="window-dot dot-max" title="Ready"></span>
                     </div>
 
                     <div className="editor-title-wrap">
                         <i className="ri-code-s-slash-fill code-icon"></i>
                         <span className="editor-title">Firmware Studio</span>
-                        <span className="lang-tag">C++ / INO</span>
+                        <span className="lang-tag font-mono">C++ / INO</span>
                     </div>
 
-                    {/* Target Board Dropdown with Professional Dark Styling */}
+                    {/* Target Board Custom Dropdown */}
                     {availableBoards.length > 1 ? (
-                        <div className="custom-ide-select-container board-selector-container">
-                            <i className="ri-cpu-line ide-select-icon board-icon"></i>
-                            <select 
-                                className="custom-ide-select board-select"
-                                value={targetBoard?.id || ""}
-                                onChange={(e) => onSelectTargetBoard && onSelectTargetBoard(e.target.value)}
-                                title="Switch target microcontroller"
-                            >
-                                {availableBoards.map(b => {
-                                    const info = getBoardInfo(b);
-                                    return (
-                                        <option key={b.id} value={b.id}>
-                                            {info.name} ({info.port})
-                                        </option>
-                                    );
-                                })}
-                            </select>
-                            <i className="ri-arrow-down-s-line ide-select-chevron"></i>
-                        </div>
+                        <CustomIdeDropdown 
+                            icon="ri-cpu-line"
+                            value={targetBoard?.id || availableBoards[0]?.id}
+                            options={BOARD_OPTIONS}
+                            onChange={(id) => onSelectTargetBoard && onSelectTargetBoard(id)}
+                            title="Select Target Microcontroller Board"
+                            className="board-custom-dropdown"
+                        />
                     ) : (
                         <div className="board-badge" title={`Active Target: ${currentBoard.name} (${currentBoard.arch})`}>
                             <span className="board-status-dot pulse"></span>
                             <i className="ri-cpu-line"></i>
                             <span>{currentBoard.name}</span>
-                            <small className="board-port-chip">{currentBoard.port}</small>
+                            <small className="board-port-chip font-mono">{currentBoard.port}</small>
                         </div>
                     )}
                 </div>
@@ -247,7 +371,7 @@ function CodeEditor({
                     <button 
                         className="close-panel-btn" 
                         onClick={onClose}
-                        title="Close Code Editor"
+                        title="Close Code Editor (Ctrl+D)"
                     >
                         <i className="ri-close-line"></i>
                     </button>
@@ -258,38 +382,30 @@ function CodeEditor({
             <div className="editor-action-toolbar">
                 <div className="toolbar-left">
                     <div className="active-file-tab">
-                        <span className="tab-ino-icon">ino</span>
+                        <span className="tab-ino-icon font-mono">ino</span>
                         <span className="tab-filename">sketch.ino</span>
                         <span className="tab-clean-dot"></span>
                     </div>
 
-                    {/* Professional Preset Examples Dropdown */}
-                    <div className="custom-ide-select-container preset-select-container">
-                        <i className="ri-folder-code-line ide-select-icon"></i>
-                        <span className="preset-prefix-label">Example:</span>
-                        <select 
-                            className="custom-ide-select preset-select"
-                            value={selectedPreset}
-                            onChange={(e) => handlePresetChange(e.target.value)}
-                            title="Load starter firmware sketch"
-                        >
-                            <option value="blink">Blink (1s)</option>
-                            <option value="strobe">Fast Strobe (100ms)</option>
-                            <option value="counter">Serial Counter</option>
-                            <option value="dual_pins">Dual Pins (13 & 12)</option>
-                            <option value="analog_serial">Analog Monitor (A0)</option>
-                        </select>
-                        <i className="ri-arrow-down-s-line ide-select-chevron"></i>
-                    </div>
+                    {/* 100% Custom Preset Examples Dropdown */}
+                    <CustomIdeDropdown 
+                        label="Example:"
+                        icon="ri-folder-code-line"
+                        value={selectedPreset}
+                        options={PRESET_OPTIONS}
+                        onChange={handlePresetChange}
+                        title="Load Starter Firmware Sketch"
+                        className="preset-custom-dropdown"
+                    />
 
-                    <div className="tab-board-info">
+                    <div className="tab-board-info font-mono">
                         <i className="ri-speed-line"></i>
                         <span>{currentBoard.arch}</span>
                     </div>
                 </div>
 
                 <div className="toolbar-right">
-                    {/* Compile & Upload Button (Spacious, prominent, zero overflow) */}
+                    {/* Compile & Upload Button */}
                     <button 
                         className={`action-btn upload-btn ${isExecuting ? "active" : ""}`}
                         onClick={handleUpload}
@@ -324,29 +440,27 @@ function CodeEditor({
             )}
 
             {/* Editor Workspace with Line Numbers & Real-Time Syntax Highlighting */}
-            <div className="code-editor-body">
+            <div className={`code-editor-body ${isInbuiltSerialOpen ? "with-serial-split" : ""}`}>
                 {/* Line numbers gutter */}
                 <div className="line-numbers-gutter" ref={lineNumbersRef}>
                     {lineNumbers.map(n => (
-                        <div key={n} className="line-num">{n}</div>
+                        <div key={n} className="line-num font-mono">{n}</div>
                     ))}
                 </div>
 
                 {/* Main Code Input Container with Syntax Highlighting Overlay */}
                 <div className="code-input-container">
-                    {/* Underlying Syntax Colored Overlay */}
                     <pre 
                         ref={overlayRef}
-                        className="code-syntax-overlay" 
+                        className="code-syntax-overlay font-mono" 
                         aria-hidden="true"
                     >
                         <code dangerouslySetInnerHTML={{ __html: highlightedCode + "\n" }} />
                     </pre>
 
-                    {/* Transparent Editable Textarea */}
                     <textarea
                         ref={textareaRef}
-                        className="code-textarea"
+                        className="code-textarea font-mono"
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
                         onScroll={handleScroll}
@@ -362,47 +476,151 @@ function CodeEditor({
 
             {/* Error banner if compile error */}
             {errorMsg && (
-                <div className="compile-error-banner">
+                <div className="compile-error-banner font-mono">
                     <i className="ri-error-warning-fill"></i>
                     <span>{errorMsg}</span>
                 </div>
             )}
 
-            {/* Footer status bar with Baud Selector and Serial Monitor Drawer Link */}
+            {/* ============================================================
+               INBUILT INTEGRATED SERIAL MONITOR (NESTED INSIDE CODE WINDOW)
+            ============================================================ */}
+            <AnimatePresence>
+                {isInbuiltSerialOpen && (
+                    <motion.div 
+                        className="code-inbuilt-serial-pane"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 210, opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        {/* Serial Header */}
+                        <div className="inbuilt-serial-header">
+                            <div className="serial-header-left">
+                                <span className="serial-title">
+                                    <i className="ri-terminal-box-line"></i>
+                                    <span>Serial Monitor</span>
+                                </span>
+                                <span className="serial-port-chip font-mono">
+                                    USB {currentBoard.port} @ {baudRate} Baud
+                                </span>
+                                <span className={`serial-live-pill ${isExecuting ? "online" : "idle"}`}>
+                                    <span className="live-dot pulse"></span>
+                                    {isExecuting ? "ONLINE" : "STANDBY"}
+                                </span>
+                            </div>
+
+                            <div className="serial-header-right">
+                                <button
+                                    type="button"
+                                    className={`serial-icon-btn ${showTimestamps ? "active" : ""}`}
+                                    onClick={() => setShowTimestamps(!showTimestamps)}
+                                    title={showTimestamps ? "Hide Timestamps" : "Show Timestamps"}
+                                >
+                                    <i className="ri-time-line"></i>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`serial-icon-btn ${autoScroll ? "active" : ""}`}
+                                    onClick={() => setAutoScroll(!autoScroll)}
+                                    title={autoScroll ? "Disable Auto-Scroll" : "Enable Auto-Scroll"}
+                                >
+                                    <i className="ri-arrow-down-double-line"></i>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="serial-icon-btn"
+                                    onClick={onClearSerialLogs}
+                                    title="Clear Terminal Output"
+                                >
+                                    <i className="ri-delete-bin-line"></i>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="serial-icon-btn collapse-btn"
+                                    onClick={() => setIsInbuiltSerialOpen(false)}
+                                    title="Minimize Serial Monitor"
+                                >
+                                    <i className="ri-arrow-down-s-line"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Terminal Logs Output */}
+                        <div className="inbuilt-serial-output font-mono" ref={serialOutputRef}>
+                            {serialLogs.length === 0 ? (
+                                <div className="serial-placeholder-banner">
+                                    <span className="banner-line">// TwinLab Integrated Serial Monitor v2.5</span>
+                                    <span className="banner-line">// Listening on {currentBoard.port} at {baudRate} baud rate.</span>
+                                    <span className="banner-line sub">// Outputs from Serial.print() &amp; Serial.println() will stream here in real-time.</span>
+                                </div>
+                            ) : (
+                                serialLogs.map((log, idx) => (
+                                    <div key={log.id || idx} className={`serial-log-entry ${log.type || "output"}`}>
+                                        {showTimestamps && log.timestamp && (
+                                            <span className="entry-time">[{log.timestamp}]</span>
+                                        )}
+                                        {log.source && (
+                                            <span className={`entry-source ${log.source.toLowerCase()}`}>
+                                                [{log.source}]
+                                            </span>
+                                        )}
+                                        <span className="entry-text">{log.text || log.message}</span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Serial Input Command Row */}
+                        <form className="inbuilt-serial-input-form" onSubmit={handleSendSerial}>
+                            <span className="input-prompt font-mono">&gt;</span>
+                            <input
+                                type="text"
+                                className="serial-input-field font-mono"
+                                placeholder="Send message or command to MCU (e.g. 1, 0, PING)..."
+                                value={serialInputText}
+                                onChange={(e) => setSerialInputText(e.target.value)}
+                            />
+                            <button type="submit" className="serial-send-btn font-mono" title="Send (Enter)">
+                                <i className="ri-send-plane-2-fill"></i>
+                                <span>Send</span>
+                            </button>
+                        </form>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Footer status bar with 100% Custom Baud Selector and Inbuilt Serial Monitor Toggle */}
             <div className="code-editor-footer">
                 <div className="footer-status-left">
                     <span className={`status-indicator-dot ${isExecuting ? "running" : "idle"}`}></span>
                     <span className="status-text">{uploadStatus}</span>
-                    <span className="com-port-tag">USB {currentBoard.port}</span>
+                    <span className="com-port-tag font-mono">USB {currentBoard.port}</span>
                 </div>
 
                 <div className="footer-status-right">
-                    {/* Professional Baud Rate Selector */}
-                    <div className="custom-ide-select-container baud-select-container">
-                        <i className="ri-wireless-charging-line ide-select-icon"></i>
-                        <select 
-                            className="custom-ide-select baud-select" 
-                            value={baudRate}
-                            onChange={(e) => onChangeBaudRate && onChangeBaudRate(Number(e.target.value))}
-                            title="Serial Communication Baud Rate"
-                        >
-                            <option value={9600}>9600 Baud</option>
-                            <option value={19200}>19200 Baud</option>
-                            <option value={38400}>38400 Baud</option>
-                            <option value={57600}>57600 Baud</option>
-                            <option value={115200}>115200 Baud</option>
-                        </select>
-                        <i className="ri-arrow-down-s-line ide-select-chevron"></i>
-                    </div>
+                    {/* 100% Custom Baud Rate Selector Dropdown */}
+                    <CustomIdeDropdown 
+                        icon="ri-wireless-charging-line"
+                        value={baudRate}
+                        options={BAUD_OPTIONS}
+                        onChange={(val) => onChangeBaudRate && onChangeBaudRate(Number(val))}
+                        title="Serial Communication Baud Rate"
+                        alignRight={true}
+                        className="baud-custom-dropdown"
+                    />
 
-                    {/* Quick Serial Monitor Toggle */}
+                    {/* Quick Inbuilt Serial Monitor Toggle */}
                     <button 
-                        className={`serial-toggle-btn ${isSerialOpen ? "active" : ""}`}
-                        onClick={onToggleSerialMonitor}
-                        title="Toggle Serial Monitor Drawer"
+                        className={`serial-toggle-btn ${isInbuiltSerialOpen ? "active" : ""}`}
+                        onClick={() => setIsInbuiltSerialOpen(prev => !prev)}
+                        title="Toggle Inbuilt Serial Monitor (Ctrl+M)"
                     >
                         <i className="ri-terminal-box-line"></i>
                         <span>Serial Monitor</span>
+                        {serialLogs.length > 0 && (
+                            <span className="serial-count-pill font-mono">{serialLogs.length}</span>
+                        )}
                     </button>
                 </div>
             </div>

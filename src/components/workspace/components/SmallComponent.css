@@ -57,11 +57,52 @@
     border-radius: 50%;
 }
 
-/* 5. Electrolytic Capacitor: Outline around metal can */
-.canvas-small-comp.selected .elec-can-body {
-    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
-    outline-offset: 3px;
+/* 5. Electrolytic Capacitor: Outline tightly wrapped around vertical cylinder can */
+.canvas-small-comp.comp-capacitor-electrolytic.selected .elec-cap-container::before {
+    content: "";
+    position: absolute;
+    left: -7px;
+    top: -48px;
+    width: 30px;
+    height: 42px;
+    border-radius: 6px;
+    border: 2px solid var(--project-accent, var(--accent, #FF8A00));
+    box-shadow: 0 0 8px rgba(255, 138, 0, 0.45);
+    z-index: 50;
+    pointer-events: none;
+}
+
+/* 5b. TO-220 Power MOSFET: Outline tightly wrapped around metal heat tab + body */
+.canvas-small-comp.comp-mosfet-n.selected .mosfet-to220-container::before,
+.canvas-small-comp.comp-mosfet-p.selected .mosfet-to220-container::before {
+    content: "";
+    position: absolute;
+    left: -4px;
+    top: -42px;
+    width: 40px;
+    height: 38px;
     border-radius: 5px;
+    border: 2px solid var(--project-accent, var(--accent, #FF8A00));
+    box-shadow: 0 0 8px rgba(255, 138, 0, 0.45);
+    z-index: 50;
+    pointer-events: none;
+}
+
+/* 5c. TO-92 BJT Transistor: Outline tightly wrapped around molded body */
+.canvas-small-comp.comp-transistor.selected .transistor-to92-container::before,
+.canvas-small-comp.comp-transistor-npn.selected .transistor-to92-container::before,
+.canvas-small-comp.comp-transistor-pnp.selected .transistor-to92-container::before {
+    content: "";
+    position: absolute;
+    left: -2px;
+    top: -36px;
+    width: 36px;
+    height: 24px;
+    border-radius: 6px 6px 4px 4px;
+    border: 2px solid var(--project-accent, var(--accent, #FF8A00));
+    box-shadow: 0 0 8px rgba(255, 138, 0, 0.45);
+    z-index: 50;
+    pointer-events: none;
 }
 
 /* 6. AA / AAA Battery Case: Outline around entire molded case */
@@ -113,17 +154,32 @@
     pointer-events: none;
 }
 
+/* 11b. Geared TT BO Motor: Outline tightly wrapped around yellow gearbox + motor */
+.canvas-small-comp.comp-motor-geared.selected .geared-motor-container::before {
+    content: "";
+    position: absolute;
+    left: -16px;
+    top: -128px;
+    width: 80px;
+    height: 104px;
+    border-radius: 8px;
+    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    pointer-events: none;
+}
+
 /* 12. Servo SG90: Outline tightly wrapped around whole servo body + flanges */
 .canvas-small-comp.comp-servo-sg90.selected .servo-sg90-container::before {
     content: "";
     position: absolute;
     left: -78px;
     top: -152px;
-    width: 186px;
-    height: 96px;
+    width: 188px;
+    height: 98px;
     border-radius: 9px;
-    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
-    outline-offset: 2px;
+    border: 2px solid var(--project-accent, var(--accent, #FF8A00));
+    box-shadow: 0 0 10px rgba(255, 138, 0, 0.5);
+    z-index: 50;
     pointer-events: none;
 }
 
@@ -136,8 +192,9 @@
     width: 224px;
     height: 100px;
     border-radius: 10px;
-    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
-    outline-offset: 2px;
+    border: 2px solid var(--project-accent, var(--accent, #FF8A00));
+    box-shadow: 0 0 10px rgba(255, 138, 0, 0.5);
+    z-index: 50;
     pointer-events: none;
 }
 
@@ -150,8 +207,9 @@
     width: 204px;
     height: 128px;
     border-radius: 10px;
-    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
-    outline-offset: 2px;
+    border: 2px solid var(--project-accent, var(--accent, #FF8A00));
+    box-shadow: 0 0 10px rgba(255, 138, 0, 0.5);
+    z-index: 50;
     pointer-events: none;
 }
 
@@ -1748,27 +1806,31 @@
    12. NPN BIPOLAR TRANSISTOR (TO-92 / 2N2222)
 ============================================================ */
 .transistor-to92-container {
-    width: 36px;
-    height: 32px;
+    width: 32px;
+    height: 0;
     position: relative;
     user-select: none;
 }
 
 .to92-body {
     width: 32px;
-    height: 22px;
-    position: relative;
+    height: 20px;
+    position: absolute;
+    top: -34px;
+    left: 0;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    z-index: 5;
 }
 
 .to92-flat-face {
     width: 30px;
-    height: 18px;
+    height: 16px;
     background: #18181b;
     border: 1px solid #27272a;
-    border-radius: 2px 2px 8px 8px;
+    border-radius: 2px 2px 6px 6px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1847,6 +1909,23 @@
     color: #475569;
     letter-spacing: 0.05em;
     font-family: monospace;
+}
+
+.coin-pin-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 8px;
+    font-weight: 900;
+    line-height: 1;
+    pointer-events: none;
+}
+.coin-pin-badge.badge-neg {
+    color: #0284c7;
+}
+.coin-pin-badge.badge-pos {
+    color: #ea580c;
 }
 
 /* ============================================================
@@ -2198,7 +2277,7 @@
 }
 
 /* ============================================================
-   19. DC MOTOR & PROPELLER FAN
+   19. DC MOTOR & PROPELLER FAN (2D & 3D REALISTIC)
 ============================================================ */
 .dc-motor-container {
     width: 48px;
@@ -2207,20 +2286,313 @@
     user-select: none;
 }
 
-.dc-motor-can {
-    width: 44px;
-    height: 44px;
+.dc-motor-dynamic-leads-svg {
+    position: absolute;
+    left: -50px;
+    top: -130px;
+    width: 150px;
+    height: 145px;
+    pointer-events: none;
+    overflow: visible;
+}
+
+/* 3D Stage & Gimbal */
+.motor-3d-stage {
+    width: 0;
+    height: 0;
+    position: absolute;
+    perspective: 750px;
+}
+
+.motor-3d-gimbal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 0;
+    transform-style: preserve-3d;
+    transition: transform 0.05s linear;
+}
+
+.motor-3d-ground-shadow {
+    position: absolute;
+    left: -44px;
+    top: -40px;
+    width: 88px;
+    height: 80px;
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #94a3b8 0%, #475569 60%, #1e293b 100%);
-    border: 2px solid #64748b;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0) 72%);
+    transform: translateY(48px) rotateX(90deg);
+    filter: blur(5px);
+    pointer-events: none;
+}
+
+/* 3D Cylindrical Chassis */
+.motor-3d-cylinder {
+    position: absolute;
+    left: -36px;
+    top: -36px;
+    width: 72px;
+    height: 72px;
+    transform-style: preserve-3d;
+}
+
+.motor-cylinder-barrel {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #f8fafc 0%, #cbd5e1 24%, #64748b 55%, #1e293b 85%, #0f172a 100%);
+    border: 2px solid #475569;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), inset 0 2px 6px rgba(255, 255, 255, 0.65);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    position: relative;
+    transform: translateZ(0px);
 }
 
+.motor-barrel-label {
+    position: absolute;
+    top: 13px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+    pointer-events: none;
+    line-height: 1.1;
+}
+
+.barrel-brand {
+    font-size: 6px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 0.08em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+}
+
+.barrel-model {
+    font-size: 5px;
+    font-weight: 700;
+    color: #cbd5e1;
+    letter-spacing: 0.04em;
+}
+
+.barrel-rpm {
+    font-size: 4.5px;
+    font-family: monospace;
+    font-weight: 800;
+    color: #38bdf8;
+    margin-top: 1px;
+}
+
+/* Cooling Vents & Enameled Copper Wire Coils */
+.motor-cooling-vents {
+    position: absolute;
+    width: 14px;
+    height: 25px;
+    border-radius: 3px;
+    background: #090d16;
+    border: 1px solid #334155;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.9);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vent-left {
+    left: 4px;
+    top: 24px;
+}
+
+.vent-right {
+    right: 4px;
+    top: 24px;
+}
+
+.copper-windings {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    align-items: center;
+}
+
+.coil-wire {
+    width: 10px;
+    height: 3.5px;
+    border-radius: 1.5px;
+    background: linear-gradient(90deg, #b45309 0%, #f59e0b 50%, #78350f 100%);
+    box-shadow: 0 0 2px #d97706;
+}
+
+/* Front Face Bearing Boss */
+.motor-face-front {
+    position: absolute;
+    left: 17px;
+    top: 17px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%);
+    border: 1.5px solid #64748b;
+    transform: translateZ(16px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.motor-front-screw-hole {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #0f172a;
+    border: 0.8px solid #475569;
+}
+
+.motor-front-screw-hole.screw-hole-left {
+    left: 4px;
+    top: 17px;
+}
+
+.motor-front-screw-hole.screw-hole-right {
+    right: 4px;
+    top: 17px;
+}
+
+.bearing-boss-ring {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    border: 1.5px solid #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bearing-bronze-bushing {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #f59e0b 0%, #b45309 100%);
+    border: 1px solid #78350f;
+}
+
+/* Steel Axle Shaft */
+.motor-steel-axle {
+    position: absolute;
+    left: 34px;
+    top: 34px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 1px solid #475569;
+    transform: translateZ(26px);
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+}
+
+/* Rear Endbell Cap */
+.motor-face-rear {
+    position: absolute;
+    left: 9px;
+    top: 9px;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, #1e293b 0%, #090d16 100%);
+    border: 1.5px solid #334155;
+    transform: translateZ(-16px) rotateY(180deg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.6);
+}
+
+.endbell-molded-cap {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    font-size: 8px;
+    font-weight: 900;
+}
+
+.endbell-stamp-pos {
+    color: #ef4444;
+    text-shadow: 0 0 3px #ef4444;
+}
+
+.endbell-stamp-neg {
+    color: #38bdf8;
+    text-shadow: 0 0 3px #38bdf8;
+}
+
+.endbell-brand {
+    position: absolute;
+    bottom: 8px;
+    font-size: 4px;
+    color: #64748b;
+    font-family: monospace;
+}
+
+/* 3D Aerofoil Propeller Fan */
+.motor-propeller-3d {
+    position: absolute;
+    left: -10px;
+    top: -10px;
+    width: 92px;
+    height: 92px;
+    transform: translateZ(28px);
+    transform-style: preserve-3d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.motor-propeller-3d.is-spinning-3d {
+    animation: motorPropeller3DSpin linear infinite;
+}
+
+@keyframes motorPropeller3DSpin {
+    0% { transform: translateZ(28px) rotateZ(0deg); }
+    100% { transform: translateZ(28px) rotateZ(360deg); }
+}
+
+.prop-blade {
+    position: absolute;
+    width: 14px;
+    height: 38px;
+    background: linear-gradient(180deg, rgba(14, 165, 233, 0.95) 0%, rgba(2, 132, 199, 0.9) 60%, rgba(3, 105, 161, 0.98) 100%);
+    border-radius: 7px 7px 4px 4px;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    transform-origin: center bottom;
+}
+
+.prop-blade.blade-a { bottom: 46px; left: 39px; transform: rotate(0deg) skewX(6deg); }
+.prop-blade.blade-b { bottom: 46px; left: 39px; transform: rotate(120deg) skewX(6deg); }
+.prop-blade.blade-c { bottom: 46px; left: 39px; transform: rotate(240deg) skewX(6deg); }
+
+.prop-spinner-cone {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ffffff 0%, #e2e8f0 40%, #0284c7 100%);
+    border: 1.5px solid #0369a1;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
+    z-index: 5;
+}
+
+/* 2D Fallback Propeller */
 .motor-propeller-fan {
     width: 36px;
     height: 36px;
@@ -2231,7 +2603,7 @@
 }
 
 .motor-propeller-fan.spin-blur {
-    animation: propellerSpin 0.15s linear infinite;
+    animation: propellerSpin 0.12s linear infinite;
 }
 
 @keyframes propellerSpin {
@@ -2260,12 +2632,353 @@
     z-index: 2;
 }
 
-.motor-label-tag {
+/* SVG Propeller Fan Rotation: 100% Centered at (0px, 0px) of translated group with Zero Offset */
+.svg-fan-rotating {
+    transform-origin: 0px 0px;
+    animation: svgFanSpin 0.12s linear infinite;
+}
+
+@keyframes svgFanSpin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* SVG D-Shaft Rotation: 100% Centered at (0px, 0px) of translated group */
+.svg-dshaft-rotating {
+    transform-origin: 0px 0px;
+    animation: svgDShaftSpin 0.35s linear infinite;
+}
+
+@keyframes svgDShaftSpin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================================
+   THREE.JS 3D WEBGL MOTOR STAGES & LIVE TACHOMETER HUD
+============================================================ */
+.motor-3d-webgl-wrapper,
+.geared-motor-3d-webgl-wrapper {
+    position: absolute;
+    width: 160px;
+    height: 160px;
+    pointer-events: auto;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.75));
+    transition: transform 0.05s ease-out;
+}
+
+.motor-3d-webgl-wrapper:active,
+.geared-motor-3d-webgl-wrapper:active {
+    cursor: grabbing;
+}
+
+/* Live Digital Tachometer / RPM OLED HUD Display */
+.motor-tachometer-hud {
+    position: absolute;
+    pointer-events: none;
+    user-select: none;
+    z-index: 10;
+}
+
+.tachometer-screen {
+    background: rgba(2, 6, 23, 0.92);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    border-radius: 6px;
+    padding: 3px 6px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.85), 0 0 10px rgba(56, 189, 248, 0.15);
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 82px;
+    transition: all 0.2s ease;
+}
+
+.tachometer-screen.is-running {
+    border-color: rgba(34, 197, 94, 0.6);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.85), 0 0 12px rgba(34, 197, 94, 0.3);
+}
+
+.tachometer-top-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.tach-pulse-led {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #64748b;
+    box-shadow: 0 0 2px #475569;
+}
+
+.tach-pulse-led.pulsing {
+    background: #22c55e;
+    box-shadow: 0 0 6px #22c55e, 0 0 10px #22c55e;
+    animation: tachLedGlow 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes tachLedGlow {
+    0% { opacity: 0.6; transform: scale(0.9); }
+    100% { opacity: 1; transform: scale(1.15); }
+}
+
+.tach-title {
+    font-size: 4.5px;
+    font-weight: 900;
+    color: #94a3b8;
+    letter-spacing: 0.08em;
+    font-family: monospace;
+}
+
+.tach-dir-badge {
+    font-size: 4.5px;
+    font-weight: 800;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.15);
+    border-radius: 2px;
+    padding: 0 2px;
+}
+
+.tachometer-main-val {
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+    margin: 1px 0;
+}
+
+.tach-number {
+    font-family: monospace;
+    font-size: 11px;
+    font-weight: 900;
+    color: #38bdf8;
+    text-shadow: 0 0 8px rgba(56, 189, 248, 0.85);
+    letter-spacing: -0.02em;
+}
+
+.tachometer-screen.is-running .tach-number {
+    color: #4ade80;
+    text-shadow: 0 0 8px rgba(74, 222, 128, 0.9);
+}
+
+.tach-unit {
+    font-size: 5.5px;
+    font-weight: 800;
+    color: #64748b;
+}
+
+.tachometer-sub-bar {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 4px;
+    font-weight: 700;
+    color: #94a3b8;
+    font-family: monospace;
+}
+
+/* ============================================================
+   19b. TT YELLOW BO GEARED DC MOTOR (2D & 3D REALISTIC)
+============================================================ */
+.geared-motor-container {
+    width: 48px;
+    height: 56px;
+    position: relative;
+    user-select: none;
+}
+
+/* 3D TT Geared Motor Chassis */
+.geared-motor-3d-chassis {
+    position: absolute;
+    left: -28px;
+    top: -55px;
+    width: 56px;
+    height: 90px;
+    transform-style: preserve-3d;
+}
+
+/* Yellow ABS Gearbox Hull */
+.geared-3d-yellow-hull {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 56px;
+    height: 60px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #fef08a 0%, #facc15 30%, #eab308 80%, #ca8a04 100%);
+    border: 2px solid #a16207;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6), inset 0 2px 5px rgba(255, 255, 255, 0.7);
+    transform: translateZ(8px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.gearbox-3d-label {
+    position: absolute;
+    top: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+    pointer-events: none;
+}
+
+.gb-spec-ratio {
+    font-size: 7px;
+    font-weight: 900;
+    color: #78350f;
+    letter-spacing: 0.05em;
+}
+
+.gb-spec-rpm {
     font-size: 5px;
     font-weight: 800;
-    color: #e2e8f0;
+    color: #854d0e;
+}
+
+/* 3D White Nylon D-Shaft */
+.geared-3d-dshaft {
     position: absolute;
-    bottom: 2px;
+    left: 20px;
+    top: 26px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    transform: translateZ(16px);
+    transform-style: preserve-3d;
+}
+
+.geared-3d-dshaft.is-shaft-spinning {
+    animation: dShaftSpin3D linear infinite;
+}
+
+@keyframes dShaftSpin3D {
+    0% { transform: translateZ(16px) rotateZ(0deg); }
+    100% { transform: translateZ(16px) rotateZ(360deg); }
+}
+
+.dshaft-cylindrical-core {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ffffff 0%, #f1f5f9 60%, #cbd5e1 100%);
+    border: 1.5px solid #94a3b8;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+}
+
+.dshaft-flat-key {
+    position: absolute;
+    left: 2px;
+    width: 12px;
+    height: 2px;
+    background: #e2e8f0;
+    border-radius: 1px;
+}
+
+.key-top { top: 1px; }
+.key-bottom { bottom: 1px; }
+
+/* Screws on 3D Gearbox */
+.gb-assembly-screw {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    border: 0.8px solid #64748b;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.screw-top { left: 4px; top: 4px; }
+.screw-mid { right: 4px; top: 4px; }
+.screw-bot { right: 4px; bottom: 6px; }
+
+/* Rear 130 DC Motor Casing in 3D */
+.geared-3d-rear-motor {
+    position: absolute;
+    left: 6px;
+    top: 54px;
+    width: 44px;
+    height: 34px;
+    transform: translateZ(2px);
+    transform-style: preserve-3d;
+}
+
+/* Translucent Clear Plastic Retention Clip (Image 2) */
+.geared-3d-retention-strap {
+    position: absolute;
+    left: -2px;
+    top: 6px;
+    width: 48px;
+    height: 14px;
+    border-radius: 3px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(241, 245, 249, 0.35) 50%, rgba(203, 213, 225, 0.6) 100%);
+    border: 1.2px solid rgba(203, 213, 225, 0.9);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    transform: translateZ(12px);
+    pointer-events: none;
+}
+
+/* Silver Barrel for Motor */
+.geared-3d-silver-barrel {
+    position: absolute;
+    left: 2px;
+    top: 0;
+    width: 40px;
+    height: 30px;
+    border-radius: 4px;
+    background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 35%, #94a3b8 75%, #475569 100%);
+    border: 1.5px solid #475569;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Rear Molded Nylon Endbell */
+.geared-3d-endbell {
+    position: absolute;
+    left: 6px;
+    top: 26px;
+    width: 32px;
+    height: 8px;
+    border-radius: 2px;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    transform: translateZ(6px);
+    display: flex;
+    justify-content: space-between;
+    padding: 0 4px;
+    box-sizing: border-box;
+}
+
+.endbell-tag-pos {
+    font-size: 6px;
+    font-weight: 900;
+    color: #ef4444;
+}
+
+.endbell-tag-neg {
+    font-size: 6px;
+    font-weight: 900;
+    color: #38bdf8;
 }
 
 /* ============================================================
@@ -2369,7 +3082,14 @@
 .pin-sonar-vcc, .pin-sonar-trig, .pin-sonar-echo, .pin-sonar-gnd,
 .pin-pir-vcc, .pin-pir-out, .pin-pir-gnd,
 .pin-motor-pos, .pin-motor-neg,
-.pin-ic-top, .pin-ic-bot {
+.pin-ic-top, .pin-ic-bot,
+.pin-elec-anode, .pin-elec-cathode,
+.pin-trans-e, .pin-trans-b, .pin-trans-c,
+.pin-mosfet-g, .pin-mosfet-d, .pin-mosfet-s,
+.pin-coin-neg, .pin-coin-pos,
+.pin-sw-1, .pin-sw-2,
+.pin-ldr-1, .pin-ldr-2,
+.capacitor-container .pin-1, .capacitor-container .pin-2 {
     transform: translate(-50%, -50%) !important;
 }
 
@@ -2378,11 +3098,25 @@
 .pin-pir-vcc:hover, .pin-pir-out:hover, .pin-pir-gnd:hover,
 .pin-motor-pos:hover, .pin-motor-neg:hover,
 .pin-ic-top:hover, .pin-ic-bot:hover,
+.pin-elec-anode:hover, .pin-elec-cathode:hover,
+.pin-trans-e:hover, .pin-trans-b:hover, .pin-trans-c:hover,
+.pin-mosfet-g:hover, .pin-mosfet-d:hover, .pin-mosfet-s:hover,
+.pin-coin-neg:hover, .pin-coin-pos:hover,
+.pin-sw-1:hover, .pin-sw-2:hover,
+.pin-ldr-1:hover, .pin-ldr-2:hover,
+.capacitor-container .pin-1:hover, .capacitor-container .pin-2:hover,
 .pin-servo-gnd.targeted, .pin-servo-5v.targeted, .pin-servo-pwm.targeted,
 .pin-sonar-vcc.targeted, .pin-sonar-trig.targeted, .pin-sonar-echo.targeted, .pin-sonar-gnd.targeted,
 .pin-pir-vcc.targeted, .pin-pir-out.targeted, .pin-pir-gnd.targeted,
 .pin-motor-pos.targeted, .pin-motor-neg.targeted,
-.pin-ic-top.targeted, .pin-ic-bot.targeted {
+.pin-ic-top.targeted, .pin-ic-bot.targeted,
+.pin-elec-anode.targeted, .pin-elec-cathode.targeted,
+.pin-trans-e.targeted, .pin-trans-b.targeted, .pin-trans-c.targeted,
+.pin-mosfet-g.targeted, .pin-mosfet-d.targeted, .pin-mosfet-s.targeted,
+.pin-coin-neg.targeted, .pin-coin-pos.targeted,
+.pin-sw-1.targeted, .pin-sw-2.targeted,
+.pin-ldr-1.targeted, .pin-ldr-2.targeted,
+.capacitor-container .pin-1.targeted, .capacitor-container .pin-2.targeted {
     transform: translate(-50%, -50%) scale(1.25) !important;
 }
 

@@ -164,6 +164,54 @@ export const ARDUINO_NANO_PINS = {
     ]
 };
 
+// Raspberry Pi Pico Header Pin Definitions (Standard 40-Pin DIP-like layout on 16px pitch)
+export const RPI_PICO_PINS = {
+    leftCol: [
+        { name: "GP0", x: 16, y: 32, pinNum: 0, isGpio: true },
+        { name: "GP1", x: 16, y: 48, pinNum: 1, isGpio: true },
+        { name: "GND", x: 16, y: 64, isGnd: true, pinNum: "GND" },
+        { name: "GP2", x: 16, y: 80, pinNum: 2, isGpio: true },
+        { name: "GP3", x: 16, y: 96, pinNum: 3, isGpio: true },
+        { name: "GP4", x: 16, y: 112, pinNum: 4, isGpio: true },
+        { name: "GP5", x: 16, y: 128, pinNum: 5, isGpio: true },
+        { name: "GND", x: 16, y: 144, isGnd: true, pinNum: "GND" },
+        { name: "GP6", x: 16, y: 160, pinNum: 6, isGpio: true },
+        { name: "GP7", x: 16, y: 176, pinNum: 7, isGpio: true },
+        { name: "GP8", x: 16, y: 192, pinNum: 8, isGpio: true },
+        { name: "GP9", x: 16, y: 208, pinNum: 9, isGpio: true },
+        { name: "GND", x: 16, y: 224, isGnd: true, pinNum: "GND" },
+        { name: "GP10", x: 16, y: 240, pinNum: 10, isGpio: true },
+        { name: "GP11", x: 16, y: 256, pinNum: 11, isGpio: true },
+        { name: "GP12", x: 16, y: 272, pinNum: 12, isGpio: true },
+        { name: "GP13", x: 16, y: 288, pinNum: 13, isGpio: true },
+        { name: "GND", x: 16, y: 304, isGnd: true, pinNum: "GND" },
+        { name: "GP14", x: 16, y: 320, pinNum: 14, isGpio: true },
+        { name: "GP15", x: 16, y: 336, pinNum: 15, isGpio: true }
+    ],
+    rightCol: [
+        { name: "VBUS", x: 112, y: 32, is5V: true, pinNum: "VBUS" },
+        { name: "VSYS", x: 112, y: 48, is5V: true, pinNum: "VSYS" },
+        { name: "GND", x: 112, y: 64, isGnd: true, pinNum: "GND" },
+        { name: "3V3_EN", x: 112, y: 80, pinNum: "3V3_EN" },
+        { name: "3V3", x: 112, y: 96, is3V3: true, pinNum: "3.3V" },
+        { name: "ADC_REF", x: 112, y: 112, pinNum: "ADC_REF" },
+        { name: "GP28", x: 112, y: 128, pinNum: 28, isGpio: true, isAnalog: true },
+        { name: "GND", x: 112, y: 144, isGnd: true, pinNum: "GND" },
+        { name: "GP27", x: 112, y: 160, pinNum: 27, isGpio: true, isAnalog: true },
+        { name: "GP26", x: 112, y: 176, pinNum: 26, isGpio: true, isAnalog: true },
+        { name: "RUN", x: 112, y: 192, pinNum: "RUN" },
+        { name: "GP22", x: 112, y: 208, pinNum: 22, isGpio: true },
+        { name: "GND", x: 112, y: 224, isGnd: true, pinNum: "GND" },
+        { name: "GP21", x: 112, y: 240, pinNum: 21, isGpio: true },
+        { name: "GP20", x: 112, y: 256, pinNum: 20, isGpio: true },
+        { name: "GP19", x: 112, y: 272, pinNum: 19, isGpio: true },
+        { name: "GP18", x: 112, y: 288, pinNum: 18, isGpio: true },
+        { name: "GND", x: 112, y: 304, isGnd: true, pinNum: "GND" },
+        { name: "GP17", x: 112, y: 320, pinNum: 17, isGpio: true },
+        { name: "GP16", x: 112, y: 336, pinNum: 16, isGpio: true }
+    ]
+};
+
 // ESP32 DevKit V1 30-pin Header Definitions (15 pins per side, 16px pitch layout)
 // Board width 210px: Left pins at x: 16, Right pins at x: 192.
 // Labels are placed cleanly inside the board between pins and central metal RF can.
@@ -283,7 +331,6 @@ function McuBoard({
                 onMouseUp={(e) => handlePinMouseUp(e, pin.x, pin.y)}
                 onClick={(e) => handlePinAction(e, pin.x, pin.y)}
                 onDoubleClick={(e) => handlePinAction(e, pin.x, pin.y)}
-                title={`Pin: ${pin.name} (Click to start wire)`}
             >
                 <div className="socket-inner-metal"></div>
                 {/* Permanent Silkscreen Pin Label directly beside the hole */}
@@ -292,7 +339,7 @@ function McuBoard({
                 </span>
                 {isHovered && (
                     <div className="mcu-pin-hover-badge">
-                        {pin.name}
+                        {pin.isGnd ? "GND (Ground)" : pin.is5V ? "5V (VCC)" : pin.is3V3 ? "3.3V (VCC)" : pin.isAnalog ? `${pin.name} (ADC)` : pin.name}
                     </div>
                 )}
             </div>
@@ -610,7 +657,95 @@ function McuBoard({
     }
 
     // ==========================================
-    // 4. ESP32 DEVKIT V1 (30-PIN DUAL-ROW)
+    // 4. RASPBERRY PI PICO (RP2040 40-PIN)
+    // ==========================================
+    if (type === "rpi-pico" || type === "raspberry-pi") {
+        const isPowered = Boolean(isSimulating || simState?.isPowered);
+        const isLedLit = Boolean(isPowered && (simState?.gp25High ?? true));
+
+        return (
+            <div
+                className={`mcu-board-container rpi-pico-board ${isSelected ? "selected" : ""}`}
+                style={{
+                    transform: `translate(${x}px, ${y}px) rotate(${rotation}deg)`,
+                    transformOrigin: "0 0",
+                    width: 128,
+                    height: 368
+                }}
+                onMouseDown={(e) => {
+                    if (isWireMode) return;
+                    onSelect && onSelect(id);
+                    onMouseDown && onMouseDown(e, id);
+                }}
+            >
+                {/* USB Cable Plug inserting from Top */}
+                <div className={`tinkercad-usb-cable pico-usb-cable ${isPowered ? "connected" : "unplugged"}`}>
+                    <div className="usb-plug-strain-relief"></div>
+                    <div className="usb-plug-metal-shell micro-shell"></div>
+                </div>
+
+                {/* Raspberry Pi Signature Green PCB Surface */}
+                <div className="pico-pcb-surface">
+                    {/* Micro-USB B Receptacle (Top Center) */}
+                    <div className="pico-usb-port" title="Micro-USB Power & Data Port">
+                        <div className="pico-usb-metal-shell"></div>
+                    </div>
+
+                    {/* RP2040 Dual-Core ARM Cortex-M0+ SoC */}
+                    <div className="pico-rp2040-chip" title="RP2040 Microcontroller (Dual ARM Cortex-M0+ @ 133MHz)">
+                        <div className="rp2040-die-square"></div>
+                        <span className="rp2040-label">RP2-B2</span>
+                        <span className="rp2040-sub">21/04</span>
+                    </div>
+
+                    {/* 2MB QSPI Flash Memory */}
+                    <div className="pico-flash-chip" title="2MB QSPI Flash (W25Q16JV)">
+                        <span className="flash-label">WINBOND</span>
+                    </div>
+
+                    {/* 12.000 MHz Crystal Oscillator */}
+                    <div className="pico-crystal" title="12.000 MHz Crystal">
+                        <span className="crystal-text">12.000</span>
+                    </div>
+
+                    {/* Tactile BOOTSEL Push Button */}
+                    <div className="pico-bootsel-btn" title="BOOTSEL (USB Mass Storage Boot)">
+                        <div className="bootsel-cap"></div>
+                        <span className="bootsel-label">BOOTSEL</span>
+                    </div>
+
+                    {/* User Onboard Green LED (GP25) */}
+                    <div className="pico-led-item" title="User LED (GP25)">
+                        <span className={`micro-smd-led led-gp25 ${isLedLit ? "lit" : ""}`}></span>
+                        <span className="smd-label">LED</span>
+                    </div>
+
+                    {/* Silkscreen Raspberry Pi Pico Branding */}
+                    <div className="pico-silkscreen-branding">
+                        <div className="pico-raspberry-logo">🍇</div>
+                        <div className="pico-brand-text">
+                            <span className="pico-title">Raspberry Pi</span>
+                            <span className="pico-model">Pico</span>
+                        </div>
+                        <span className="pico-tw-badge">TWINLAB X</span>
+                    </div>
+
+                    {/* Castellated Gold Edge Pads */}
+                    <div className="pico-castellated-edge left-edge"></div>
+                    <div className="pico-castellated-edge right-edge"></div>
+                </div>
+
+                {/* Dual 20-Pin Pin Sockets (Left: GP0-GP15, Right: VBUS-GP16) */}
+                <div className="mcu-pin-sockets-layer">
+                    {RPI_PICO_PINS.leftCol.map((p) => renderPinSocket(p, "picoL", "espLeft"))}
+                    {RPI_PICO_PINS.rightCol.map((p) => renderPinSocket(p, "picoR", "espRight"))}
+                </div>
+            </div>
+        );
+    }
+
+    // ==========================================
+    // 5. ESP32 DEVKIT V1 (30-PIN DUAL-ROW)
     // ==========================================
     const isPowered = Boolean(isSimulating || simState?.isPowered);
     const isD2Lit = Boolean(isPowered && simState?.d2High);

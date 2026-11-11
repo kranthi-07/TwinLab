@@ -334,8 +334,8 @@ function Canvas({
                     if (d < minD) { minD = d; bestTarget = pt; }
                 });
             }
-            // DC Hobby Motor (Pos: 0, 0, Neg: 48, 0)
-            else if (c.type === "motor-dc") {
+            // DC Hobby Motor & Yellow Geared Motor (Pos: 0, 0, Neg: 48, 0)
+            else if (c.type === "motor-dc" || c.type === "motor-geared") {
                 [toWorld(0, 0), toWorld(48, 0)].forEach(pt => {
                     const d = Math.hypot(wx - pt.x, wy - pt.y);
                     if (d < minD) { minD = d; bestTarget = pt; }
@@ -1450,6 +1450,14 @@ function Canvas({
                             lcdTextColor={comp.lcdTextColor}
                             angle={comp.angle}
                             distanceCm={comp.distanceCm}
+                            is3D={comp.is3D}
+                            viewMode={comp.viewMode}
+                            rot3D={comp.rot3D}
+                            pitch3D={comp.pitch3D}
+                            speed={comp.speed}
+                            accessory={comp.accessory}
+                            gearRatio={comp.gearRatio}
+                            direction={comp.direction}
                             onUpdate={(updates) => {
                                 onUpdateComponent(comp.id, updates);
                                 onNotifyChange && onNotifyChange();
@@ -1457,8 +1465,11 @@ function Canvas({
                             simState={
                                 comp.type?.startsWith("battery") ? simulationResult?.batteryStates?.[comp.id] :
                                 comp.type === "buzzer" ? simulationResult?.buzzerStates?.[comp.id] :
-                                comp.type === "motor-dc" ? simulationResult?.motorStates?.[comp.id] :
+                                (comp.type === "motor-dc" || comp.type === "motor-geared" || comp.type === "motor-bo") ? simulationResult?.motorStates?.[comp.id] :
                                 comp.type?.startsWith("lcd") ? simulationResult?.lcdStates?.[comp.id] :
+                                (comp.type === "sensor-pir" || comp.type === "sensor-ultrasonic") ? simulationResult?.sensorStates?.[comp.id] :
+                                comp.type?.startsWith("ic-") ? simulationResult?.icStates?.[comp.id] :
+                                comp.type === "servo-sg90" ? simulationResult?.servoStates?.[comp.id] :
                                 simulationResult?.ledStates?.[comp.id]
                             }
                             isSimulating={isSimulating}
@@ -1520,6 +1531,11 @@ function Canvas({
                                 lcdTextColor={placingComponent.lcdTextColor}
                                 angle={placingComponent.angle}
                                 distanceCm={placingComponent.distanceCm}
+                                is3D={placingComponent.is3D}
+                                viewMode={placingComponent.viewMode}
+                                rot3D={placingComponent.rot3D}
+                                pitch3D={placingComponent.pitch3D}
+                                speed={placingComponent.speed}
                                 x={0}
                                 y={0}
                                 rotation={0}

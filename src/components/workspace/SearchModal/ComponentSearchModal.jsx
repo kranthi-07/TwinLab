@@ -198,6 +198,66 @@ export const SEARCH_CATALOG = [
         instrumentAction: "multimeter"
     },
     {
+        id: "motor-dc",
+        type: "motor-dc",
+        name: "Standard 130 DC Motor",
+        designator: "MOT1",
+        category: "outputs",
+        categoryLabel: "Actuator",
+        badge: "3V-6V Brushed",
+        specs: "12,000 RPM Coreless Motor • Bare Axle or Propeller",
+        keywords: ["motor", "dc motor", "hobby motor", "propeller", "fan", "rotor", "actuator", "130"],
+        defaultProps: { type: "motor-dc", name: "130 DC Motor", speed: 100, accessory: "propeller" }
+    },
+    {
+        id: "motor-geared",
+        type: "motor-geared",
+        name: "TT Geared DC Motor (Yellow BO)",
+        designator: "MOT2",
+        category: "outputs",
+        categoryLabel: "Actuator",
+        badge: "1:48 Gearbox",
+        specs: "Yellow BO Motor • Dual White D-Shaft • High Torque 200 RPM",
+        keywords: ["geared motor", "bo motor", "yellow motor", "tt motor", "gearbox", "robot", "wheel motor", "chassis", "dual shaft"],
+        defaultProps: { type: "motor-geared", name: "TT Geared DC Motor", speed: 100, gearRatio: "1:48", direction: "cw" }
+    },
+    {
+        id: "servo-sg90",
+        type: "servo-sg90",
+        name: "Micro Servo SG90 (9g)",
+        designator: "SRV1",
+        category: "outputs",
+        categoryLabel: "Actuator",
+        badge: "PWM 0°-180°",
+        specs: "4.8V-6V • Nylon Horn & Splined Shaft",
+        keywords: ["servo", "sg90", "micro servo", "horn", "actuator", "pwm"],
+        defaultProps: { type: "servo-sg90", name: "Micro Servo SG90", angle: 90 }
+    },
+    {
+        id: "sensor-ultrasonic",
+        type: "sensor-ultrasonic",
+        name: "Ultrasonic Sensor (HC-SR04)",
+        designator: "US1",
+        category: "inputs",
+        categoryLabel: "Sensor",
+        badge: "Sonar 2cm-400cm",
+        specs: "Transmitter & Receiver Cylinders • Trigger/Echo",
+        keywords: ["ultrasonic", "sonar", "distance", "hc-sr04", "range", "sensor"],
+        defaultProps: { type: "sensor-ultrasonic", name: "HC-SR04 Ultrasonic", distanceCm: 25 }
+    },
+    {
+        id: "sensor-pir",
+        type: "sensor-pir",
+        name: "PIR Motion Sensor (HC-SR501)",
+        designator: "PIR1",
+        category: "inputs",
+        categoryLabel: "Sensor",
+        badge: "Infrared Pyroelectric",
+        specs: "Fresnel Dome Lens • Dual Trimmers",
+        keywords: ["pir", "motion", "infrared", "presence", "human", "fresnel"],
+        defaultProps: { type: "sensor-pir", name: "PIR Motion Sensor" }
+    },
+    {
         id: "lcd-1602",
         type: "lcd-1602",
         name: "16x2 Character LCD (I2C)",

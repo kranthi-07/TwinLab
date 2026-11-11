@@ -606,18 +606,379 @@
     gap: 12px;
 }
 
-.baud-select-container {
-    height: 26px;
+/* ------------------------------------------------------------
+   100% CUSTOM IDE POPUP DROPDOWNS (ZERO DEFAULT SELECTS)
+------------------------------------------------------------ */
+.custom-ide-dropdown-wrapper {
+    position: relative;
+    display: inline-flex;
+    user-select: none;
+    z-index: 50;
 }
 
-.baud-select-container .ide-select-icon {
-    font-size: 12px;
+.custom-ide-dropdown-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 0 10px;
+    height: 30px;
+    color: #f1f5f9;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.custom-ide-dropdown-trigger:hover,
+.custom-ide-dropdown-trigger.active {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: var(--primary, #FF8A00);
+}
+
+.custom-ide-dropdown-trigger.active {
+    box-shadow: 0 0 0 2px rgba(255, 138, 0, 0.2);
+}
+
+.ide-dropdown-icon {
+    font-size: 13px;
     color: #38bdf8;
 }
 
-.baud-select-container .custom-ide-select {
+.ide-dropdown-label {
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+.ide-dropdown-value-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.ide-dropdown-chevron {
+    font-size: 13px;
+    color: #64748b;
+    transition: transform 0.2s ease;
+}
+
+.ide-dropdown-chevron.rotate {
+    transform: rotate(180deg);
+    color: #FF8A00;
+}
+
+.custom-ide-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 200px;
+    background: #090e1a;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    padding: 5px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.custom-ide-dropdown-menu.align-right {
+    left: auto;
+    right: 0;
+}
+
+.custom-ide-dropdown-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    border-radius: 7px;
+    background: transparent;
+    border: none;
+    color: #cbd5e1;
+    font-size: 11.5px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.custom-ide-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+.custom-ide-dropdown-item.selected {
+    background: rgba(255, 138, 0, 0.15);
+    color: #FF8A00;
+    font-weight: 700;
+}
+
+.item-text-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.item-desc {
+    font-size: 9.5px;
+    color: #64748b;
+    font-family: system-ui, sans-serif;
+}
+
+.custom-ide-dropdown-item.selected .item-desc {
+    color: #ea580c;
+}
+
+.item-check-icon {
+    font-size: 14px;
+    color: #FF8A00;
+}
+
+.baud-custom-dropdown .custom-ide-dropdown-trigger {
+    height: 26px;
+    padding: 0 8px;
     font-size: 10.5px;
-    padding: 2px 14px 2px 2px;
+}
+
+/* ------------------------------------------------------------
+   INBUILT SERIAL MONITOR PANE (NESTED INSIDE CODE WINDOW)
+------------------------------------------------------------ */
+.code-inbuilt-serial-pane {
+    background: #060913;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    z-index: 10;
+}
+
+.inbuilt-serial-header {
+    height: 32px;
+    background: rgba(15, 22, 38, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    user-select: none;
+}
+
+.serial-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.serial-title {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.serial-title i {
+    color: #38bdf8;
+    font-size: 13px;
+}
+
+.serial-port-chip {
+    font-size: 9.5px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #94a3b8;
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.serial-live-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 3px;
+    letter-spacing: 0.04em;
+}
+
+.serial-live-pill.online {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+}
+
+.serial-live-pill.idle {
+    background: rgba(255, 255, 255, 0.06);
+    color: #64748b;
+}
+
+.serial-live-pill .live-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.serial-header-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.serial-icon-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.15s ease;
+}
+
+.serial-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.serial-icon-btn.active {
+    background: rgba(56, 189, 248, 0.18);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.3);
+}
+
+.inbuilt-serial-output {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 11px;
+    line-height: 18px;
+    user-select: text;
+    background: #050811;
+}
+
+.serial-placeholder-banner {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    color: #475569;
+    font-size: 10.5px;
+    padding: 12px 0;
+}
+
+.serial-placeholder-banner .sub {
+    color: #334155;
+    font-style: italic;
+}
+
+.serial-log-entry {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    word-break: break-all;
+}
+
+.serial-log-entry .entry-time {
+    color: #475569;
+    font-size: 10px;
+    flex-shrink: 0;
+}
+
+.serial-log-entry .entry-source {
+    color: #64748b;
+    font-size: 10px;
+    flex-shrink: 0;
+}
+
+.serial-log-entry.output .entry-text {
+    color: #e2e8f0;
+}
+
+.serial-log-entry.input .entry-text {
+    color: #38bdf8;
+    font-weight: 600;
+}
+
+.serial-log-entry.error .entry-text {
+    color: #f87171;
+}
+
+.serial-log-entry.warning .entry-text {
+    color: #fbbf24;
+}
+
+/* Serial Input Row */
+.inbuilt-serial-input-form {
+    height: 32px;
+    background: #090e1a;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 6px;
+}
+
+.input-prompt {
+    color: #38bdf8;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.serial-input-field {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #f8fafc;
+    font-size: 11px;
+}
+
+.serial-input-field::placeholder {
+    color: #475569;
+}
+
+.serial-send-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+    font-size: 10.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.serial-send-btn:hover {
+    background: #0284c7;
+    color: #ffffff;
+    border-color: #0284c7;
+}
+
+.serial-count-pill {
+    padding: 1px 5px;
+    border-radius: 999px;
+    background: rgba(255, 138, 0, 0.25);
+    color: #FF8A00;
+    font-size: 9px;
+    font-weight: 800;
 }
 
 .serial-toggle-btn {

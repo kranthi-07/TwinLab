@@ -21,9 +21,30 @@ function Topbar({ onOpenWorkspace }) {
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showNotifModal, setShowNotifModal] = useState(false);
+    const [unreadNotifCount, setUnreadNotifCount] = useState(() => {
+        try {
+            const saved = localStorage.getItem("twinlab_read_notifications");
+            const readIds = saved ? JSON.parse(saved) : [];
+            return SESSION_UPDATES.filter(u => !readIds.includes(u.id)).length;
+        } catch (e) {
+            return SESSION_UPDATES.length;
+        }
+    });
     const [waveIndex, setWaveIndex] = useState(0);
 
     const currentWave = WAVE_MODES[waveIndex];
+
+    useEffect(() => {
+        const updateUnread = () => {
+            try {
+                const saved = localStorage.getItem("twinlab_read_notifications");
+                const readIds = saved ? JSON.parse(saved) : [];
+                setUnreadNotifCount(SESSION_UPDATES.filter(u => !readIds.includes(u.id)).length);
+            } catch (e) {}
+        };
+        window.addEventListener("twinlab:notifications_updated", updateUnread);
+        return () => window.removeEventListener("twinlab:notifications_updated", updateUnread);
+    }, []);
 
     useEffect(() => {
         const unsubscribe = authService.subscribe((u) => setUser(u));
@@ -147,12 +168,13 @@ function Topbar({ onOpenWorkspace }) {
                         type="button"
                     >
                         <i className="ri-notification-3-line"></i>
-                        <span className="notif-badge-dot" />
+                        {unreadNotifCount > 0 && <span className="notif-badge-dot" />}
                     </motion.button>
 
                     <NotificationsModal 
                         isOpen={showNotifModal} 
                         onClose={() => setShowNotifModal(false)} 
+                        onUnreadChange={setUnreadNotifCount}
                     />
                 </div>
 

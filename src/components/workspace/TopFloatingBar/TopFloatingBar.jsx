@@ -22,7 +22,8 @@ const COMPONENT_META = {
     "lcd": { label: "Character LCD", icon: "ri-tv-line" },
     "lcd-1602": { label: "16x2 Character LCD", icon: "ri-tv-line" },
     "lcd-2004": { label: "20x4 Character LCD", icon: "ri-tv-line" },
-    "motor-dc": { label: "DC Motor", icon: "ri-refresh-line" },
+    "motor-dc": { label: "130 DC Motor", icon: "ri-refresh-line" },
+    "motor-geared": { label: "TT Geared DC Motor (Yellow BO)", icon: "ri-steering-2-line" },
     "servo-sg90": { label: "Micro Servo SG90", icon: "ri-settings-4-line" },
     "transistor": { label: "NPN Transistor (2N2222)", icon: "ri-git-commit-line" },
     "transistor-npn": { label: "NPN Transistor (2N2222)", icon: "ri-git-commit-line" },
@@ -284,6 +285,132 @@ function CapacitorValueControl({ component, onUpdate }) {
             }}
             subtext="50V Ceramic Disk"
         />
+    );
+}
+
+function ElectrolyticCapValueControl({ component, onUpdate }) {
+    const capStr = component.capacitance || "10µF";
+    const voltageRating = component.voltageRating || 50;
+
+    const CAP_PRESETS = ["1µF", "4.7µF", "10µF", "22µF", "47µF", "100µF", "220µF", "470µF", "1000µF"];
+    const VOLT_RATINGS = [16, 25, 35, 50, 63, 100];
+
+    return (
+        <div className="inspector-elec-cap-controls">
+            <div className="inspector-label-inline">
+                <i className="ri-contrast-2-fill"></i>
+                <span>Capacitance</span>
+            </div>
+
+            <div className="compact-pill-selector-row">
+                {CAP_PRESETS.map((val) => (
+                    <button
+                        key={val}
+                        type="button"
+                        className={`compact-pill-btn font-mono ${capStr === val ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { 
+                            capacitance: val,
+                            name: `Electrolytic Cap (${val})`
+                        })}
+                    >
+                        {val}
+                    </button>
+                ))}
+            </div>
+
+            <div className="inspector-separator" />
+
+            <div className="inspector-label-inline">
+                <i className="ri-shield-check-line"></i>
+                <span>Max Voltage</span>
+            </div>
+
+            <div className="compact-pill-selector-row">
+                {VOLT_RATINGS.map((volt) => (
+                    <button
+                        key={volt}
+                        type="button"
+                        className={`compact-pill-btn font-mono ${voltageRating === volt ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { voltageRating: volt })}
+                    >
+                        {volt}V
+                    </button>
+                ))}
+            </div>
+
+            <span className="specs-subtext font-mono">
+                Pin 1: Anode (+) • Pin 2: Cathode (−)
+            </span>
+        </div>
+    );
+}
+
+function TransistorValueControl({ component, onUpdate }) {
+    const isMosfet = component.type === "mosfet-n" || component.type === "mosfet-p" || component.type?.includes("mosfet");
+    const isPnp = component.type === "transistor-pnp";
+
+    const currentModel = component.model || (isMosfet ? "IRF540N" : isPnp ? "2N3906" : "2N2222");
+
+    const BJT_MODELS = isPnp 
+        ? [
+            { name: "2N3906", hfe: 200, vce: "40V", ic: "200mA" },
+            { name: "BC557", hfe: 250, vce: "45V", ic: "100mA" },
+            { name: "BD140", hfe: 100, vce: "80V", ic: "1.5A" }
+          ]
+        : [
+            { name: "2N2222", hfe: 150, vce: "40V", ic: "800mA" },
+            { name: "2N3904", hfe: 200, vce: "40V", ic: "200mA" },
+            { name: "BC547", hfe: 300, vce: "45V", ic: "100mA" },
+            { name: "BD139", hfe: 100, vce: "80V", ic: "1.5A" }
+          ];
+
+    const MOSFET_MODELS = [
+        { name: "IRF540N", type: "N-Ch Power", vds: "100V", id: "33A", rdson: "44mΩ" },
+        { name: "IRLZ44N", type: "Logic N-Ch", vds: "55V", id: "47A", rdson: "22mΩ" },
+        { name: "2N7000", type: "Small N-Ch", vds: "60V", id: "200mA", rdson: "5Ω" },
+        { name: "FQP30N06L", type: "Logic N-Ch", vds: "60V", id: "32A", rdson: "35mΩ" }
+    ];
+
+    const activeList = isMosfet ? MOSFET_MODELS : BJT_MODELS;
+
+    return (
+        <div className="inspector-transistor-controls">
+            <div className="inspector-label-inline">
+                <i className={isMosfet ? "ri-flashlight-line" : "ri-git-commit-line"}></i>
+                <span>{isMosfet ? "MOSFET Model" : "BJT Part Number"}</span>
+            </div>
+
+            <div className="compact-pill-selector-row">
+                {activeList.map((m) => (
+                    <button
+                        key={m.name}
+                        type="button"
+                        className={`compact-pill-btn font-mono ${currentModel === m.name ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { 
+                            model: m.name,
+                            name: m.name,
+                            designator: component.designator || m.name
+                        })}
+                    >
+                        {m.name}
+                    </button>
+                ))}
+            </div>
+
+            <div className="inspector-separator" />
+
+            <div className="transistor-pinout-strip font-mono">
+                {isMosfet ? (
+                    <span className="pinout-tag mosfet-tag">
+                        <strong>TO-220 Pinout:</strong> 1: Gate (G) • 2: Drain (D) • 3: Source (S)
+                    </span>
+                ) : (
+                    <span className="pinout-tag bjt-tag">
+                        <strong>TO-92 Pinout:</strong> 1: Emitter (E) • 2: Base (B) • 3: Collector (C)
+                    </span>
+                )}
+            </div>
+        </div>
     );
 }
 
@@ -557,12 +684,262 @@ function ServoValueControl({ component, onUpdate }) {
 }
 
 function MotorValueControl({ component, onUpdate }) {
+    const is3D = component.is3D !== false && component.viewMode !== "2d";
     const speed = component.speed != null ? component.speed : 100;
+    const rot3D = component.rot3D != null ? component.rot3D : 35;
+    const pitch3D = component.pitch3D != null ? component.pitch3D : 20;
+    const isGeared = component.type === "motor-geared" || component.type === "motor-bo";
+    const accessory = component.accessory || "propeller"; // "propeller" | "axle"
+    const gearRatio = component.gearRatio || "1:48";
+    const direction = component.direction || "cw";
+
+    const joystickRef = useRef(null);
+    const [isDraggingJoystick, setIsDraggingJoystick] = useState(false);
+
+    const updateRotationFromPointer = (clientX, clientY) => {
+        if (!joystickRef.current) return;
+        const rect = joystickRef.current.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = clientX - cx;
+        const dy = clientY - cy;
+
+        // Angle in degrees from 0 to 359
+        let rad = Math.atan2(dy, dx);
+        let deg = Math.round((rad * 180) / Math.PI);
+        let normalizedDeg = (deg + 360) % 360;
+
+        // Radius for slight pitch dynamic
+        const maxR = rect.width / 2 - 6;
+        const dist = Math.min(maxR, Math.hypot(dx, dy));
+        const factor = dist / maxR;
+        const dynamicPitch = Math.round(15 + factor * 22);
+
+        onUpdate && onUpdate(component.id, {
+            rot3D: normalizedDeg,
+            pitch3D: dynamicPitch,
+            is3D: true,
+            viewMode: "3d"
+        });
+    };
+
+    const handlePointerDown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+            e.currentTarget.setPointerCapture(e.pointerId);
+        } catch (_) {}
+        setIsDraggingJoystick(true);
+        updateRotationFromPointer(e.clientX, e.clientY);
+    };
+
+    const handlePointerMove = (e) => {
+        if (!isDraggingJoystick) return;
+        e.preventDefault();
+        e.stopPropagation();
+        updateRotationFromPointer(e.clientX, e.clientY);
+    };
+
+    const handlePointerUp = (e) => {
+        try {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch (_) {}
+        setIsDraggingJoystick(false);
+    };
+
+    // Calculate thumb position within joystick ring (radius ~ 13px)
+    const angleRad = (rot3D * Math.PI) / 180;
+    const thumbDist = isDraggingJoystick ? 15 : 12;
+    const thumbX = Math.cos(angleRad) * thumbDist;
+    const thumbY = Math.sin(angleRad) * thumbDist;
+
     return (
-        <div className="inspector-motor-controls" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div className="inspector-motor-controls">
+            {/* 1. Mode Segmented Toggle (2D / 3D WebGL) */}
             <div className="inspector-field-group">
-                <span className="studio-control-label">Speed</span>
-                <div className="slider-with-val" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="studio-control-label">Renderer</span>
+                <div className="motor-mode-toggle-group">
+                    <button
+                        type="button"
+                        className={`motor-mode-btn ${!is3D ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { is3D: false, viewMode: "2d" })}
+                        title="2D Top-Down Schematic View"
+                    >
+                        <span>2D Canvas</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`motor-mode-btn ${is3D ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { is3D: true, viewMode: "3d" })}
+                        title="3D Ultra-Realistic Three.js WebGL Engine"
+                    >
+                        <span>3D Three.js</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* 2. 360° Circular Analog Joystick (Active in 3D Mode) */}
+            {is3D && (
+                <div className="inspector-field-group motor-joystick-group">
+                    <div className="joystick-header-row">
+                        <span className="studio-control-label">360° Joystick</span>
+                        <span className="joystick-angle-badge">{rot3D}°</span>
+                    </div>
+
+                    <div className="joystick-control-cluster">
+                        {/* Interactive Gimbal Pad */}
+                        <div
+                            ref={joystickRef}
+                            className={`motor-joystick-pad ${isDraggingJoystick ? "active-drag" : ""}`}
+                            onPointerDown={handlePointerDown}
+                            onPointerMove={handlePointerMove}
+                            onPointerUp={handlePointerUp}
+                            onPointerCancel={handlePointerUp}
+                            title="Drag or click to rotate 3D Motor 360°"
+                        >
+                            <div className="joystick-crosshair-h"></div>
+                            <div className="joystick-crosshair-v"></div>
+                            <div className="joystick-center-well"></div>
+
+                            {/* Degree markers */}
+                            <span className="joystick-tick tick-0">0°</span>
+                            <span className="joystick-tick tick-90">90°</span>
+                            <span className="joystick-tick tick-180">180°</span>
+                            <span className="joystick-tick tick-270">270°</span>
+
+                            {/* Floating Thumb Knob */}
+                            <div
+                                className="motor-joystick-thumb"
+                                style={{
+                                    transform: `translate(calc(-50% + ${thumbX}px), calc(-50% + ${thumbY}px))`
+                                }}
+                            >
+                                <span className="thumb-led-dot"></span>
+                            </div>
+                        </div>
+
+                        {/* Quick Snap Preset Orbit Angles */}
+                        <div className="joystick-presets-column">
+                            <button
+                                type="button"
+                                className={`joystick-snap-btn ${rot3D === 0 ? "snap-active" : ""}`}
+                                onClick={() => onUpdate && onUpdate(component.id, { rot3D: 0, pitch3D: 20 })}
+                                title="Snap Front View (0°)"
+                            >
+                                0° Front
+                            </button>
+                            <button
+                                type="button"
+                                className={`joystick-snap-btn ${rot3D === 45 ? "snap-active" : ""}`}
+                                onClick={() => onUpdate && onUpdate(component.id, { rot3D: 45, pitch3D: 25 })}
+                                title="Snap Isometric View (45°)"
+                            >
+                                45° Iso
+                            </button>
+                            <button
+                                type="button"
+                                className={`joystick-snap-btn ${rot3D === 90 ? "snap-active" : ""}`}
+                                onClick={() => onUpdate && onUpdate(component.id, { rot3D: 90, pitch3D: 20 })}
+                                title="Snap Side Profile (90°)"
+                            >
+                                90° Side
+                            </button>
+                            <button
+                                type="button"
+                                className={`joystick-snap-btn ${rot3D === 180 ? "snap-active" : ""}`}
+                                onClick={() => onUpdate && onUpdate(component.id, { rot3D: 180, pitch3D: 20 })}
+                                title="Snap Solder Lugs Rear View (180°)"
+                            >
+                                180° Rear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 3. Motor Customization Options */}
+            {!isGeared ? (
+                /* DC Motor: Bare Axle vs Propeller Fan (Matching Image 1) */
+                <div className="inspector-field-group">
+                    <span className="studio-control-label">Shaft Accessory</span>
+                    <div className="motor-mode-toggle-group">
+                        <button
+                            type="button"
+                            className={`motor-mode-btn ${accessory === "propeller" ? "active" : ""}`}
+                            onClick={() => onUpdate && onUpdate(component.id, { accessory: "propeller" })}
+                            title="Mount 3-Blade Aviation Propeller Fan"
+                        >
+                            <span>🌀 Propeller</span>
+                        </button>
+                        <button
+                            type="button"
+                            className={`motor-mode-btn ${accessory === "axle" ? "active" : ""}`}
+                            onClick={() => onUpdate && onUpdate(component.id, { accessory: "axle" })}
+                            title="Bare Hardened Steel Axle Shaft (As in real hardware)"
+                        >
+                            <span>🔩 Bare Axle</span>
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                /* Geared Motor: Gear Ratio (Image 2) */
+                <div className="inspector-field-group">
+                    <span className="studio-control-label">Gear Ratio</span>
+                    <div className="motor-mode-toggle-group">
+                        {["1:48", "1:120", "1:220"].map(ratio => (
+                            <button
+                                key={ratio}
+                                type="button"
+                                className={`motor-mode-btn ${gearRatio === ratio ? "active" : ""}`}
+                                onClick={() => onUpdate && onUpdate(component.id, { gearRatio: ratio })}
+                                title={`Internal Gearbox Ratio ${ratio}`}
+                            >
+                                <span>{ratio}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* 4. Direction Selector (CW / CCW) */}
+            <div className="inspector-field-group">
+                <span className="studio-control-label">Direction</span>
+                <div className="motor-mode-toggle-group">
+                    <button
+                        type="button"
+                        className={`motor-mode-btn ${direction === "cw" ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { direction: "cw" })}
+                        title="Clockwise Rotation"
+                    >
+                        <span>CW ↻</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`motor-mode-btn ${direction === "ccw" ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { direction: "ccw" })}
+                        title="Counter-Clockwise Rotation"
+                    >
+                        <span>CCW ↺</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* 5. Live Tachometer Telemetry Card */}
+            <div className="inspector-field-group" style={{ background: "rgba(2, 6, 23, 0.65)", padding: "4px 8px", borderRadius: 8, border: "1px solid rgba(56, 189, 248, 0.25)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: speed > 0 ? "#22c55e" : "#64748b", boxShadow: speed > 0 ? "0 0 8px #22c55e" : "none" }}></span>
+                        <span className="studio-control-label" style={{ margin: 0 }}>Tachometer</span>
+                    </div>
+                    <span style={{ fontFamily: "monospace", color: "#38bdf8", fontWeight: 900, fontSize: "11px" }}>
+                        {speed > 0 
+                            ? (isGeared 
+                                ? `${Math.round((speed / 100) * (gearRatio === "1:220" ? 45 : gearRatio === "1:120" ? 90 : 220))} RPM` 
+                                : `${Math.round((speed / 100) * 12500).toLocaleString()} RPM`)
+                            : "0 RPM"}
+                    </span>
+                </div>
+                <div className="slider-with-val" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
                     <input 
                         type="range"
                         min="0"
@@ -574,7 +951,10 @@ function MotorValueControl({ component, onUpdate }) {
                     <span className="specs-subtext" style={{ minWidth: 36, fontWeight: 700 }}>{speed}%</span>
                 </div>
             </div>
-            <span className="specs-subtext">3V - 12V DC Hobby Motor with Propeller</span>
+
+            <span className="specs-subtext specs-meta-pill">
+                {isGeared ? "TT Yellow BO Gearbox Motor • 3V-6V DC" : "Mabuchi 130 Cylindrical DC Motor • 3V-6V"}
+            </span>
         </div>
     );
 }
@@ -1058,6 +1438,36 @@ function TopFloatingBar({
                                             </div>
                                             <span>Slide Switch</span>
                                         </button>
+
+                                        {/* 130 DC Motor */}
+                                        <button
+                                            className="palette-item"
+                                            onClick={() => {
+                                                onAddComponent({ type: "motor-dc", name: "130 DC Motor", speed: 100, accessory: "propeller" });
+                                                setIsComponentsOpen(false);
+                                            }}
+                                            title="Add Standard 130 Cylindrical DC Motor"
+                                        >
+                                            <div className="palette-item-miniature" style={{ background: "rgba(14, 165, 233, 0.15)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                <i className="ri-refresh-line" style={{ color: "#38bdf8", fontSize: 16 }}></i>
+                                            </div>
+                                            <span>DC Motor</span>
+                                        </button>
+
+                                        {/* TT Geared DC Motor (Yellow BO) */}
+                                        <button
+                                            className="palette-item"
+                                            onClick={() => {
+                                                onAddComponent({ type: "motor-geared", name: "TT Geared DC Motor", speed: 100, gearRatio: "1:48", direction: "cw" });
+                                                setIsComponentsOpen(false);
+                                            }}
+                                            title="Add Yellow TT Dual-Shaft Geared DC Motor (BO Motor)"
+                                        >
+                                            <div className="palette-item-miniature" style={{ background: "rgba(234, 179, 8, 0.2)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                <i className="ri-steering-2-line" style={{ color: "#eab308", fontSize: 16 }}></i>
+                                            </div>
+                                            <span>Yellow Geared Motor</span>
+                                        </button>
                                     </div>
                                 </motion.div>
                             )}
@@ -1386,6 +1796,28 @@ function TopFloatingBar({
                                         />
                                     )}
 
+                                    {/* Electrolytic Capacitor */}
+                                    {selectedComponent.type === "capacitor-electrolytic" && (
+                                        <ElectrolyticCapValueControl 
+                                            component={selectedComponent} 
+                                            onUpdate={onUpdateComponent} 
+                                        />
+                                    )}
+
+                                    {/* Transistors & MOSFETs */}
+                                    {(selectedComponent.type === "transistor" || 
+                                      selectedComponent.type === "transistor-npn" || 
+                                      selectedComponent.type === "transistor-pnp" || 
+                                      selectedComponent.type === "mosfet-n" || 
+                                      selectedComponent.type === "mosfet-p" ||
+                                      selectedComponent.type?.includes("transistor") ||
+                                      selectedComponent.type?.includes("mosfet")) && (
+                                        <TransistorValueControl 
+                                            component={selectedComponent} 
+                                            onUpdate={onUpdateComponent} 
+                                        />
+                                    )}
+
                                     {/* 9V Battery */}
                                     {selectedComponent.type === "battery-9v" && (
                                         <BatteryValueControl 
@@ -1418,8 +1850,8 @@ function TopFloatingBar({
                                         />
                                     )}
 
-                                    {/* DC Motor */}
-                                    {selectedComponent.type === "motor-dc" && (
+                                    {/* DC Motor & Yellow Geared Motor */}
+                                    {(selectedComponent.type === "motor-dc" || selectedComponent.type === "motor-geared") && (
                                         <MotorValueControl 
                                             component={selectedComponent}
                                             onUpdate={onUpdateComponent}
@@ -1450,13 +1882,7 @@ function TopFloatingBar({
                                         />
                                     )}
 
-                                    {/* Transistors & MOSFETs */}
-                                    {(selectedComponent.type === "transistor" || selectedComponent.type === "transistor-npn" || selectedComponent.type === "transistor-pnp" || selectedComponent.type === "mosfet-n") && (
-                                        <div className="inspector-simple-badge-row">
-                                            <i className="ri-git-commit-line"></i>
-                                            <span>{selectedComponent.type === "transistor-pnp" ? "PNP (2N3906) • E-B-C" : selectedComponent.type === "mosfet-n" ? "N-MOSFET (IRF540N) • G-D-S" : "NPN (2N2222) • C-B-E"}</span>
-                                        </div>
-                                    )}
+
 
                                     {/* Logic Gates (DIP-14) */}
                                     {selectedComponent.type?.startsWith("ic-74hc") && (
