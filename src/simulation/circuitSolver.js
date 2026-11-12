@@ -328,21 +328,21 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         const negWorldX = c.x + negLocalX * cos - negLocalY * sin;
         const negWorldY = c.y + negLocalX * sin + negLocalY * cos;
 
-        // Auto-link wire endpoints directly on terminals (precise snap <= 10px)
+        // Auto-link wire endpoints directly on terminals (precise snap <= 18px)
         wires.forEach(w => {
             if (!w.points || w.points.length < 2) return;
             const p1 = w.points[0];
             const p2 = w.points[w.points.length - 1];
-            if (Math.hypot(p1.x - posWorldX, p1.y - posWorldY) <= 10) {
+            if (Math.hypot(p1.x - posWorldX, p1.y - posWorldY) <= 18) {
                 dsu.union(getElectricalNode(p1.x, p1.y), dsu.find(`POWER_SOURCE_POS_${c.id}`));
             }
-            if (Math.hypot(p2.x - posWorldX, p2.y - posWorldY) <= 10) {
+            if (Math.hypot(p2.x - posWorldX, p2.y - posWorldY) <= 18) {
                 dsu.union(getElectricalNode(p2.x, p2.y), dsu.find(`POWER_SOURCE_POS_${c.id}`));
             }
-            if (Math.hypot(p1.x - negWorldX, p1.y - negWorldY) <= 10) {
+            if (Math.hypot(p1.x - negWorldX, p1.y - negWorldY) <= 18) {
                 dsu.union(getElectricalNode(p1.x, p1.y), dsu.find(`POWER_SOURCE_GND_${c.id}`));
             }
-            if (Math.hypot(p2.x - negWorldX, p2.y - negWorldY) <= 10) {
+            if (Math.hypot(p2.x - negWorldX, p2.y - negWorldY) <= 18) {
                 dsu.union(getElectricalNode(p2.x, p2.y), dsu.find(`POWER_SOURCE_GND_${c.id}`));
             }
         });
@@ -1441,47 +1441,53 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                 text: `⚠️ [SHORT CIRCUIT] Battery ${b.voltage != null ? b.voltage : 9}V terminals are directly shorted! High discharge current (> 4.5A). Disconnect immediate short.`
             });
         } else {
+            // Helper to check if a load's power source matches this battery
+            const isThisBatterySource = (srcId) => {
+                if (!srcId) return false;
+                return srcId === b.id || srcId === `battery_${b.id}` || srcId === `battery_${b.id}_pos` || String(srcId).includes(b.id);
+            };
+
             // Sum current drawn by any conducting loads connected to this specific battery
             components.forEach((c) => {
                 if (c.type === "led") {
                     const st = ledStates[c.id];
-                    if (st && st.isOn && st.currentMa > 0 && st.powerSourceId === b.id) {
+                    if (st && (st.isOn || st.isOverloaded) && st.currentMa > 0 && isThisBatterySource(st.powerSourceId)) {
                         totalDrawnCurrentMa += st.currentMa;
                     }
                 }
                 if (c.type === "buzzer") {
                     const bz = buzzerStates[c.id];
-                    if (bz && bz.isBeeping && bz.currentMa > 0 && bz.powerSourceId === b.id) {
+                    if (bz && bz.isBeeping && bz.currentMa > 0 && isThisBatterySource(bz.powerSourceId)) {
                         totalDrawnCurrentMa += bz.currentMa;
                     }
                 }
                 if (c.type === "motor-dc" || c.type === "motor-geared" || c.type === "motor-bo") {
                     const mot = motorStates[c.id];
-                    if (mot && mot.isSpinning && mot.currentMa > 0 && mot.powerSourceId === b.id) {
+                    if (mot && mot.isSpinning && mot.currentMa > 0 && isThisBatterySource(mot.powerSourceId)) {
                         totalDrawnCurrentMa += mot.currentMa;
                     }
                 }
-                if (c.type === "sensor-pir" || c.type === "sensor-ultrasonic") {
+                if (c.type === "sensor-pir" || c.type === "sensor-ultrasonic" || c.type === "sensor-temp") {
                     const sen = sensorStates[c.id];
-                    if (sen && sen.isPowered && sen.powerSourceId === b.id) {
+                    if (sen && sen.isPowered && isThisBatterySource(sen.powerSourceId)) {
                         totalDrawnCurrentMa += sen.currentMa || 15;
                     }
                 }
                 if (c.type?.startsWith("ic-")) {
                     const ic = icStates[c.id];
-                    if (ic && ic.isPowered && ic.powerSourceId === b.id) {
+                    if (ic && ic.isPowered && isThisBatterySource(ic.powerSourceId)) {
                         totalDrawnCurrentMa += ic.currentMa || 5;
                     }
                 }
                 if (c.type?.startsWith("lcd")) {
                     const lcd = lcdStates[c.id];
-                    if (lcd && lcd.isPowered && lcd.powerSourceId === b.id) {
+                    if (lcd && lcd.isPowered && isThisBatterySource(lcd.powerSourceId)) {
                         totalDrawnCurrentMa += lcd.currentMa || 25;
                     }
                 }
                 if (c.type === "servo-sg90") {
                     const srv = servoStates[c.id];
-                    if (srv && srv.isPowered && srv.powerSourceId === b.id) {
+                    if (srv && srv.isPowered && isThisBatterySource(srv.powerSourceId)) {
                         totalDrawnCurrentMa += srv.currentMa || 60;
                     }
                 }
@@ -1854,13 +1860,17 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
     // A. Active Batteries (discharging through load, short-circuited, or connected to active components)
     batteries.forEach(b => {
         const state = batteryStates[b.id];
-        const hasActiveLoad = Object.values(ledStates).some(l => (l.isOn || l.isOverloaded) && l.powerSourceId === b.id) ||
-                              Object.values(motorStates).some(m => m.isSpinning && m.powerSourceId === b.id) ||
-                              Object.values(buzzerStates).some(bz => bz.isBeeping && bz.powerSourceId === b.id) ||
-                              Object.values(sensorStates).some(s => s.isPowered && s.powerSourceId === b.id) ||
-                              Object.values(icStates).some(ic => ic.isPowered && ic.powerSourceId === b.id) ||
-                              Object.values(lcdStates).some(lcd => lcd.isPowered && lcd.powerSourceId === b.id) ||
-                              Object.values(servoStates).some(sv => sv.isPowered && sv.powerSourceId === b.id);
+        const isThisBatterySource = (srcId) => {
+            if (!srcId) return false;
+            return srcId === b.id || srcId === `battery_${b.id}` || srcId === `battery_${b.id}_pos` || String(srcId).includes(b.id);
+        };
+        const hasActiveLoad = Object.values(ledStates).some(l => (l.isOn || l.isOverloaded) && isThisBatterySource(l.powerSourceId)) ||
+                              Object.values(motorStates).some(m => m.isSpinning && isThisBatterySource(m.powerSourceId)) ||
+                              Object.values(buzzerStates).some(bz => bz.isBeeping && isThisBatterySource(bz.powerSourceId)) ||
+                              Object.values(sensorStates).some(s => s.isPowered && isThisBatterySource(s.powerSourceId)) ||
+                              Object.values(icStates).some(ic => ic.isPowered && isThisBatterySource(ic.powerSourceId)) ||
+                              Object.values(lcdStates).some(lcd => lcd.isPowered && isThisBatterySource(lcd.powerSourceId)) ||
+                              Object.values(servoStates).some(sv => sv.isPowered && isThisBatterySource(sv.powerSourceId));
 
         if (state && (state.isDischarging || state.isShortCircuit || (state.currentMa > 0.05) || hasActiveLoad)) {
             const posRoot = dsu.find(`POWER_SOURCE_POS_${b.id}`);
@@ -1873,16 +1883,16 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const sin = Math.sin(rotRad);
             let p1, p2;
             if (b.type === "battery-9v") {
-                p1 = { x: Math.round(b.x + 16 * cos), y: Math.round(b.y + 16 * sin) };
-                p2 = { x: Math.round(b.x + 48 * cos), y: Math.round(b.y + 48 * sin) };
+                p1 = { x: Math.round(b.x + 24 * cos - (-14) * sin), y: Math.round(b.y + 24 * sin + (-14) * cos) };
+                p2 = { x: Math.round(b.x + 72 * cos - (-14) * sin), y: Math.round(b.y + 72 * sin + (-14) * cos) };
             } else if (b.type === "battery-aa" || b.type === "battery-aaa") {
-                const count = b.batteryCount || 1;
-                const caseW = count === 1 ? 64 : count === 2 ? 96 : count === 3 ? 140 : 176;
-                p1 = { x: Math.round(b.x + (caseW - 20) * cos), y: Math.round(b.y + (caseW - 20) * sin) };
-                p2 = { x: Math.round(b.x + 20 * cos), y: Math.round(b.y + 20 * sin) };
+                const count = b.cells || (b.voltage === 1.5 ? 1 : b.voltage === 6 ? 4 : b.voltage === 4.5 ? 3 : 2);
+                const caseW = count === 1 ? 64 : count === 4 ? 176 : count === 3 ? 140 : 96;
+                p1 = { x: Math.round(b.x + (caseW - 20) * cos - (-14) * sin), y: Math.round(b.y + (caseW - 20) * sin + (-14) * cos) };
+                p2 = { x: Math.round(b.x + 20 * cos - (-14) * sin), y: Math.round(b.y + 20 * sin + (-14) * cos) };
             } else {
-                p1 = { x: Math.round(b.x + 32 * cos - 16 * sin), y: Math.round(b.y + 32 * sin + 16 * cos) };
-                p2 = { x: Math.round(b.x + 32 * cos - 48 * sin), y: Math.round(b.y + 32 * sin + 48 * cos) };
+                p1 = { x: Math.round(b.x + 16 * cos - 32 * sin), y: Math.round(b.y + 16 * sin + 32 * cos) };
+                p2 = { x: Math.round(b.x + 48 * cos - 32 * sin), y: Math.round(b.y + 48 * sin + 32 * cos) };
             }
             conductingNodes.add(dsu.find(getElectricalNode(p1.x, p1.y)));
             conductingNodes.add(dsu.find(getElectricalNode(p2.x, p2.y)));

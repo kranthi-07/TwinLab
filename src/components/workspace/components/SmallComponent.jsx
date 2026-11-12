@@ -863,7 +863,7 @@ function SmallComponent({
 
             {/* REALISTIC MINIMAL BATTERY WITH DIGITAL VOLTAGE DISPLAY & DISCHARGING ANIMATION */}
             {type === "battery-9v" && (
-                <div className={`battery-tinkercad-real ${simState?.isDischarging ? "active-discharging" : ""} ${simState?.isShortCircuit ? "short-circuited" : ""}`}>
+                <div className={`battery-tinkercad-real ${isSimulating && (simState?.isDischarging || simState?.currentMa > 0) ? "active-discharging" : ""} ${isSimulating && simState?.isShortCircuit ? "short-circuited" : ""}`}>
                     {/* 1. TOP BRACKET WITH PROTRUDING METALLIC TERMINALS & SHARP NEEDLE PINS */}
                     <div className="battery-top-bracket">
                         {/* Negative Terminal Post (GND) */}
@@ -922,7 +922,7 @@ function SmallComponent({
                     </div>
 
                     {/* 2. COPPER/CARAMEL SHOULDER BAND WITH CIRCULAR STAMPED POLARITIES */}
-                    <div className="battery-copper-band">
+                    <div className={`battery-copper-band ${isSimulating && (simState?.isDischarging || simState?.currentMa > 0) ? "band-discharging" : ""}`}>
                         <div className="polarity-circle neg-circ">
                             <span>−</span>
                         </div>
@@ -934,26 +934,26 @@ function SmallComponent({
                     {/* 3. MINIMAL MATTE DARK BODY WITH REALISTIC DIGITAL LCD DISPLAY & DISCHARGE STATUS */}
                     <div className="battery-minimal-body">
                         <div className="battery-digital-display">
-                            <div className={`display-bezel ${isSimulating && simState?.isDischarging ? "bezel-discharging" : ""}`}>
-                                <div className={`lcd-screen ${isSimulating && simState?.isDischarging ? "screen-discharging" : ""}`}>
+                            <div className={`display-bezel ${isSimulating && (simState?.isDischarging || simState?.currentMa > 0) ? "bezel-discharging" : ""}`}>
+                                <div className={`lcd-screen ${isSimulating && (simState?.isDischarging || simState?.currentMa > 0) ? "screen-discharging" : ""}`}>
                                     <div className="lcd-header-row">
                                         <span className="lcd-text">{voltageDisplay}</span>
-                                        {isSimulating && simState?.isDischarging && (
+                                        {isSimulating && (simState?.isDischarging || simState?.currentMa > 0) && (
                                             <span className="lcd-drain-bolt">⚡</span>
                                         )}
                                     </div>
-                                    {isSimulating && simState?.isDischarging && (
+                                    {isSimulating && (simState?.isDischarging || simState?.currentMa > 0) && (
                                         <div className="battery-drain-track">
                                             <div className="battery-drain-pulse"></div>
                                         </div>
                                     )}
                                 </div>
                             </div>
-                            <div className={`display-subtext ${isSimulating && simState?.isShortCircuit ? "subtext-short" : (isSimulating && simState?.isDischarging ? "subtext-discharging" : "")}`}>
+                            <div className={`display-subtext ${isSimulating && simState?.isShortCircuit ? "subtext-short" : (isSimulating && (simState?.isDischarging || simState?.currentMa > 0) ? "subtext-discharging" : "")}`}>
                                 {isSimulating && simState?.isShortCircuit 
                                     ? "⚠️ SHORT CIRCUIT" 
-                                    : (isSimulating && simState?.isDischarging) 
-                                        ? `DRAIN • ${simState.currentMa}mA` 
+                                    : (isSimulating && (simState?.isDischarging || simState?.currentMa > 0)) 
+                                        ? `DRAIN • ${simState.currentMa || 20}mA` 
                                         : "DC VOLTAGE"}
                             </div>
                         </div>
@@ -1022,7 +1022,7 @@ function SmallComponent({
 
                 return (
                     <div 
-                        className={`aa-battery-case ${isSimulating && simState?.isDischarging ? "active-discharging" : ""} ${isSimulating && simState?.isShortCircuit ? "short-circuited" : ""}`} 
+                        className={`aa-battery-case ${isSimulating && (simState?.isDischarging || simState?.currentMa > 0) ? "active-discharging" : ""} ${isSimulating && simState?.isShortCircuit ? "short-circuited" : ""}`} 
                         style={{ width: totalWidth, "--case-bg": caseColor }}
                     >
                         {/* Terminal Lead Wires */}
@@ -1082,7 +1082,7 @@ function SmallComponent({
                                     <div className="lid-switch-thumb"></div>
                                     <span className="lid-switch-label">{isSwitchOn ? "ON" : "OFF"}</span>
                                 </div>
-                                <span className={`battery-power-led ${isSwitchOn && isSimulating && simState?.isDischarging ? "glowing" : ""}`}></span>
+                                <span className={`battery-power-led ${isSwitchOn && isSimulating && (simState?.isDischarging || simState?.currentMa > 0) ? "glowing" : ""}`}></span>
                             </div>
                         ) : (
                             <div className="battery-case-lid sealed-lid">
@@ -1091,11 +1091,19 @@ function SmallComponent({
                             </div>
                         )}
 
+                        {/* Active Energy Discharge HUD Badge */}
+                        {isSimulating && (simState?.isDischarging || simState?.currentMa > 0) && (
+                            <div className="aa-discharge-badge">
+                                <span className="aa-discharge-bolt">⚡</span>
+                                <span className="aa-discharge-text">DRAIN • {simState?.currentMa || 20}mA</span>
+                            </div>
+                        )}
+
                         {/* Molded ABS Enclosure with Cells */}
                         <div className="aa-molded-holder">
                             <div className="holder-rim">
                                 {[...Array(cellCount)].map((_, idx) => (
-                                    <div key={`cell-${idx}`} className={`battery-cylindrical-cell ${isAAA ? "is-aaa" : "is-aa"}`} style={{ width: cellWidth }}>
+                                    <div key={`cell-${idx}`} className={`battery-cylindrical-cell ${isAAA ? "is-aaa" : "is-aa"} ${isSimulating && (simState?.isDischarging || simState?.currentMa > 0) ? "cell-discharging" : ""}`} style={{ width: cellWidth }}>
                                         <div className="cell-nipple-top"></div>
                                         <div className="cell-copper-shoulder">
                                             <span className="cell-plus">+</span>
@@ -1535,11 +1543,16 @@ function SmallComponent({
 
             {/* COIN CELL BATTERY (CR2032 3V): Terminals Negative (16, 32), Positive (48, 32) */}
             {type === "battery-coin" && (
-                <div className="coin-cell-container">
+                <div className={`coin-cell-container ${isSimulating && (simState?.isDischarging || simState?.currentMa > 0) ? "active-discharging" : ""}`}>
                     <div className="coin-metal-disc">
                         <span className="coin-plus-sign">+</span>
                         <span className="coin-model-label">CR2032</span>
-                        <span className="coin-volt-label">3V DC • TWINLAB X</span>
+                        <span className={`coin-volt-label ${isSimulating && (simState?.isDischarging || simState?.currentMa > 0) ? "coin-volt-discharging" : ""}`}>
+                            {isSimulating && (simState?.isDischarging || simState?.currentMa > 0) ? `⚡ 3V • ${simState?.currentMa || 15}mA` : "3V DC • TWINLAB X"}
+                        </span>
+                        {isSimulating && (simState?.isDischarging || simState?.currentMa > 0) && (
+                            <div className="coin-energy-pulse-ring"></div>
+                        )}
                     </div>
 
                     {/* Negative Pin (16, 32) */}
