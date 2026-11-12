@@ -131,6 +131,8 @@ function CustomIdeDropdown({
 function CodeEditor({
     isOpen = false,
     onClose,
+    code: externalCode,
+    onCodeChange,
     targetBoard, // { id, type, name }
     availableBoards = [],
     onSelectTargetBoard,
@@ -145,8 +147,51 @@ function CodeEditor({
     onClearSerialLogs,
     onSendSerialInput
 }) {
-    const [selectedPreset, setSelectedPreset] = useState("blink");
-    const [code, setCode] = useState(DEFAULT_SKETCHES.blink);
+    const [selectedPreset, setSelectedPreset] = useState(() => {
+        try {
+            return localStorage.getItem("twinlab_user_code_preset") || "blink";
+        } catch (_) {
+            return "blink";
+        }
+    });
+
+    const [code, setCode] = useState(() => {
+        if (externalCode !== undefined && externalCode !== null) return externalCode;
+        try {
+            const saved = localStorage.getItem("twinlab_user_code");
+            if (saved) return saved;
+        } catch (_) {}
+        return DEFAULT_SKETCHES.blink;
+    });
+
+    // Synchronize if external code changes from outside (e.g. project load)
+    useEffect(() => {
+        if (externalCode !== undefined && externalCode !== null && externalCode !== code) {
+            setCode(externalCode);
+        }
+    }, [externalCode]);
+
+    const updateCode = (newCode, preset = "custom") => {
+        setCode(newCode);
+        setSelectedPreset(preset);
+        try {
+            localStorage.setItem("twinlab_user_code", newCode);
+            localStorage.setItem("twinlab_user_code_preset", preset);
+        } catch (_) {}
+        if (onCodeChange) {
+            onCodeChange(newCode);
+        }
+    };
+
+    const handleClose = () => {
+        try {
+            localStorage.setItem("twinlab_user_code", code);
+            localStorage.setItem("twinlab_user_code_preset", selectedPreset);
+        } catch (_) {}
+        if (onCodeChange) onCodeChange(code);
+        if (onClose) onClose();
+    };
+
     const [uploadStatus, setUploadStatus] = useState("Ready");
     const [uploadProgress, setUploadProgress] = useState(null); // null or number 0-100
     const [errorMsg, setErrorMsg] = useState(null);
@@ -192,9 +237,13 @@ function CodeEditor({
 
     // Switch preset
     const handlePresetChange = (presetKey) => {
-        setSelectedPreset(presetKey);
+        if (presetKey === "custom") {
+            setSelectedPreset("custom");
+            return;
+        }
         if (DEFAULT_SKETCHES[presetKey]) {
-            setCode(DEFAULT_SKETCHES[presetKey]);
+            const newSketch = DEFAULT_SKETCHES[presetKey];
+            updateCode(newSketch, presetKey);
             setErrorMsg(null);
             setUploadStatus(`Loaded example: ${presetKey}`);
         }
@@ -207,7 +256,7 @@ function CodeEditor({
             const start = textareaRef.current.selectionStart;
             const end = textareaRef.current.selectionEnd;
             const newCode = code.substring(0, start) + "  " + code.substring(end);
-            setCode(newCode);
+            updateCode(newCode, "custom");
             setTimeout(() => {
                 if (textareaRef.current) {
                     textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 2;
@@ -224,7 +273,7 @@ function CodeEditor({
             e.preventDefault();
             const insert = "\n" + indent + extraIndent;
             const newCode = code.substring(0, start) + insert + code.substring(start);
-            setCode(newCode);
+            updateCode(newCode, "custom");
             setTimeout(() => {
                 if (textareaRef.current) {
                     textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + insert.length;
@@ -296,8 +345,12 @@ function CodeEditor({
 
     // Preset Options for Custom Dropdown
     const PRESET_OPTIONS = [
+        { value: "custom", label: "Custom Sketch", desc: "User-written firmware sketch" },
         { value: "blink", label: "Blink (1s)", desc: "Standard built-in LED cycle" },
         { value: "strobe", label: "Fast Strobe (100ms)", desc: "High-frequency visual pulse" },
+        { value: "ultrasonic", label: "HC-SR04 Sonar", desc: "Distance ping radar telemetry" },
+        { value: "pir", label: "PIR Motion Alarm", desc: "Digital motion intruder detection" },
+        { value: "servo", label: "SG90 Servo Sweep", desc: "0°-180° positional sweep" },
         { value: "counter", label: "Serial Counter", desc: "Streams loop telemetry to serial" },
         { value: "dual_pins", label: "Dual Pins (13 & 12)", desc: "Alternating dual channel phase" },
         { value: "analog_serial", label: "Analog Monitor (A0)", desc: "ADC voltage telemetry loop" }
@@ -335,7 +388,7 @@ function CodeEditor({
                 <div className="header-left">
                     {/* IDE Window Controls */}
                     <div className="ide-window-dots">
-                        <span className="window-dot dot-close" onClick={onClose} title="Close Editor"></span>
+                        <span className="window-dot dot-close" onClick={handleClose} title="Close Editor"></span>
                         <span className="window-dot dot-min" onClick={() => setIsInbuiltSerialOpen(prev => !prev)} title="Toggle Serial Monitor"></span>
                         <span className="window-dot dot-max" title="Ready"></span>
                     </div>
@@ -370,7 +423,7 @@ function CodeEditor({
                 <div className="header-right">
                     <button 
                         className="close-panel-btn" 
-                        onClick={onClose}
+                        onClick={handleClose}
                         title="Close Code Editor (Ctrl+D)"
                     >
                         <i className="ri-close-line"></i>
@@ -462,7 +515,7 @@ function CodeEditor({
                         ref={textareaRef}
                         className="code-textarea font-mono"
                         value={code}
-                        onChange={(e) => setCode(e.target.value)}
+                        onChange={(e) => updateCode(e.target.value, "custom")}
                         onScroll={handleScroll}
                         onKeyDown={handleKeyDown}
                         spellCheck={false}

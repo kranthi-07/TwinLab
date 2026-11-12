@@ -171,6 +171,80 @@ class SoundManager {
         this.activeMotors.delete(id);
     }
 
+    /**
+     * Synthesize authentic SG90 nylon gear micro servo rotational whine
+     */
+    playServoMovement(id, angleDelta = 45) {
+        try {
+            const ctx = this.getAudioContext();
+            if (!ctx) return;
+
+            const now = ctx.currentTime;
+            const duration = Math.min(0.35, Math.max(0.12, (Math.abs(angleDelta) / 180) * 0.35));
+
+            // High-pitched gear whine oscillator
+            const osc = ctx.createOscillator();
+            const filter = ctx.createBiquadFilter();
+            const gain = ctx.createGain();
+
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(580, now);
+            osc.frequency.exponentialRampToValueAtTime(740, now + duration * 0.4);
+            osc.frequency.exponentialRampToValueAtTime(520, now + duration);
+
+            filter.type = "bandpass";
+            filter.frequency.setValueAtTime(800, now);
+            filter.Q.setValueAtTime(2.5, now);
+
+            gain.gain.setValueAtTime(0.001, now);
+            gain.gain.linearRampToValueAtTime(0.045, now + 0.02);
+            gain.gain.linearRampToValueAtTime(0.001, now + duration);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(now);
+            osc.stop(now + duration);
+        } catch {}
+    }
+
+    /**
+     * Subtle PIR motion trigger / Sonar acoustic ping
+     */
+    playSensorPing(type = "sonar") {
+        try {
+            const ctx = this.getAudioContext();
+            if (!ctx) return;
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            if (type === "pir") {
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(880, now);
+                osc.frequency.exponentialRampToValueAtTime(1760, now + 0.08);
+                gain.gain.setValueAtTime(0.03, now);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } else {
+                // Sonar acoustic click
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(2400, now);
+                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.04);
+                gain.gain.setValueAtTime(0.02, now);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            }
+        } catch {}
+    }
+
     stopAll() {
         this.activeBuzzers.forEach((_, id) => this.stopBuzzer(id));
         this.activeMotors.forEach((_, id) => this.stopMotorSound(id));

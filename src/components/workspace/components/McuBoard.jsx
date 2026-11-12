@@ -745,6 +745,59 @@ function McuBoard({
     }
 
     // ==========================================
+    // 4b. PHOTO-ACCURATE CUSTOM DEVELOPMENT BOARDS
+    // (ESP8266, Pico 2, STM32 Nucleo, Blue/Black Pill, LPC1768, Tiva C, MSP430, PIC18, nRF52840, Teensy 4.1, ATtiny85)
+    // ==========================================
+    const BOARD_IMAGE_MAP = {
+        "esp8266-nodemcu": { img: "/images/boards/esp8266-nodemcu.jpg", name: "ESP8266 NodeMCU", w: 200, h: 120 },
+        "rpi-pico-2": { img: "/images/boards/rpi-pico-2.jpg", name: "Raspberry Pi Pico 2", w: 176, h: 80 },
+        "stm32-nucleo": { img: "/images/boards/stm32-nucleo.jpg", name: "STM32 Nucleo", w: 240, h: 160 },
+        "stm32-blue-pill": { img: "/images/boards/stm32-blue-pill.jpg", name: "STM32 Blue Pill", w: 176, h: 80 },
+        "stm32-bluepill": { img: "/images/boards/stm32-blue-pill.jpg", name: "STM32 Blue Pill", w: 176, h: 80 },
+        "stm32-black-pill": { img: "/images/boards/stm32-black-pill.jpg", name: "STM32 Black Pill", w: 176, h: 80 },
+        "nxp-lpc1768": { img: "/images/boards/nxp-lpc1768.jpg", name: "NXP LPC1768", w: 176, h: 80 },
+        "ti-tiva-c": { img: "/images/boards/ti-tiva-c.jpg", name: "TI Tiva C LaunchPad", w: 220, h: 140 },
+        "ti-msp430": { img: "/images/boards/ti-msp430.jpg", name: "TI MSP430 LaunchPad", w: 180, h: 120 },
+        "pic18f4550": { img: "/images/boards/pic18f4550.jpg", name: "PIC18F4550", w: 160, h: 100 },
+        "nordic-nrf52840": { img: "/images/boards/nordic-nrf52840.jpg", name: "Nordic nRF52840", w: 180, h: 90 },
+        "attiny85": { img: "/images/boards/attiny85.jpg", name: "ATtiny85", w: 64, h: 64 },
+        "teensy-41": { img: "/images/boards/teensy-41.jpg", name: "Teensy 4.1", w: 192, h: 72 }
+    };
+
+    if (BOARD_IMAGE_MAP[type]) {
+        const boardMeta = BOARD_IMAGE_MAP[type];
+        const isPowered = Boolean(isSimulating || simState?.isPowered);
+        return (
+            <div
+                className={`mcu-board-container custom-mcu-board ${isSelected ? "selected" : ""}`}
+                style={{
+                    width: boardMeta.w,
+                    height: boardMeta.h,
+                    transform: `translate(${x}px, ${y}px) rotate(${rotation}deg)`,
+                    transformOrigin: "0 0"
+                }}
+                onMouseDown={(e) => {
+                    if (isWireMode) return;
+                    onSelect && onSelect(id);
+                    onMouseDown && onMouseDown(e, id);
+                }}
+            >
+                <div className="custom-board-surface" style={{ width: "100%", height: "100%", position: "relative", borderRadius: 8, overflow: "hidden", background: "#0f172a", border: "1.5px solid #334155", boxShadow: "0 6px 16px rgba(0,0,0,0.4)" }}>
+                    <img 
+                        src={boardMeta.img} 
+                        alt={boardMeta.name} 
+                        style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }} 
+                    />
+                    <div style={{ position: "absolute", bottom: 4, left: 6, display: "flex", alignItems: "center", gap: 5, background: "rgba(0,0,0,0.75)", padding: "2px 6px", borderRadius: 4 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: isPowered ? "#22c55e" : "#ef4444", boxShadow: isPowered ? "0 0 6px #22c55e" : "none" }}></span>
+                        <span style={{ color: "#e2e8f0", fontSize: 9, fontWeight: 700, letterSpacing: "0.03em" }}>{name || boardMeta.name}</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ==========================================
     // 5. ESP32 DEVKIT V1 (30-PIN DUAL-ROW)
     // ==========================================
     const isPowered = Boolean(isSimulating || simState?.isPowered);

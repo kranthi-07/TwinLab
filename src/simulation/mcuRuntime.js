@@ -1,5 +1,6 @@
 // Embedded MCU Firmware Execution Engine & C++ Transpiler
 // Supports Arduino Uno R3 (ATmega328P) & ESP32 DevKit V1 (ESP-WROOM-32)
+import { soundManager } from "../utils/audioManager";
 
 export const DEFAULT_SKETCHES = {
     blink: `// TwinLab X Arduino / ESP32 Blink Sketch
@@ -102,6 +103,91 @@ void loop() {
   delay(150);
   digitalWrite(LED_BUILTIN, LOW);
   delay(850);
+}`,
+
+    ultrasonic: `// HC-SR04 Ultrasonic Distance Sensor Demo
+// TRIG -> Pin 9, ECHO -> Pin 10
+#define TRIG_PIN 9
+#define ECHO_PIN 10
+
+void setup() {
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
+  Serial.begin(9600);
+  Serial.println("HC-SR04 Sonar Radar Active");
+}
+
+void loop() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  long duration = pulseIn(ECHO_PIN, HIGH);
+  long distance = duration * 0.034 / 2;
+
+  Serial.print("Target Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  if (distance < 20) {
+    digitalWrite(LED_BUILTIN, HIGH);
+  } else {
+    digitalWrite(LED_BUILTIN, LOW);
+  }
+  delay(300);
+}`,
+
+    pir: `// HC-SR501 PIR Motion Sensor Alarm
+// OUT -> Pin 2
+#define PIR_PIN 2
+
+void setup() {
+  pinMode(PIR_PIN, INPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
+  Serial.begin(9600);
+  Serial.println("PIR Motion Security System Armed");
+}
+
+void loop() {
+  int motion = digitalRead(PIR_PIN);
+  if (motion == HIGH) {
+    digitalWrite(LED_BUILTIN, HIGH);
+    Serial.println("🚨 MOTION DETECTED! Sensor OUT is HIGH");
+  } else {
+    digitalWrite(LED_BUILTIN, LOW);
+    Serial.println("Zone Clear • Standby Scanning");
+  }
+  delay(500);
+}`,
+
+    servo: `// SG90 Micro Servo 0°-180° Sweep
+// PWM Signal -> Pin 9
+#include <Servo.h>
+
+Servo myservo;
+
+void setup() {
+  myservo.attach(9);
+  Serial.begin(9600);
+  Serial.println("SG90 Micro Servo Sweep Initialized");
+}
+
+void loop() {
+  for (int pos = 0; pos <= 180; pos += 30) {
+    myservo.write(pos);
+    Serial.print("Servo Horn Position: ");
+    Serial.println(pos);
+    delay(200);
+  }
+  for (int pos = 180; pos >= 0; pos -= 30) {
+    myservo.write(pos);
+    Serial.print("Servo Horn Position: ");
+    Serial.println(pos);
+    delay(200);
+  }
 }`
 };
 
@@ -172,8 +258,9 @@ export class McuExecutionSession {
             // Normalize line endings
             code = code.replace(/\r\n/g, "\n");
 
-            // Strip single-line comments for clean regex handling
+            // Strip include directives and comments for clean transpilation
             const sanitizedCode = code
+                .replace(/#include\s*<[^>]+>/g, "")
                 .replace(/\/\*[\s\S]*?\*\//g, "")
                 .replace(/\/\/.*$/gm, "");
 
@@ -186,7 +273,7 @@ export class McuExecutionSession {
             }
 
             // Extract variable declarations outside setup/loop
-            // E.g. int counter = 0; float val = 1.0;
+            // E.g. int counter = 0; float val = 1.0; Servo myservo;
             const globalVarLines = [];
             const varRegex = /(?:(?:const\s+)?(?:int|float|double|long|unsigned\s+int|byte|bool|boolean|char|String|auto)\s+([A-Za-z0-9_]+)(?:\s*=\s*([^;]+))?;)/g;
             let vMatch;
@@ -194,6 +281,13 @@ export class McuExecutionSession {
                 const varName = vMatch[1];
                 const initVal = vMatch[2] ? vMatch[2].trim() : "0";
                 globalVarLines.push(`let ${varName} = ${initVal};`);
+            }
+
+            // Extract global Servo instances
+            const servoRegex = /\bServo\s+([A-Za-z0-9_]+)\s*;/g;
+            let srvMatch;
+            while ((srvMatch = servoRegex.exec(sanitizedCode)) !== null) {
+                globalVarLines.push(`let ${srvMatch[1]} = new __Servo();`);
             }
 
             // Extract setup() body
@@ -210,6 +304,7 @@ export class McuExecutionSession {
 
                 // Replace C++ types inside functions
                 s = s.replace(/\b(?:const\s+)?(?:int|float|double|long|unsigned\s+int|byte|bool|boolean|char|String|auto)\s+/g, "let ");
+                s = s.replace(/\bServo\s+([A-Za-z0-9_]+)\s*;/g, "let $1 = new __Servo();");
 
                 // Replace constants
                 s = s.replace(/\bLED_BUILTIN\b/g, String(builtinPin));
@@ -226,6 +321,10 @@ export class McuExecutionSession {
 
                 // Replace delay(ms) with await __delay(ms)
                 s = s.replace(/\bdelay\s*\(\s*([^)]+)\s*\)/g, "await __delay($1)");
+                s = s.replace(/\bdelayMicroseconds\s*\(\s*([^)]+)\s*\)/g, "await __delayMicroseconds($1)");
+
+                // Replace pulseIn(...) with await __pulseIn(...)
+                s = s.replace(/\bpulseIn\s*\(\s*([^,]+)\s*,\s*([^,)]+)(?:\s*,\s*([^)]+))?\s*\)/g, "await __pulseIn($1, $2, $3)");
 
                 // Replace Serial.println(...) with await __serialPrintln(...)
                 s = s.replace(/Serial\.println\s*\(\s*([^)]*)\s*\)/g, "await __serialPrintln($1)");
@@ -238,6 +337,9 @@ export class McuExecutionSession {
 
                 // Replace digitalRead(...) with __digitalRead(...)
                 s = s.replace(/digitalRead\s*\(\s*([^)]+)\s*\)/g, "__digitalRead($1)");
+
+                // Replace analogWrite(...) with __analogWrite(...)
+                s = s.replace(/analogWrite\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)/g, "__analogWrite($1, $2)");
 
                 // Replace analogRead(...) with __analogRead(...)
                 s = s.replace(/analogRead\s*\(\s*([^)]+)\s*\)/g, "__analogRead($1)");
@@ -261,6 +363,10 @@ export class McuExecutionSession {
                 return (async function() {
                     const {
                         __delay,
+                        __delayMicroseconds,
+                        __pulseIn,
+                        __analogWrite,
+                        __Servo,
                         __digitalWrite,
                         __digitalRead,
                         __analogRead,
@@ -307,6 +413,81 @@ export class McuExecutionSession {
                         this.activeTimeouts.add(t);
                     });
                 },
+                __delayMicroseconds: (us) => {
+                    const duration = Math.max(1, Math.round((Number(us) || 1) / 500));
+                    return new Promise((resolve) => {
+                        const t = setTimeout(() => {
+                            this.activeTimeouts.delete(t);
+                            resolve();
+                        }, duration);
+                        this.activeTimeouts.add(t);
+                    });
+                },
+                __pulseIn: async (pin, val, timeout) => {
+                    const comps = this.callbacks.getComponents ? this.callbacks.getComponents() : [];
+                    const ultrasonic = comps.find(c => c.type === "sensor-ultrasonic");
+                    if (!ultrasonic) return 0;
+                    const dist = ultrasonic.distanceCm != null ? ultrasonic.distanceCm : 25;
+                    await new Promise(r => setTimeout(r, 4));
+                    return Math.round(dist * 58.2);
+                },
+                __analogWrite: (pin, val) => {
+                    const p = String(pin).trim();
+                    const duty = Math.max(0, Math.min(255, Number(val) || 0));
+                    this.pinStates[p] = duty;
+                    const comps = this.callbacks.getComponents ? this.callbacks.getComponents() : [];
+                    const servos = comps.filter(c => c.type === "servo-sg90");
+                    if (servos.length > 0) {
+                        const angle = Math.round((duty / 255) * 180);
+                        servos.forEach(srv => {
+                            const prevAngle = srv.angle != null ? srv.angle : 90;
+                            const delta = Math.abs(prevAngle - angle);
+                            if (this.callbacks.onUpdateComponent) {
+                                this.callbacks.onUpdateComponent(srv.id, { angle });
+                            }
+                            if (delta > 2) {
+                                try { soundManager.playServoMovement(srv.id, delta); } catch (_) {}
+                            }
+                        });
+                    }
+                    if (this.callbacks.onPinStateChange) {
+                        this.callbacks.onPinStateChange(this.boardId, { ...this.pinStates }, this.pinStates["13"] === 1, this.pinStates["2"] === 1);
+                    }
+                },
+                __Servo: class {
+                    constructor() {
+                        this.pin = null;
+                        this.currentAngle = 90;
+                    }
+                    attach(p) {
+                        this.pin = String(p).trim();
+                    }
+                    write(angle) {
+                        const a = Math.max(0, Math.min(180, Math.round(Number(angle) || 0)));
+                        this.currentAngle = a;
+                        const comps = context.__getComponents ? context.__getComponents() : [];
+                        const servos = comps.filter(c => c.type === "servo-sg90");
+                        servos.forEach(srv => {
+                            const prevAngle = srv.angle != null ? srv.angle : 90;
+                            const delta = Math.abs(prevAngle - a);
+                            if (context.__onUpdateComponent) {
+                                context.__onUpdateComponent(srv.id, { angle: a });
+                            }
+                            if (delta > 2) {
+                                try { soundManager.playServoMovement(srv.id, delta); } catch (_) {}
+                            }
+                        });
+                    }
+                    read() {
+                        return this.currentAngle;
+                    }
+                },
+                __getComponents: () => (this.callbacks.getComponents ? this.callbacks.getComponents() : []),
+                __onUpdateComponent: (id, updates) => {
+                    if (this.callbacks.onUpdateComponent) {
+                        this.callbacks.onUpdateComponent(id, updates);
+                    }
+                },
                 __digitalWrite: (pin, val) => {
                     const p = String(pin).trim();
                     const v = val === 1 || val === "1" || val === true ? 1 : 0;
@@ -320,7 +501,13 @@ export class McuExecutionSession {
                     }
                 },
                 __digitalRead: (pin) => {
-                    return this.pinStates[String(pin).trim()] || 0;
+                    const p = String(pin).trim();
+                    const comps = this.callbacks.getComponents ? this.callbacks.getComponents() : [];
+                    const pir = comps.find(c => c.type === "sensor-pir");
+                    if (pir && pir.motionActive) {
+                        return 1;
+                    }
+                    return this.pinStates[p] || 0;
                 },
                 __analogRead: (pin) => {
                     // Simulates analog readings (e.g. 512 mid-rail or 1023 if connected)

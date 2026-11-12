@@ -202,6 +202,35 @@ function Workspace({ onBackToHome }) {
     const [isFirmwareExecuting, setIsFirmwareExecuting] = useState(false);
     const mcuSessionsRef = useRef({});
 
+    // User Firmware Sketch Code: persisted across code window toggles, project saves, and sessions
+    const [userCode, setUserCode] = useState(() => {
+        try {
+            const draft = sessionStorage.getItem(DRAFT_KEY);
+            if (draft) {
+                const parsedDraft = JSON.parse(draft);
+                if (parsedDraft.firmwareCode) return parsedDraft.firmwareCode;
+            }
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed.firmwareCode) return parsed.firmwareCode;
+            }
+            const globalCode = localStorage.getItem("twinlab_user_code");
+            if (globalCode) return globalCode;
+        } catch (e) {
+            console.error("Code load error:", e);
+        }
+        return DEFAULT_SKETCHES?.blink || `void setup() {\n  pinMode(LED_BUILTIN, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(LED_BUILTIN, HIGH);\n  delay(1000);\n  digitalWrite(LED_BUILTIN, LOW);\n  delay(1000);\n}`;
+    });
+
+    const handleCodeChange = useCallback((newCode) => {
+        setUserCode(newCode);
+        setIsUnsaved(true);
+        try {
+            localStorage.setItem("twinlab_user_code", newCode);
+        } catch (_) {}
+    }, []);
+
     // Listen to global toggle code editor event (Ctrl+D from anywhere)
     useEffect(() => {
         const handleToggleCode = () => setIsCodeEditorOpen(true);
@@ -276,6 +305,11 @@ function Workspace({ onBackToHome }) {
                                 }
                             }));
                         }, 80);
+                    },
+                    getComponents: () => components,
+                    getWires: () => wires,
+                    onUpdateComponent: (cId, updates) => {
+                        handleUpdateComponent(cId, updates);
                     }
                 });
 
@@ -286,6 +320,12 @@ function Workspace({ onBackToHome }) {
     }, [isSimulating, availableMcuBoards]);
 
     const handleUploadAndRunSketch = useCallback((sketchCode, cb) => {
+        if (sketchCode) {
+            setUserCode(sketchCode);
+            try {
+                localStorage.setItem("twinlab_user_code", sketchCode);
+            } catch (_) {}
+        }
         let boardId = activeTargetBoard?.id || availableMcuBoards[0]?.id;
         let boardType = activeTargetBoard?.type || availableMcuBoards[0]?.type || "arduino-uno";
 
@@ -349,6 +389,11 @@ function Workspace({ onBackToHome }) {
             },
             onCompileError: (err) => {
                 cb && cb(err);
+            },
+            getComponents: () => components,
+            getWires: () => wires,
+            onUpdateComponent: (cId, updates) => {
+                handleUpdateComponent(cId, updates);
             }
         });
 
@@ -376,11 +421,11 @@ function Workspace({ onBackToHome }) {
     // Keep draft updated in session storage so page reloads never lose in-progress work
     useEffect(() => {
         try {
-            sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ components, wires }));
+            sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ components, wires, firmwareCode: userCode }));
         } catch (e) {
             // ignore
         }
-    }, [components, wires]);
+    }, [components, wires, userCode]);
 
     // Save Project handler
     
@@ -396,7 +441,7 @@ function Workspace({ onBackToHome }) {
                     savedList[idx] = { ...savedList[idx], name: trimmed };
                     localStorage.setItem("twinlab_projects", JSON.stringify(savedList));
                 }
-                localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...updated, components, wires }));
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...updated, components, wires, firmwareCode: userCode }));
             } catch (e) {
                 console.error("Rename storage error", e);
             }
@@ -404,7 +449,7 @@ function Workspace({ onBackToHome }) {
         });
         setToastMessage(`Project renamed to "${trimmed}"`);
         setTimeout(() => setToastMessage(""), 2200);
-    }, [components, wires]);
+    }, [components, wires, userCode]);
 
     const handleSaveProject = useCallback(() => {
         const projectData = {
@@ -412,6 +457,7 @@ function Workspace({ onBackToHome }) {
             components,
             wires,
             viewport,
+            firmwareCode: userCode,
             status: "Saved",
             lastEdited: "Just now",
             updatedAt: new Date().toISOString()
@@ -1399,6 +1445,8 @@ function Workspace({ onBackToHome }) {
                     <CodeEditor
                         isOpen={isCodeEditorOpen}
                         onClose={() => setIsCodeEditorOpen(false)}
+                        code={userCode}
+                        onCodeChange={handleCodeChange}
                         targetBoard={activeTargetBoard}
                         availableBoards={availableMcuBoards}
                         onSelectTargetBoard={(id) => setTargetMcuId(id)}

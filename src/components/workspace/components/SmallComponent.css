@@ -23,7 +23,7 @@
 }
 
 /* Base fallback outline - only applies to components without specialized wraps */
-.canvas-small-comp.selected:not(.comp-lcd-1602):not(.comp-lcd-2004):not(.comp-led):not(.comp-resistor):not(.comp-capacitor-ceramic):not(.comp-capacitor-electrolytic):not(.comp-battery-aa):not(.comp-battery-aaa):not(.comp-battery-coin):not(.comp-battery-9v):not(.comp-potentiometer):not(.comp-buzzer):not(.comp-motor-dc):not(.comp-servo-sg90):not(.comp-sensor-ultrasonic):not(.comp-sensor-pir):not(.comp-photoresistor):not(.comp-transistor):not(.comp-transistor-npn):not(.comp-transistor-pnp):not(.comp-mosfet-n):not([class*="comp-ic-"]) {
+.canvas-small-comp.selected:not(.comp-lcd-1602):not(.comp-lcd-2004):not(.comp-led):not(.comp-resistor):not(.comp-capacitor-ceramic):not(.comp-capacitor-electrolytic):not(.comp-battery-aa):not(.comp-battery-aaa):not(.comp-battery-coin):not(.comp-battery-9v):not(.comp-potentiometer):not(.comp-buzzer):not(.comp-motor-dc):not(.comp-motor-geared):not(.comp-motor-bo):not(.comp-servo-sg90):not(.comp-sensor-ultrasonic):not(.comp-sensor-pir):not(.comp-sensor-temp):not(.comp-sensor-temperature):not(.comp-photoresistor):not(.comp-transistor):not(.comp-transistor-npn):not(.comp-transistor-pnp):not(.comp-mosfet-n):not(.comp-mosfet-p):not([class*="comp-ic-"]) {
     outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
     outline-offset: 3px;
     border-radius: 4px;
@@ -57,19 +57,66 @@
     border-radius: 50%;
 }
 
-/* 5. Electrolytic Capacitor: Outline tightly wrapped around vertical cylinder can */
+/* 5. Electrolytic Capacitor: Curved cylindrical outline around aluminum can */
 .canvas-small-comp.comp-capacitor-electrolytic.selected .elec-cap-container::before {
     content: "";
     position: absolute;
     left: -7px;
     top: -48px;
     width: 30px;
-    height: 42px;
-    border-radius: 6px;
+    height: 38px;
+    border-radius: 12px / 6px;
     border: 2px solid var(--project-accent, var(--accent, #FF8A00));
-    box-shadow: 0 0 8px rgba(255, 138, 0, 0.45);
+    box-shadow: 0 0 10px rgba(255, 138, 0, 0.55);
     z-index: 50;
     pointer-events: none;
+}
+
+/* 5a. 9V Battery Outline */
+.canvas-small-comp.comp-battery-9v.selected .battery-tinkercad-real {
+    outline: 2px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(255, 138, 0, 0.45);
+}
+
+/* 5a-2. AA & AAA Battery Pack Holder Outline */
+.canvas-small-comp.comp-battery-aa.selected .aa-battery-case,
+.canvas-small-comp.comp-battery-aaa.selected .aa-battery-case {
+    outline: 2px solid var(--project-accent, var(--accent, #FF8A00));
+    outline-offset: 3px;
+    border-radius: 6px;
+    box-shadow: 0 0 10px rgba(255, 138, 0, 0.45);
+}
+
+/* 5a-3. Coin Cell Battery Outline */
+.canvas-small-comp.comp-battery-coin.selected .coin-cell-container::before {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--project-accent, var(--accent, #FF8A00));
+    box-shadow: 0 0 10px rgba(255, 138, 0, 0.45);
+    pointer-events: none;
+}
+
+/* 5a-4. TMP36 Precision Temperature Sensor Outline */
+.canvas-small-comp.comp-sensor-temp.selected .temp-sensor-container::before,
+.canvas-small-comp.comp-sensor-temperature.selected .temp-sensor-container::before {
+    content: "";
+    position: absolute;
+    left: -4px;
+    top: -50px;
+    width: 40px;
+    height: 34px;
+    border-radius: 18px 18px 4px 4px;
+    border: 2px solid var(--project-accent, var(--accent, #FF8A00));
+    box-shadow: 0 0 10px rgba(255, 138, 0, 0.45);
+    pointer-events: none;
+    z-index: 50;
 }
 
 /* 5b. TO-220 Power MOSFET: Outline tightly wrapped around metal heat tab + body */
@@ -154,18 +201,21 @@
     pointer-events: none;
 }
 
-/* 11b. Geared TT BO Motor: Outline tightly wrapped around yellow gearbox + motor */
-.canvas-small-comp.comp-motor-geared.selected .geared-motor-container::before {
+/* 11b. Geared TT BO Motor: Outline tightly wrapped around yellow gearbox + motor body (never highlighting terminal pins) */
+.canvas-small-comp.comp-motor-geared.selected .geared-motor-container::before,
+.canvas-small-comp.comp-motor-bo.selected .geared-motor-container::before {
     content: "";
     position: absolute;
-    left: -16px;
-    top: -128px;
-    width: 80px;
-    height: 104px;
+    left: -14px;
+    top: -124px;
+    width: 76px;
+    height: 96px;
     border-radius: 8px;
-    outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
-    outline-offset: 3px;
+    border: 2px solid var(--project-accent, var(--accent, #FF8A00));
+    box-shadow: 0 0 10px rgba(255, 138, 0, 0.45);
+    outline: none;
     pointer-events: none;
+    z-index: 50;
 }
 
 /* 12. Servo SG90: Outline tightly wrapped around whole servo body + flanges */
@@ -295,37 +345,34 @@
     background: rgba(239, 68, 68, 0.15);
 }
 
-/* Common Metallic Terminal Contact Pin that fits directly into breadboard tie-points */
+/* Common Metallic Terminal Contact Eyelet / Pin */
 .terminal-pin {
     position: absolute;
-    width: 7px;
-    height: 7px;
-    border-radius: 2px;
-    background: #e2e8f0;
-    border: 1.5px solid #475569;
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.9), inset 0 1px 1px #ffffff;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 45%, #64748b 100%);
+    border: 1.5px solid #1e293b;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 2px 4px rgba(0, 0, 0, 0.6);
     z-index: 50;
     pointer-events: auto;
     cursor: crosshair;
-    transition: transform 0.1s ease, background 0.1s ease;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
 
 .terminal-pin::after {
     content: "";
     position: absolute;
-    top: -6px;
-    left: -6px;
-    right: -6px;
-    bottom: -6px;
-    border-radius: 4px;
+    inset: -6px;
+    border-radius: 50%;
 }
 
 .terminal-pin:hover,
 .terminal-pin.targeted {
-    background: #FF8A00;
+    background: radial-gradient(circle at 40% 40%, #ffedd5 0%, #FF8A00 70%, #c2410c 100%);
     border-color: #ffffff;
-    box-shadow: 0 0 8px rgba(255, 138, 0, 0.9);
-    transform: scale(1.2);
+    box-shadow: 0 0 0 2.5px rgba(255, 138, 0, 0.45), 0 0 12px #FF8A00;
+    transform: scale(1.35);
     z-index: 70;
 }
 
@@ -2170,7 +2217,7 @@
 
 /* Duracell-Grade AA vs AAA Cells */
 .battery-cylindrical-cell.is-aa {
-    height: 72px;
+    height: 96px;
 }
 
 .battery-cylindrical-cell.is-aa .cell-copper-shoulder {
@@ -2184,7 +2231,7 @@
 }
 
 .battery-cylindrical-cell.is-aaa {
-    height: 62px;
+    height: 84px;
 }
 
 .battery-cylindrical-cell.is-aaa .cell-copper-shoulder {

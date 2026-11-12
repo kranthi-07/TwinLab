@@ -92,6 +92,8 @@ function SmallComponent({
     wiperValue = 0.5,
     switchState = "left",
     isOn,
+    hasSwitch = false,
+    temperature = 25,
     cells,
     lux = 50,
     capacitance = "100nF",
@@ -183,7 +185,8 @@ function SmallComponent({
             if (liveRpmRef.current > 0.5) {
                 liveAngleRef.current = (liveAngleRef.current + dirSign * (liveRpmRef.current / 60) * 360 * dt) % 360;
                 if (rotorRef.current) {
-                    rotorRef.current.style.transform = `rotate(${liveAngleRef.current.toFixed(2)}deg)`;
+                    rotorRef.current.setAttribute("transform", `rotate(${liveAngleRef.current.toFixed(2)})`);
+                    rotorRef.current.style.transform = "";
                 }
                 if (tachRpmRef.current) {
                     tachRpmRef.current.textContent = Math.round(liveRpmRef.current).toLocaleString();
@@ -1009,11 +1012,12 @@ function SmallComponent({
             {(type === "battery-aa" || type === "battery-aaa") && (() => {
                 const cellCount = cells || (voltage === 1.5 ? 1 : voltage === 6 ? 4 : voltage === 4.5 ? 3 : 2);
                 const isAAA = type === "battery-aaa";
-                const cellWidth = isAAA ? 24 : 32;
-                const totalWidth = cellCount === 1 ? 56 : cellCount === 4 ? 144 : cellCount === 3 ? 112 : 84;
-                const posLeadX = totalWidth - 18;
-                const negLeadX = 18;
-                const hasSwitch = switchState !== undefined ? Boolean(switchState) : (isOn !== undefined ? Boolean(isOn) : true);
+                const cellWidth = isAAA ? 30 : 38;
+                const totalWidth = cellCount === 1 ? 64 : cellCount === 4 ? 176 : cellCount === 3 ? 140 : 96;
+                const posLeadX = totalWidth - 20;
+                const negLeadX = 20;
+                const userHasSwitch = Boolean(hasSwitch);
+                const isSwitchOn = userHasSwitch ? (switchState !== false && isOn !== false) : true;
                 const caseColor = color || "#18181b";
 
                 return (
@@ -1058,27 +1062,34 @@ function SmallComponent({
                                 <span className="needle-tip-dot"></span>
                                 {hoveredTerminal === "aaPos" && (
                                     <div className="terminal-hover-tooltip" style={{ left: posLeadX, top: -14, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
-                                        {hasSwitch ? `${(cellCount * 1.5).toFixed(1)}V (+)` : "0V (Switch OFF)"}
+                                        {userHasSwitch ? (isSwitchOn ? `${(cellCount * 1.5).toFixed(1)}V (+)` : "0V (Switch OFF)") : `${(cellCount * 1.5).toFixed(1)}V (+)`}
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        {/* Top Case Lid with Interactive Attached Switch */}
-                        <div className="battery-case-lid">
-                            <div 
-                                className={`lid-switch-track ${hasSwitch ? "switch-on" : "switch-off"}`}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    const nextState = !hasSwitch;
-                                    onUpdate && onUpdate({ switchState: nextState, isOn: nextState });
-                                }}
-                            >
-                                <div className="lid-switch-thumb"></div>
-                                <span className="lid-switch-label">{hasSwitch ? "ON" : "OFF"}</span>
+                        {/* Top Case Lid: Optional Integrated Switch (User-Controlled) */}
+                        {userHasSwitch ? (
+                            <div className="battery-case-lid">
+                                <div 
+                                    className={`lid-switch-track ${isSwitchOn ? "switch-on" : "switch-off"}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        const nextState = !isSwitchOn;
+                                        onUpdate && onUpdate({ switchState: nextState, isOn: nextState });
+                                    }}
+                                >
+                                    <div className="lid-switch-thumb"></div>
+                                    <span className="lid-switch-label">{isSwitchOn ? "ON" : "OFF"}</span>
+                                </div>
+                                <span className={`battery-power-led ${isSwitchOn && isSimulating && simState?.isDischarging ? "glowing" : ""}`}></span>
                             </div>
-                            <span className={`battery-power-led ${hasSwitch && isSimulating && simState?.isDischarging ? "glowing" : ""}`}></span>
-                        </div>
+                        ) : (
+                            <div className="battery-case-lid sealed-lid">
+                                <div className="wire-grommet-dot neg-grommet" style={{ left: negLeadX }}></div>
+                                <div className="wire-grommet-dot pos-grommet" style={{ left: posLeadX }}></div>
+                            </div>
+                        )}
 
                         {/* Molded ABS Enclosure with Cells */}
                         <div className="aa-molded-holder">
@@ -1429,9 +1440,12 @@ function SmallComponent({
 
             {/* POWER MOSFET (TO-220 / IRF540N): Terminals Gate (0, 0), Drain (16, 0), Source (32, 0) */}
             {(type === "mosfet-n" || type === "mosfet-p") && (
-                <div className="mosfet-to220-container">
+                <div 
+                    className="mosfet-to220-container"
+                    style={{ position: "relative", width: 44, height: 48, pointerEvents: "auto", cursor: "move" }}
+                >
                     {/* TO-220 Metal Heatsink Tab + Black Molded Case + 3 Straight Pin Leads */}
-                    <svg className="to220-svg" viewBox="-6 -44 44 48" width="44" height="48" style={{ position: "absolute", top: -44, left: -6, pointerEvents: "none" }}>
+                    <svg className="to220-svg" viewBox="-6 -44 44 48" width="44" height="48" style={{ position: "absolute", top: -44, left: -6, pointerEvents: "auto", cursor: "move" }}>
                         <defs>
                             {/* Silver Metal Tab Gradient */}
                             <linearGradient id={`to220-tab-grad-${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
@@ -1445,6 +1459,9 @@ function SmallComponent({
                                 <stop offset="100%" stopColor="#09090b" />
                             </linearGradient>
                         </defs>
+
+                        {/* Interactive Click/Drag Hitbox Rect */}
+                        <rect x="-6" y="-44" width="44" height="40" fill="transparent" pointerEvents="all" cursor="move" />
 
                         {/* 1. Metal Heat Sink Tab (Top) */}
                         <path d="M 0 -38 L 32 -38 L 32 -18 L 0 -18 Z" fill={`url(#to220-tab-grad-${id})`} stroke="#475569" strokeWidth="0.8" rx="2" />
@@ -1861,10 +1878,7 @@ function SmallComponent({
                                     {/* 3-Blade Aerofoil Propeller Fan: 100% Centered directly at axle (24, -65) */}
                                     {!isAxleOnly && (
                                         <g transform="translate(24, -65)">
-                                            <g 
-                                                ref={rotorRef}
-                                                style={{ transformOrigin: "0px 0px" }}
-                                            >
+                                            <g ref={rotorRef}>
                                                 <path d="M 0 0 C -6 -16, -11 -32, 0 -42 C 11 -32, 6 -16, 0 0" fill={`url(#prop-blade-grad-${id})`} stroke="#0284c7" strokeWidth="1.2" filter="drop-shadow(0 2px 5px rgba(0,0,0,0.4))" />
                                                 <path d="M 0 0 C -6 -16, -11 -32, 0 -42 C 11 -32, 6 -16, 0 0" fill={`url(#prop-blade-grad-${id})`} stroke="#0284c7" strokeWidth="1.2" filter="drop-shadow(0 2px 5px rgba(0,0,0,0.4))" transform="rotate(120)" />
                                                 <path d="M 0 0 C -6 -16, -11 -32, 0 -42 C 11 -32, 6 -16, 0 0" fill={`url(#prop-blade-grad-${id})`} stroke="#0284c7" strokeWidth="1.2" filter="drop-shadow(0 2px 5px rgba(0,0,0,0.4))" transform="rotate(240)" />
@@ -2149,10 +2163,7 @@ function SmallComponent({
 
                                     {/* High-Contrast Slotted Optical Speed Encoder Disc & Neon Indicator Cross */}
                                     <g transform="translate(24, -92)">
-                                        <g 
-                                            ref={rotorRef}
-                                            style={{ transformOrigin: "0px 0px" }}
-                                        >
+                                        <g ref={rotorRef}>
                                             {/* Optical Speed Encoder Outer Strobe Ring (38px diameter) */}
                                             <circle cx="0" cy="0" r="19" fill="#18181b" stroke="#3f3f46" strokeWidth="1.2" filter="drop-shadow(0 3px 6px rgba(0,0,0,0.5))" />
                                             <circle cx="0" cy="0" r="15" fill="none" stroke="#facc15" strokeWidth="2.8" strokeDasharray="3.2 2.5" />
@@ -2241,23 +2252,33 @@ function SmallComponent({
 
             {/* SG90 MICRO SERVO (HUGE REALISTIC FULL-SCALE SVG WITH ROTATING HORN): Pins GND (0, 0), 5V (16, 0), PWM (32, 0) */}
             {type === "servo-sg90" && (() => {
+                const isPowered = Boolean(isSimulating && simState?.isPowered);
                 const hornAngle = angle != null ? angle : 90;
                 return (
-                    <div className="servo-sg90-container">
+                    <div className={`servo-sg90-container ${isPowered ? "is-powered" : "is-unpowered"}`}>
                         <svg className="servo-realistic-svg" viewBox="-80 -165 192 175" width="192" height="175" style={{ position: "absolute", left: -80, top: -165, pointerEvents: "auto", cursor: "move" }}>
                             {/* Full Hit-Box to ensure 100% reliable click-to-select anywhere on servo */}
                             <rect x="-80" y="-165" width="192" height="175" fill="transparent" pointerEvents="all" cursor="pointer" />
                             {/* Translucent Cobalt Sky Blue Servo Enclosure: Width 140px, Height 86px from Y=-146 to Y=-60 */}
-                            <rect x="-54" y="-146" width="140" height="86" rx="7" fill="#0284c7" stroke="#0369a1" strokeWidth="2.5" filter="drop-shadow(0 10px 24px rgba(0,0,0,0.65))" />
-                            <rect x="-48" y="-140" width="128" height="4" fill="rgba(255,255,255,0.4)" rx="2" />
+                            <rect x="-54" y="-146" width="140" height="86" rx="7" fill={isPowered ? "#0284c7" : "#0f3a56"} stroke={isPowered ? "#0369a1" : "#082f49"} strokeWidth="2.5" filter="drop-shadow(0 10px 24px rgba(0,0,0,0.65))" />
+                            <rect x="-48" y="-140" width="128" height="4" fill={isPowered ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.15)"} rx="2" />
+
+                            {/* Status Header Badge (Tells user if 5V power is connected) */}
+                            <g transform="translate(16, -141)">
+                                <rect x="-48" y="0" width="96" height="11" rx="3" fill={isPowered ? "#064e3b" : "#18181b"} stroke={isPowered ? "#10b981" : "#3f3f46"} strokeWidth="0.8" />
+                                <circle cx="-40" cy="5.5" r="2.8" fill={isPowered ? "#34d399" : "#64748b"} filter={isPowered ? "drop-shadow(0 0 4px #34d399)" : "none"} />
+                                <text x="4" y="8" fill={isPowered ? "#ecfdf5" : "#94a3b8"} fontSize="6" fontWeight="900" textAnchor="middle" fontFamily="monospace">
+                                    {isPowered ? `5V ACTIVE • ${hornAngle}°` : "OFF • UNPOWERED"}
+                                </text>
+                            </g>
 
                             {/* Left & Right Mounting Flanges with Brass Eyelets & Mounting Screws */}
                             {/* Left Flange */}
-                            <rect x="-76" y="-115" width="22" height="26" rx="3" fill="#0284c7" stroke="#0369a1" strokeWidth="1.8" />
+                            <rect x="-76" y="-115" width="22" height="26" rx="3" fill={isPowered ? "#0284c7" : "#0f3a56"} stroke={isPowered ? "#0369a1" : "#082f49"} strokeWidth="1.8" />
                             <circle cx="-65" cy="-102" r="4.2" fill="#ca8a04" stroke="#713f12" strokeWidth="1.2" />
                             <circle cx="-65" cy="-102" r="2.2" fill="#0f172a" />
                             {/* Right Flange */}
-                            <rect x="86" y="-115" width="22" height="26" rx="3" fill="#0284c7" stroke="#0369a1" strokeWidth="1.8" />
+                            <rect x="86" y="-115" width="22" height="26" rx="3" fill={isPowered ? "#0284c7" : "#0f3a56"} stroke={isPowered ? "#0369a1" : "#082f49"} strokeWidth="1.8" />
                             <circle cx="97" cy="-102" r="4.2" fill="#ca8a04" stroke="#713f12" strokeWidth="1.2" />
                             <circle cx="97" cy="-102" r="2.2" fill="#0f172a" />
 
@@ -2266,7 +2287,7 @@ function SmallComponent({
 
                             {/* Large Rotating White Nylon Servo Horn with multiple linkage pushrod holes */}
                             <g style={{ transform: `rotate(${hornAngle - 90}deg)`, transformOrigin: "16px -112px", transition: "transform 0.22s cubic-bezier(0.2, 0.8, 0.3, 1)" }}>
-                                <rect x="-38" y="-120" width="108" height="16" rx="8" fill="#ffffff" stroke="#94a3b8" strokeWidth="1.5" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.4))" />
+                                <rect x="-38" y="-120" width="108" height="16" rx="8" fill={isPowered ? "#ffffff" : "#cbd5e1"} stroke="#94a3b8" strokeWidth="1.5" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.4))" />
                                 <circle cx="-26" cy="-112" r="2.5" fill="#475569" />
                                 <circle cx="-14" cy="-112" r="2.5" fill="#475569" />
                                 <circle cx="46" cy="-112" r="2.5" fill="#475569" />
@@ -2279,7 +2300,7 @@ function SmallComponent({
 
                             {/* Silkscreen Brand Label on Servo Body */}
                             <text x="16" y="-88" fill="#ffffff" fontSize="9.5" fontWeight="900" textAnchor="middle" letterSpacing="0.06em">MICRO SERVO SG90</text>
-                            <text x="16" y="-74" fill="#bae6fd" fontSize="6.5" fontWeight="800" textAnchor="middle">9g • TWINLAB X</text>
+                            <text x="16" y="-74" fill={isPowered ? "#bae6fd" : "#64748b"} fontSize="6.5" fontWeight="800" textAnchor="middle">9g • TWINLAB X</text>
 
                             {/* 3-Color Flexible Ribbon Cable (Brown GND, Red 5V, Orange PWM) gracefully looping down */}
                             <path d="M 4 -60 C -4 -40, -4 -25, 0 -12" stroke="#78350f" strokeWidth="4.2" strokeLinecap="round" fill="none" />
@@ -2292,7 +2313,7 @@ function SmallComponent({
                             {/* Crisp Silkscreen Pin Badges on Connector */}
                             <rect x="-6" y="-22" width="44" height="7.5" rx="1.5" fill="rgba(15, 23, 42, 0.9)" stroke="#334155" strokeWidth="0.8" />
                             <text x="0" y="-16.5" fill="#f8fafc" fontSize="5" fontWeight="900" textAnchor="middle" fontFamily="monospace">GND</text>
-                            <text x="16" y="-16.5" fill="#f8fafc" fontSize="5" fontWeight="900" textAnchor="middle" fontFamily="monospace">5V</text>
+                            <text x="16" y="-16.5" fill={isPowered ? "#fca5a5" : "#f8fafc"} fontSize="5" fontWeight="900" textAnchor="middle" fontFamily="monospace">5V</text>
                             <text x="32" y="-16.5" fill="#f8fafc" fontSize="5" fontWeight="900" textAnchor="middle" fontFamily="monospace">PWM</text>
 
                             {/* 3 Gold Header Terminal Pins extending to (0, 0), (16, 0), (32, 0) */}
@@ -2442,9 +2463,10 @@ function SmallComponent({
             {/* HC-SR04 ULTRASONIC DISTANCE SENSOR (HUGE REALISTIC FULL-SCALE SVG): Pins VCC (0, 0), Trig (16, 0), Echo (32, 0), GND (48, 0) */}
             {type === "sensor-ultrasonic" && (() => {
                 const distCm = distanceCm != null ? distanceCm : 25;
-                const isPinging = Boolean(isSimulating && simState?.isPowered && simState?.isPinging);
+                const isPowered = Boolean(isSimulating && simState?.isPowered);
+                const isPinging = Boolean(isPowered && simState?.isPinging);
                 return (
-                    <div className={`ultrasonic-container ${isPinging ? "is-pinging" : ""}`}>
+                    <div className={`ultrasonic-container ${isPinging ? "is-pinging" : ""} ${isPowered ? "is-powered" : "is-unpowered"}`}>
                         <svg className="ultrasonic-realistic-svg" viewBox="-100 -115 248 120" width="248" height="120" style={{ position: "absolute", left: -100, top: -115, pointerEvents: "auto", cursor: "move" }}>
                             {/* Full Hit-Box to ensure 100% reliable click-to-select anywhere on ultrasonic sensor */}
                             <rect x="-100" y="-115" width="248" height="120" fill="transparent" pointerEvents="all" cursor="pointer" />
@@ -2463,7 +2485,7 @@ function SmallComponent({
                             </defs>
 
                             {/* Blue FR-4 PCB: Width 220px, Height 96px from Y=-104 to Y=-8, X=-86 to X=134 */}
-                            <rect x="-86" y="-104" width="220" height="96" rx="8" fill="#0284c7" stroke="#0369a1" strokeWidth="2.5" filter="drop-shadow(0 10px 24px rgba(0,0,0,0.65))" />
+                            <rect x="-86" y="-104" width="220" height="96" rx="8" fill={isPowered ? "#0284c7" : "#0f3a56"} stroke={isPowered ? "#0369a1" : "#082f49"} strokeWidth="2.5" filter="drop-shadow(0 10px 24px rgba(0,0,0,0.65))" />
 
                             {/* 4 Corner Gold-Plated Mounting Holes with Annular Copper Rings */}
                             <circle cx="-76" cy="-94" r="3.5" fill="#ca8a04" stroke="#713f12" strokeWidth="1" />
@@ -2475,13 +2497,17 @@ function SmallComponent({
                             <circle cx="124" cy="-18" r="3.5" fill="#ca8a04" stroke="#713f12" strokeWidth="1" />
                             <circle cx="124" cy="-18" r="1.8" fill="#0f172a" />
 
+                            {/* Power Status LED */}
+                            <circle cx="-72" cy="-70" r="3" fill={isPowered ? "#22c55e" : "#1e293b"} filter={isPowered ? "drop-shadow(0 0 4px #22c55e)" : "none"} />
+                            <text x="-72" y="-76" fill={isPowered ? "#bbf7d0" : "#475569"} fontSize="4.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">PWR</text>
+
                             {/* 16MHz Metal Quartz Crystal in Center */}
                             <rect x="17.5" y="-70" width="13" height="26" rx="3.5" fill="#f1f5f9" stroke="#64748b" strokeWidth="1.2" />
                             <text x="24" y="-53" fill="#475569" fontSize="5" fontWeight="900" textAnchor="middle">16.0</text>
 
                             {/* Dual HUGE Aluminum Ultrasonic Transducers (Diameter 64px, radius 32px each) */}
                             {/* T (Transmitter) on Left: Center (-36, -56) */}
-                            <circle cx="-36" cy="-56" r="32" fill={`url(#sonar-transducer-grad-${id})`} stroke="#475569" strokeWidth="2.8" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.45))" />
+                            <circle cx="-36" cy="-56" r="32" fill={`url(#sonar-transducer-grad-${id})`} stroke={isPowered ? "#475569" : "#334155"} strokeWidth="2.8" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.45))" />
                             <circle cx="-36" cy="-56" r="29" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" />
                             <circle cx="-36" cy="-56" r="23" fill={`url(#sonar-cone-grad-${id})`} />
                             <circle cx="-36" cy="-56" r="14" fill="#334155" opacity="0.4" />
@@ -2491,7 +2517,7 @@ function SmallComponent({
                             <text x="-36" y="-50" fill="#f8fafc" fontSize="18" fontWeight="900" textAnchor="middle" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.8))">T</text>
 
                             {/* R (Receiver) on Right: Center (84, -56) */}
-                            <circle cx="84" cy="-56" r="32" fill={`url(#sonar-transducer-grad-${id})`} stroke="#475569" strokeWidth="2.8" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.45))" />
+                            <circle cx="84" cy="-56" r="32" fill={`url(#sonar-transducer-grad-${id})`} stroke={isPowered ? "#475569" : "#334155"} strokeWidth="2.8" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.45))" />
                             <circle cx="84" cy="-56" r="29" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" />
                             <circle cx="84" cy="-56" r="23" fill={`url(#sonar-cone-grad-${id})`} />
                             <circle cx="84" cy="-56" r="14" fill="#334155" opacity="0.4" />
@@ -2503,13 +2529,15 @@ function SmallComponent({
                             {/* Silkscreen Brand & Spec Labels */}
                             <text x="24" y="-88" fill="#ffffff" fontSize="9" fontWeight="900" textAnchor="middle" letterSpacing="0.05em">HC-SR04</text>
                             <text x="24" y="-76" fill="rgba(255,255,255,0.75)" fontSize="5" fontWeight="700" textAnchor="middle">TWINLAB X</text>
-                            <text x="24" y="-30" fill="#a7f3d0" fontSize="7.5" fontWeight="900" textAnchor="middle">{distCm} cm</text>
+                            <text x="24" y="-30" fill={isPowered ? "#a7f3d0" : "#64748b"} fontSize={isPowered ? "7.5" : "6.5"} fontWeight="900" textAnchor="middle">
+                                {isPowered ? `${distCm} cm` : "OFF • 0V"}
+                            </text>
 
                             {/* Black DuPont Connector Block at Y=-14 to Y=-4 */}
                             <rect x="-6" y="-14" width="60" height="10" rx="2" fill="#18181b" stroke="#3f3f46" strokeWidth="1.2" />
 
                             {/* Pin Labels directly above the 4 pins without colliding with TWINLAB X */}
-                            <text x="0" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">VCC</text>
+                            <text x="0" y="-17" fill={isPowered ? "#86efac" : "#f8fafc"} fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">VCC</text>
                             <text x="16" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">TRIG</text>
                             <text x="32" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">ECHO</text>
                             <text x="48" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">GND</text>
@@ -2578,14 +2606,16 @@ function SmallComponent({
 
             {/* PIR MOTION SENSOR (HUGE REALISTIC FULL-SCALE SVG): Pins VCC (0, 0), OUT (16, 0), GND (32, 0) */}
             {type === "sensor-pir" && (() => {
-                const isScanning = Boolean(isSimulating && simState?.isPowered && simState?.isScanning);
+                const isPowered = Boolean(isSimulating && simState?.isPowered);
+                const isMotion = Boolean(isPowered && (simState?.isMotion || motionActive));
+                const isScanning = Boolean(isPowered && simState?.isScanning);
                 return (
-                    <div className={`pir-container ${isScanning ? "is-scanning" : ""}`}>
+                    <div className={`pir-container ${isScanning ? "is-scanning" : ""} ${isPowered ? "is-powered" : "is-unpowered"} ${isMotion ? "motion-active" : ""}`}>
                         <svg className="pir-realistic-svg" viewBox="-95 -145 220 150" width="220" height="150" style={{ position: "absolute", left: -95, top: -145, pointerEvents: "auto", cursor: "move" }}>
                             {/* Full Hit-Box to ensure 100% reliable click-to-select anywhere on PIR motion sensor */}
                             <rect x="-95" y="-145" width="220" height="150" fill="transparent" pointerEvents="all" cursor="pointer" />
                             {/* Dark Green FR-4 PCB: Width 200px, Height 124px from Y=-132 to Y=-8, X=-84 to X=116 */}
-                            <rect x="-84" y="-132" width="200" height="124" rx="8" fill="#15803d" stroke="#166534" strokeWidth="2.5" filter="drop-shadow(0 10px 24px rgba(0,0,0,0.65))" />
+                            <rect x="-84" y="-132" width="200" height="124" rx="8" fill={isPowered ? "#15803d" : "#0d4a22"} stroke={isPowered ? "#166534" : "#062b14"} strokeWidth="2.5" filter="drop-shadow(0 10px 24px rgba(0,0,0,0.65))" />
 
                             {/* 4 Corner Gold Mounting Holes with Annular Copper Rings */}
                             <circle cx="-74" cy="-122" r="3.5" fill="#ca8a04" stroke="#713f12" strokeWidth="1" />
@@ -2596,6 +2626,14 @@ function SmallComponent({
                             <circle cx="-74" cy="-18" r="1.8" fill="#0f172a" />
                             <circle cx="106" cy="-18" r="3.5" fill="#ca8a04" stroke="#713f12" strokeWidth="1" />
                             <circle cx="106" cy="-18" r="1.8" fill="#0f172a" />
+
+                            {/* Power LED (PWR) */}
+                            <circle cx="-74" cy="-30" r="3" fill={isPowered ? "#22c55e" : "#1e293b"} filter={isPowered ? "drop-shadow(0 0 4px #22c55e)" : "none"} />
+                            <text x="-74" y="-36" fill={isPowered ? "#86efac" : "#475569"} fontSize="4.5" fontWeight="bold" textAnchor="middle" fontFamily="monospace">PWR</text>
+
+                            {/* Detection LED (OUT) */}
+                            <circle cx="104" cy="-30" r="3" fill={isMotion ? "#f59e0b" : "#451a03"} filter={isMotion ? "drop-shadow(0 0 6px #f59e0b)" : "none"} />
+                            <text x="104" y="-36" fill={isMotion ? "#fde68a" : "#64748b"} fontSize="4.5" fontWeight="bold" textAnchor="middle" fontFamily="monospace">OUT</text>
 
                             {/* Dual Large SMD Trimmer Potentiometers (Sensitivity & Time Delay) */}
                             {/* Left Trimmer (Sx - Sensitivity) */}
@@ -2613,7 +2651,7 @@ function SmallComponent({
                             <text x="92" y="-82" fill="#fde68a" fontSize="5" fontWeight="bold" textAnchor="middle">TIME</text>
 
                             {/* Center: HUGE Hemispherical White Fresnel Dome (Diameter 80px, Radius 40px at (16, -70)) */}
-                            <circle cx="16" cy="-70" r="40" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="2.5" filter="drop-shadow(0 6px 14px rgba(0,0,0,0.35))" />
+                            <circle cx="16" cy="-70" r="40" fill={isPowered ? "#f8fafc" : "#e2e8f0"} stroke={isPowered ? (isMotion ? "#f59e0b" : "#cbd5e1") : "#94a3b8"} strokeWidth={isMotion ? "3.5" : "2.5"} filter={isMotion ? "drop-shadow(0 0 16px rgba(245,158,11,0.5))" : "drop-shadow(0 6px 14px rgba(0,0,0,0.35))"} />
                             <circle cx="16" cy="-70" r="33" fill="none" stroke="#cbd5e1" strokeWidth="1.2" />
                             <circle cx="16" cy="-70" r="26" fill="none" stroke="#cbd5e1" strokeWidth="1.2" />
                             <circle cx="16" cy="-70" r="19" fill="none" stroke="#cbd5e1" strokeWidth="1.2" />
@@ -2626,15 +2664,19 @@ function SmallComponent({
                             <line x1="-24" y1="-70" x2="56" y2="-70" stroke="#94a3b8" strokeWidth="1.2" />
 
                             {/* Silkscreen text (Properly spaced without collision) */}
-                            <text x="16" y="-118" fill="#bbf7d0" fontSize="8.5" fontWeight="900" textAnchor="middle" letterSpacing="0.05em">PIR MOTION SENSOR</text>
-                            <text x="16" y="-106" fill="rgba(255,255,255,0.75)" fontSize="5.5" fontWeight="700" textAnchor="middle">HC-SR501 • TWINLAB X</text>
+                            <text x="16" y="-118" fill={isPowered ? (isMotion ? "#fde047" : "#bbf7d0") : "#64748b"} fontSize="8.5" fontWeight="900" textAnchor="middle" letterSpacing="0.05em">
+                                {isPowered ? (isMotion ? "🚨 MOTION DETECTED (HIGH)" : "PIR MOTION SENSOR") : "HC-SR501 (STANDBY / OFF)"}
+                            </text>
+                            <text x="16" y="-106" fill={isPowered ? "rgba(255,255,255,0.75)" : "#64748b"} fontSize="5.5" fontWeight="700" textAnchor="middle">
+                                {isPowered ? "HC-SR501 • TWINLAB X" : "CONNECT VCC & GND TO ARM"}
+                            </text>
 
                             {/* Black DuPont Connector Block at Y=-14 to Y=-4 */}
                             <rect x="-6" y="-14" width="44" height="10" rx="2" fill="#18181b" stroke="#3f3f46" strokeWidth="1.2" />
 
                             {/* Pin labels (Clean and separated from silkscreen brand) */}
-                            <text x="0" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">VCC</text>
-                            <text x="16" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">OUT</text>
+                            <text x="0" y="-17" fill={isPowered ? "#86efac" : "#f8fafc"} fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">VCC</text>
+                            <text x="16" y="-17" fill={isMotion ? "#fde047" : "#f8fafc"} fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">OUT</text>
                             <text x="32" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">GND</text>
 
                             {/* 3 Gold Header Pins at Y=0 */}
@@ -2642,6 +2684,46 @@ function SmallComponent({
                             <rect x="13.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
                             <rect x="29.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
                         </svg>
+
+                        {/* Interactive Direct Trigger Button on PIR Sensor */}
+                        {isPowered && (
+                            <button
+                                type="button"
+                                className="pir-motion-direct-trigger"
+                                style={{
+                                    position: "absolute",
+                                    left: 16,
+                                    top: -152,
+                                    transform: "translateX(-50%)",
+                                    background: isMotion ? "#f59e0b" : "rgba(15, 23, 42, 0.92)",
+                                    color: isMotion ? "#000" : "#38bdf8",
+                                    border: `1.5px solid ${isMotion ? "#fbbf24" : "rgba(56, 189, 248, 0.5)"}`,
+                                    borderRadius: 18,
+                                    padding: "4px 10px",
+                                    fontSize: 10,
+                                    fontWeight: 800,
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 5,
+                                    boxShadow: isMotion ? "0 0 16px rgba(245, 158, 11, 0.6)" : "0 4px 12px rgba(0,0,0,0.5)",
+                                    zIndex: 10,
+                                    whiteSpace: "nowrap"
+                                }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const nextMotion = !isMotion;
+                                    onUpdate && onUpdate({ motionActive: nextMotion });
+                                    if (nextMotion) {
+                                        try { soundManager.playSensorPing("pir"); } catch (_) {}
+                                    }
+                                }}
+                                title="Click to Simulate Human Motion in Field of View"
+                            >
+                                <i className={isMotion ? "ri-user-voice-fill" : "ri-hand"}></i>
+                                <span>{isMotion ? "Motion Active (3.3V)" : "Simulate Motion"}</span>
+                            </button>
+                        )}
 
                         {/* Perfectly Wrapped 80px Circular Fresnel Dome Radar Scanning Animation */}
                         {isScanning && (
@@ -2675,6 +2757,113 @@ function SmallComponent({
                                 )}
                             </React.Fragment>
                         ))}
+                    </div>
+                );
+            })()}
+
+            {/* PRECISION TEMPERATURE SENSOR (TMP36 TO-92): Pins at (0, 0) VCC, (16, 0) VOUT, (32, 0) GND */}
+            {(type === "sensor-temp" || type === "sensor-temperature") && (() => {
+                const isPowered = Boolean(isSimulating && simState?.isPowered);
+                const tempVal = temperature != null ? temperature : 25;
+                const vOut = isPowered ? (simState?.voltageOut != null ? simState.voltageOut : (0.5 + tempVal * 0.01)) : 0;
+
+                return (
+                    <div className={`temp-sensor-container ${isPowered ? "is-powered" : ""}`}>
+                        {/* High-Fidelity TO-92 Molded Plastic Case + Flat Face with TMP36 Markings + 3 Silver Wire Leads */}
+                        <svg className="to92-temp-svg" viewBox="-6 -52 44 56" width="44" height="56" style={{ position: "absolute", top: -52, left: -6, pointerEvents: "auto", cursor: "move" }}>
+                            <defs>
+                                <linearGradient id={`to92-temp-grad-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stopColor="#3f3f46" />
+                                    <stop offset="50%" stopColor="#27272a" />
+                                    <stop offset="100%" stopColor="#18181b" />
+                                </linearGradient>
+                                <radialGradient id={`to92-temp-glow-${id}`} cx="50%" cy="50%" r="50%">
+                                    <stop offset="0%" stopColor="rgba(56, 189, 248, 0.45)" />
+                                    <stop offset="100%" stopColor="rgba(56, 189, 248, 0)" />
+                                </radialGradient>
+                            </defs>
+
+                            {/* Click target hitbox */}
+                            <rect x="-6" y="-52" width="44" height="42" fill="transparent" pointerEvents="all" cursor="move" />
+
+                            {/* Thermal Pulse Halo when powered */}
+                            {isPowered && (
+                                <circle cx="16" cy="-32" r="22" fill={`url(#to92-temp-glow-${id})`} />
+                            )}
+
+                            {/* TO-92 Package: Rounded back arch + flat front face */}
+                            <path
+                                d="M 0 -20 C 0 -48, 32 -48, 32 -20 Z"
+                                fill={`url(#to92-temp-grad-${id})`}
+                                stroke="#52525b"
+                                strokeWidth="1.2"
+                            />
+                            {/* Flat Front Face Lip */}
+                            <rect x="0" y="-22" width="32" height="4" rx="1" fill="#27272a" stroke="#52525b" strokeWidth="0.8" />
+
+                            {/* Markings */}
+                            <text x="16" y="-34" fill="#e4e4e7" fontSize="5.5" fontWeight="900" fontFamily="monospace" textAnchor="middle">TMP36</text>
+                            <text x="16" y="-28" fill="#a1a1aa" fontSize="3.8" fontWeight="700" fontFamily="monospace" textAnchor="middle">TWINLAB X</text>
+                            <text x="16" y="-24" fill={isPowered ? "#38bdf8" : "#71717a"} fontSize="3.5" fontWeight="800" fontFamily="monospace" textAnchor="middle">
+                                {isPowered ? `${tempVal}°C` : "+Vs Vout GND"}
+                            </text>
+
+                            {/* 3 Tinned Metal Pin Leads (Local x: 0, 16, 32; y: -18 to 0) */}
+                            <line x1="0" y1="-18" x2="0" y2="0" stroke="#cbd5e1" strokeWidth="2.4" strokeLinecap="round" />
+                            <line x1="16" y1="-18" x2="16" y2="0" stroke="#cbd5e1" strokeWidth="2.4" strokeLinecap="round" />
+                            <line x1="32" y1="-18" x2="32" y2="0" stroke="#cbd5e1" strokeWidth="2.4" strokeLinecap="round" />
+                        </svg>
+
+                        {/* Pin 1: VCC (+Vs) at (0, 0) */}
+                        <span
+                            className={`terminal-pin pin-temp-vcc ${hoveredTerminal === "tmpVcc" ? "targeted" : ""}`}
+                            style={{ left: 0, top: 0, transform: "translate(-50%, -50%)" }}
+                            onMouseEnter={() => setHoveredTerminal("tmpVcc")}
+                            onMouseLeave={() => setHoveredTerminal(null)}
+                            onMouseDown={(e) => handleTerminalMouseDown(e, "tmpVcc", 0, 0)}
+                            onMouseUp={(e) => handleTerminalMouseUp(e, 0, 0)}
+                            onClick={(e) => handleTerminalPress(e, "tmpVcc", 0, 0)}
+                            onDoubleClick={(e) => handleTerminalAction(e, 0, 0)}
+                        />
+                        {hoveredTerminal === "tmpVcc" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 0, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Pin 1: +Vs (2.7V - 5.5V)
+                            </div>
+                        )}
+
+                        {/* Pin 2: VOUT (Analog Temp) at (16, 0) */}
+                        <span
+                            className={`terminal-pin pin-temp-vout ${hoveredTerminal === "tmpVout" ? "targeted" : ""}`}
+                            style={{ left: 16, top: 0, transform: "translate(-50%, -50%)" }}
+                            onMouseEnter={() => setHoveredTerminal("tmpVout")}
+                            onMouseLeave={() => setHoveredTerminal(null)}
+                            onMouseDown={(e) => handleTerminalMouseDown(e, "tmpVout", 16, 0)}
+                            onMouseUp={(e) => handleTerminalMouseUp(e, 16, 0)}
+                            onClick={(e) => handleTerminalPress(e, "tmpVout", 16, 0)}
+                            onDoubleClick={(e) => handleTerminalAction(e, 16, 0)}
+                        />
+                        {hoveredTerminal === "tmpVout" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 16, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Pin 2: VOUT ({isPowered ? `${(vOut * 1000).toFixed(0)}mV` : "10mV/°C"})
+                            </div>
+                        )}
+
+                        {/* Pin 3: GND at (32, 0) */}
+                        <span
+                            className={`terminal-pin pin-temp-gnd ${hoveredTerminal === "tmpGnd" ? "targeted" : ""}`}
+                            style={{ left: 32, top: 0, transform: "translate(-50%, -50%)" }}
+                            onMouseEnter={() => setHoveredTerminal("tmpGnd")}
+                            onMouseLeave={() => setHoveredTerminal(null)}
+                            onMouseDown={(e) => handleTerminalMouseDown(e, "tmpGnd", 32, 0)}
+                            onMouseUp={(e) => handleTerminalMouseUp(e, 32, 0)}
+                            onClick={(e) => handleTerminalPress(e, "tmpGnd", 32, 0)}
+                            onDoubleClick={(e) => handleTerminalAction(e, 32, 0)}
+                        />
+                        {hoveredTerminal === "tmpGnd" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 32, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                Pin 3: GND (0V)
+                            </div>
+                        )}
                     </div>
                 );
             })()}

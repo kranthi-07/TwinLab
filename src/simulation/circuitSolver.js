@@ -543,6 +543,38 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         }
     });
 
+    // 2c. Add Powered PIR Sensors with Active Motion as 3.3V Logic Output Sources
+    components.forEach((c) => {
+        if (c.type === "sensor-pir" && c.motionActive) {
+            const rot = ((c.rotation || 0) * Math.PI) / 180;
+            const cos = Math.cos(rot);
+            const sin = Math.sin(rot);
+            const pVcc = { x: c.x, y: c.y };
+            const pGnd = { x: Math.round(c.x + 32 * cos), y: Math.round(c.y + 32 * sin) };
+            const pOut = { x: Math.round(c.x + 16 * cos), y: Math.round(c.y + 16 * sin) };
+
+            const vccNode = dsu.find(getElectricalNode(pVcc.x, pVcc.y));
+            const gndNode = dsu.find(getElectricalNode(pGnd.x, pGnd.y));
+
+            if (vccNode !== gndNode) {
+                const powerConn = findActivePowerSourceForLoad(vccNode, gndNode);
+                if (powerConn && powerConn.polarity === "forward" && powerConn.voltage >= 3.0) {
+                    const outNode = dsu.find(getElectricalNode(pOut.x, pOut.y));
+                    posNodes.push(outNode);
+                    powerSources.push({
+                        id: `pir_out_${c.id}`,
+                        sourceType: "sensor-pir",
+                        sourceId: c.id,
+                        name: `${c.name || "PIR Sensor"} OUT (3.3V)`,
+                        posNode: outNode,
+                        gndNode: gndNode,
+                        voltage: 3.3
+                    });
+                }
+            }
+        }
+    });
+
     // 3. Map Resistors
     const resistors = [];
     components.forEach((c) => {
@@ -1159,23 +1191,28 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             if (vccNode !== gndNode) {
                 const powerConn = findActivePowerSourceForLoad(vccNode, gndNode);
                 if (powerConn && powerConn.polarity === "forward" && powerConn.voltage >= 3.0) {
+                    const isMotion = Boolean(c.motionActive);
                     sensorStates[c.id] = {
                         isPowered: true,
                         isScanning: true,
+                        isMotion: isMotion,
+                        outVoltage: isMotion ? 3.3 : 0,
                         voltage: powerConn.voltage,
-                        currentMa: 15,
+                        currentMa: isMotion ? 25 : 15,
                         powerSourceId: powerConn.powerSource.id
                     };
                     simLogs.push({
                         time: "0.02s",
                         type: "info",
-                        text: `📡 [PIR ACTIVE] HC-SR501 Motion Sensor powered (${powerConn.voltage.toFixed(1)}V) from ${powerConn.powerSource.name}. Radar sweep active.`
+                        text: isMotion
+                            ? `🚨 [PIR DETECTED] Motion Active! OUT pin high (+3.3V) on ${c.name || "HC-SR501"}.`
+                            : `📡 [PIR ARMED] HC-SR501 Motion Sensor powered (${powerConn.voltage.toFixed(1)}V) from ${powerConn.powerSource.name}. Radar sweep active.`
                     });
                 } else {
-                    sensorStates[c.id] = { isPowered: false, isScanning: false, voltage: 0, currentMa: 0 };
+                    sensorStates[c.id] = { isPowered: false, isScanning: false, isMotion: false, outVoltage: 0, voltage: 0, currentMa: 0 };
                 }
             } else {
-                sensorStates[c.id] = { isPowered: false, isScanning: false, voltage: 0, currentMa: 0 };
+                sensorStates[c.id] = { isPowered: false, isScanning: false, isMotion: false, outVoltage: 0, voltage: 0, currentMa: 0 };
             }
         }
 
@@ -1202,9 +1239,11 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             if (vccNode !== gndNode) {
                 const powerConn = findActivePowerSourceForLoad(vccNode, gndNode);
                 if (powerConn && powerConn.polarity === "forward" && powerConn.voltage >= 3.0) {
+                    const dist = c.distanceCm != null ? c.distanceCm : 25;
                     sensorStates[c.id] = {
                         isPowered: true,
                         isPinging: true,
+                        distanceCm: dist,
                         voltage: powerConn.voltage,
                         currentMa: 15,
                         powerSourceId: powerConn.powerSource.id
@@ -1212,13 +1251,13 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                     simLogs.push({
                         time: "0.02s",
                         type: "info",
-                        text: `🔊 [ULTRASONIC ACTIVE] HC-SR04 Sonar Transducer powered (${powerConn.voltage.toFixed(1)}V) from ${powerConn.powerSource.name}. Sonar ping active.`
+                        text: `🔊 [ULTRASONIC ACTIVE] HC-SR04 Sonar Transducer powered (${powerConn.voltage.toFixed(1)}V). Distance: ${dist}cm.`
                     });
                 } else {
-                    sensorStates[c.id] = { isPowered: false, isPinging: false, voltage: 0, currentMa: 0 };
+                    sensorStates[c.id] = { isPowered: false, isPinging: false, distanceCm: null, voltage: 0, currentMa: 0 };
                 }
             } else {
-                sensorStates[c.id] = { isPowered: false, isPinging: false, voltage: 0, currentMa: 0 };
+                sensorStates[c.id] = { isPowered: false, isPinging: false, distanceCm: null, voltage: 0, currentMa: 0 };
             }
         }
 
@@ -1745,7 +1784,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
 
         const standbySensorStates = {};
         components.filter(c => c.type === "sensor-pir" || c.type === "sensor-ultrasonic").forEach(c => {
-            standbySensorStates[c.id] = { isPowered: false, isScanning: false, isPinging: false, voltage: 0, currentMa: 0 };
+            standbySensorStates[c.id] = { isPowered: false, isScanning: false, isMotion: false, outVoltage: 0, isPinging: false, distanceCm: null, voltage: 0, currentMa: 0 };
         });
 
         const standbyIcStates = {};
@@ -1812,55 +1851,100 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
     // 8. Calculate Real Wire Currents (Only animate when real current is flowing!)
     const conductingNodes = new Set();
 
-    // A. Active Batteries (discharging through load or short-circuited)
+    // A. Active Batteries (discharging through load, short-circuited, or connected to active components)
     batteries.forEach(b => {
         const state = batteryStates[b.id];
-        if (state && (state.isDischarging || state.isShortCircuit || (state.currentMa > 0.05))) {
+        const hasActiveLoad = Object.values(ledStates).some(l => (l.isOn || l.isOverloaded) && l.powerSourceId === b.id) ||
+                              Object.values(motorStates).some(m => m.isSpinning && m.powerSourceId === b.id) ||
+                              Object.values(buzzerStates).some(bz => bz.isBeeping && bz.powerSourceId === b.id) ||
+                              Object.values(sensorStates).some(s => s.isPowered && s.powerSourceId === b.id) ||
+                              Object.values(icStates).some(ic => ic.isPowered && ic.powerSourceId === b.id) ||
+                              Object.values(lcdStates).some(lcd => lcd.isPowered && lcd.powerSourceId === b.id) ||
+                              Object.values(servoStates).some(sv => sv.isPowered && sv.powerSourceId === b.id);
+
+        if (state && (state.isDischarging || state.isShortCircuit || (state.currentMa > 0.05) || hasActiveLoad)) {
             const posRoot = dsu.find(`POWER_SOURCE_POS_${b.id}`);
             const gndRoot = dsu.find(`POWER_SOURCE_GND_${b.id}`);
             conductingNodes.add(posRoot);
             conductingNodes.add(gndRoot);
+
+            const rotRad = ((b.rotation || 0) * Math.PI) / 180;
+            const cos = Math.cos(rotRad);
+            const sin = Math.sin(rotRad);
+            let p1, p2;
+            if (b.type === "battery-9v") {
+                p1 = { x: Math.round(b.x + 16 * cos), y: Math.round(b.y + 16 * sin) };
+                p2 = { x: Math.round(b.x + 48 * cos), y: Math.round(b.y + 48 * sin) };
+            } else if (b.type === "battery-aa" || b.type === "battery-aaa") {
+                const count = b.batteryCount || 1;
+                const caseW = count === 1 ? 64 : count === 2 ? 96 : count === 3 ? 140 : 176;
+                p1 = { x: Math.round(b.x + (caseW - 20) * cos), y: Math.round(b.y + (caseW - 20) * sin) };
+                p2 = { x: Math.round(b.x + 20 * cos), y: Math.round(b.y + 20 * sin) };
+            } else {
+                p1 = { x: Math.round(b.x + 32 * cos - 16 * sin), y: Math.round(b.y + 32 * sin + 16 * cos) };
+                p2 = { x: Math.round(b.x + 32 * cos - 48 * sin), y: Math.round(b.y + 32 * sin + 48 * cos) };
+            }
+            conductingNodes.add(dsu.find(getElectricalNode(p1.x, p1.y)));
+            conductingNodes.add(dsu.find(getElectricalNode(p2.x, p2.y)));
         }
     });
 
     // B. Active MCU Power Rails & Output GPIOs
     arduinoBoards.forEach(b => {
-        const gndRoot = dsu.find(`POWER_SOURCE_GND_ard_${b.id}`);
-        const pos5V = dsu.find(`POWER_SOURCE_POS_ard5V_${b.id}`);
-        const posD13 = dsu.find(`POWER_SOURCE_POS_ardD13_${b.id}`);
-        conductingNodes.add(gndRoot);
-        conductingNodes.add(pos5V);
-        if (resolvedMcuStates[b.id]?.d13High) conductingNodes.add(posD13);
+        conductingNodes.add(dsu.find(`POWER_SOURCE_GND_ard_${b.id}`));
+        conductingNodes.add(dsu.find(`POWER_SOURCE_POS_ard5V_${b.id}`));
+        conductingNodes.add(dsu.find(`POWER_SOURCE_POS_ard3V3_${b.id}`));
+        if (resolvedMcuStates[b.id]?.d13High) {
+            conductingNodes.add(dsu.find(`POWER_SOURCE_POS_ardD13_${b.id}`));
+        }
     });
 
     esp32Boards.forEach(b => {
-        const gndRoot = dsu.find(`POWER_SOURCE_GND_esp_${b.id}`);
-        const pos3V3 = dsu.find(`POWER_SOURCE_POS_esp3V3_${b.id}`);
-        const posD2 = dsu.find(`POWER_SOURCE_POS_espD2_${b.id}`);
-        conductingNodes.add(gndRoot);
-        conductingNodes.add(pos3V3);
-        if (resolvedMcuStates[b.id]?.d2High) conductingNodes.add(posD2);
+        conductingNodes.add(dsu.find(`POWER_SOURCE_GND_esp_${b.id}`));
+        conductingNodes.add(dsu.find(`POWER_SOURCE_POS_esp3V3_${b.id}`));
+        conductingNodes.add(dsu.find(`POWER_SOURCE_POS_esp5V_${b.id}`));
+        if (resolvedMcuStates[b.id]?.d2High) {
+            conductingNodes.add(dsu.find(`POWER_SOURCE_POS_espD2_${b.id}`));
+        }
     });
 
     // C. Active LEDs
     Object.entries(ledStates).forEach(([ledId, state]) => {
-        if (state.isOn && state.currentMa > 0) {
-            conductingNodes.add(dsu.find(state.nodeAnode));
-            conductingNodes.add(dsu.find(state.nodeCathode));
+        if (state.isOn || state.isOverloaded || (state.currentMa > 0)) {
+            const comp = components.find(c => c.id === ledId);
+            if (comp) {
+                const rotRad = ((comp.rotation || 0) * Math.PI) / 180;
+                const cos = Math.cos(rotRad);
+                const sin = Math.sin(rotRad);
+                const anodeRoot = dsu.find(getElectricalNode(comp.x, comp.y));
+                const cathX = Math.round(comp.x + 16 * cos);
+                const cathY = Math.round(comp.y + 16 * sin);
+                const cathodeRoot = dsu.find(getElectricalNode(cathX, cathY));
+                conductingNodes.add(anodeRoot);
+                conductingNodes.add(cathodeRoot);
+            }
         }
     });
 
     // D. Active Buzzers
     Object.entries(buzzerStates).forEach(([buzId, state]) => {
-        if (state.isBeeping) {
-            conductingNodes.add(dsu.find(`BUZZER_${buzId}_POS`));
-            conductingNodes.add(dsu.find(`BUZZER_${buzId}_NEG`));
+        if (state.isBeeping || (state.currentMa > 0)) {
+            const comp = components.find(c => c.id === buzId);
+            if (comp) {
+                const rotRad = ((comp.rotation || 0) * Math.PI) / 180;
+                const cos = Math.cos(rotRad);
+                const sin = Math.sin(rotRad);
+                const pPos = { x: Math.round(comp.x - 32 * sin), y: Math.round(comp.y + 32 * cos) };
+                const pNeg = { x: Math.round(comp.x + 16 * cos - 32 * sin), y: Math.round(comp.y + 16 * sin + 32 * cos) };
+                conductingNodes.add(dsu.find(getElectricalNode(pPos.x, pPos.y)));
+                conductingNodes.add(dsu.find(getElectricalNode(pNeg.x, pNeg.y)));
+            }
         }
     });
 
     // D2. Active Motors
     Object.entries(motorStates).forEach(([motId, state]) => {
-        if (state.isSpinning) {
+        if (state.isSpinning || (state.currentMa > 0)) {
             const mComp = components.find(c => c.id === motId);
             if (mComp) {
                 conductingNodes.add(dsu.find(getElectricalNode(mComp.x, mComp.y)));
@@ -1879,10 +1963,15 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             if (comp) {
                 conductingNodes.add(dsu.find(getElectricalNode(comp.x, comp.y)));
                 const rotRad = ((comp.rotation || 0) * Math.PI) / 180;
-                const gndDist = comp.type === "sensor-pir" ? 32 : 48;
+                const gndDist = comp.type === "sensor-pir" ? 32 : (comp.type === "sensor-temp" ? 32 : 48);
                 const gndX = Math.round(comp.x + gndDist * Math.cos(rotRad));
                 const gndY = Math.round(comp.y + gndDist * Math.sin(rotRad));
                 conductingNodes.add(dsu.find(getElectricalNode(gndX, gndY)));
+                if (comp.type === "sensor-pir" && state.isMotion) {
+                    const outX = Math.round(comp.x + 16 * Math.cos(rotRad));
+                    const outY = Math.round(comp.y + 16 * Math.sin(rotRad));
+                    conductingNodes.add(dsu.find(getElectricalNode(outX, outY)));
+                }
             }
         }
     });
@@ -1931,23 +2020,50 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         }
     });
 
-    // E. Resistors carrying current in series loops
-    resistors.forEach(r => {
-        const r1 = dsu.find(r.node1);
-        const r2 = dsu.find(r.node2);
-        if (conductingNodes.has(r1) || conductingNodes.has(r2)) {
-            conductingNodes.add(r1);
-            conductingNodes.add(r2);
-        }
-    });
+    // E. Transitive Conduction Propagation through Resistors, Potentiometers & Switches
+    for (let pass = 0; pass < 6; pass++) {
+        let changed = false;
+        resistors.forEach(r => {
+            const r1 = dsu.find(r.node1);
+            const r2 = dsu.find(r.node2);
+            if (conductingNodes.has(r1) && !conductingNodes.has(r2)) {
+                conductingNodes.add(r2);
+                changed = true;
+            } else if (conductingNodes.has(r2) && !conductingNodes.has(r1)) {
+                conductingNodes.add(r1);
+                changed = true;
+            }
+        });
+        components.filter(c => c.type === "potentiometer").forEach(p => {
+            const rotRad = ((p.rotation || 0) * Math.PI) / 180;
+            const cos = Math.cos(rotRad);
+            const sin = Math.sin(rotRad);
+            const n1 = dsu.find(getElectricalNode(Math.round(p.x - 48 * sin), Math.round(p.y + 48 * cos)));
+            const nW = dsu.find(getElectricalNode(Math.round(p.x + 16 * cos - 48 * sin), Math.round(p.y + 16 * sin + 48 * cos)));
+            const n2 = dsu.find(getElectricalNode(Math.round(p.x + 32 * cos - 48 * sin), Math.round(p.y + 32 * sin + 48 * cos)));
+            if (conductingNodes.has(n1) || conductingNodes.has(nW) || conductingNodes.has(n2)) {
+                if (!conductingNodes.has(n1)) { conductingNodes.add(n1); changed = true; }
+                if (!conductingNodes.has(nW)) { conductingNodes.add(nW); changed = true; }
+                if (!conductingNodes.has(n2)) { conductingNodes.add(n2); changed = true; }
+            }
+        });
+        if (!changed) break;
+    }
 
     const wireStates = {};
     wires.forEach(w => {
         if (!w.points || w.points.length < 2) return;
+        const pStart = w.points[0];
+        const pEnd = w.points[w.points.length - 1];
         const startRoot = dsu.find(`WIRE_${w.id}_START`);
         const endRoot = dsu.find(`WIRE_${w.id}_END`);
+        const pStartRoot = dsu.find(getElectricalNode(pStart.x, pStart.y));
+        const pEndRoot = dsu.find(getElectricalNode(pEnd.x, pEnd.y));
+
         const isConducting = isSimulating && conductingNodes.size > 0 && 
-            (conductingNodes.has(startRoot) || conductingNodes.has(endRoot));
+            (conductingNodes.has(startRoot) || conductingNodes.has(endRoot) ||
+             conductingNodes.has(pStartRoot) || conductingNodes.has(pEndRoot));
+
         wireStates[w.id] = {
             hasCurrent: Boolean(isConducting)
         };

@@ -2,6 +2,7 @@ import "./TopFloatingBar.css";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../../../context/ThemeContext";
+import { soundManager } from "../../../utils/audioManager";
 
 const COMPONENT_META = {
     "resistor": { label: "Resistor", icon: "ri-pulse-line" },
@@ -31,6 +32,7 @@ const COMPONENT_META = {
     "mosfet-n": { label: "N-MOSFET (IRF540N)", icon: "ri-flashlight-line" },
     "sensor-ultrasonic": { label: "Ultrasonic (HC-SR04)", icon: "ri-radar-line" },
     "sensor-pir": { label: "PIR Motion Sensor", icon: "ri-user-voice-line" },
+    "sensor-temp": { label: "TMP36 Temp Sensor", icon: "ri-temp-hot-line" },
     "sensor-tmp36": { label: "TMP36 Temp Sensor", icon: "ri-temp-hot-line" },
     "photoresistor": { label: "Photoresistor (LDR)", icon: "ri-sun-line" },
     "ic-74hc08": { label: "74HC08 Quad AND", icon: "ri-mind-map" },
@@ -52,6 +54,8 @@ const COMPONENT_META = {
     "esp32": { label: "ESP32", icon: "ri-cpu-line" },
     "esp32-devkit": { label: "ESP32", icon: "ri-cpu-line" },
     "esp32-s3": { label: "ESP32", icon: "ri-cpu-line" },
+    "rpi-pico": { label: "Raspberry Pi Pico (RP2040)", icon: "ri-cpu-line" },
+    "raspberry-pi": { label: "Raspberry Pi Pico (RP2040)", icon: "ri-cpu-line" },
 };
 
 const WIRE_COLORS = [
@@ -461,51 +465,70 @@ function BatteryValueControl({ component, onUpdate }) {
 function AaBatteryValueControl({ component, onUpdate }) {
     const isAAA = component.type === "battery-aaa";
     const cellCount = component.cells || (component.voltage === 1.5 ? 1 : component.voltage === 6 ? 4 : component.voltage === 4.5 ? 3 : 2);
-    const hasSwitch = component.switchState !== undefined ? Boolean(component.switchState) : (component.isOn !== undefined ? Boolean(component.isOn) : true);
+    const userHasSwitch = Boolean(component.hasSwitch);
+    const isSwitchOn = userHasSwitch ? (component.switchState !== false && component.isOn !== false) : true;
     const caseColor = component.color || "#18181b";
 
     return (
-        <div className="inspector-aa-controls">
-            <div className="inspector-field-group">
-                <span className="studio-control-label">Cells</span>
-                <div className="cells-segmented-picker">
-                    {[1, 2, 3, 4].map((count) => (
-                        <button
-                            key={count}
-                            type="button"
-                            className={`cell-seg-btn ${cellCount === count ? "active" : ""}`}
-                            onClick={() => {
-                                const volts = count * 1.5;
-                                onUpdate && onUpdate(component.id, {
-                                    cells: count,
-                                    voltage: volts,
-                                    name: `${count}× ${isAAA ? "AAA" : "AA"} Pack (${volts}V)`
-                                });
-                            }}
-                        >
-                            {count} {count === 1 ? "Cell" : "Cells"} ({count * 1.5}V)
-                        </button>
-                    ))}
+        <div className="inspector-aa-controls" style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <div className="inspector-field-group">
+                    <span className="studio-control-label">Cells</span>
+                    <div className="cells-segmented-picker">
+                        {[1, 2, 3, 4].map((count) => (
+                            <button
+                                key={count}
+                                type="button"
+                                className={`cell-seg-btn ${cellCount === count ? "active" : ""}`}
+                                onClick={() => {
+                                    const volts = count * 1.5;
+                                    onUpdate && onUpdate(component.id, {
+                                        cells: count,
+                                        voltage: volts,
+                                        name: `${count}× ${isAAA ? "AAA" : "AA"} Pack (${volts}V)`
+                                    });
+                                }}
+                            >
+                                {count} {count === 1 ? "Cell" : "Cells"} ({count * 1.5}V)
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="inspector-field-group">
+                    <span className="studio-control-label">Switch Option</span>
+                    <button
+                        type="button"
+                        className={`battery-switch-toggle-btn ${userHasSwitch ? "is-on" : "is-off"}`}
+                        onClick={() => {
+                            onUpdate && onUpdate(component.id, { hasSwitch: !userHasSwitch });
+                        }}
+                        title={userHasSwitch ? "Integrated switch included on holder" : "No switch (direct wire output)"}
+                    >
+                        <span>{userHasSwitch ? "🔘 Switch: Added" : "⚪ Switch: None"}</span>
+                    </button>
                 </div>
             </div>
 
-            <div className="inspector-field-group">
-                <span className="studio-control-label">Cover Switch</span>
-                <button
-                    type="button"
-                    className={`battery-switch-toggle-btn ${hasSwitch ? "is-on" : "is-off"}`}
-                    onClick={() => {
-                        const nextState = !hasSwitch;
-                        onUpdate && onUpdate(component.id, {
-                            switchState: nextState,
-                            isOn: nextState
-                        });
-                    }}
-                >
-                    <span className="switch-status-dot"></span>
-                    <span>{hasSwitch ? "ON (Supplying Power)" : "OFF (Disconnected)"}</span>
-                </button>
-            </div>
+            {userHasSwitch && (
+                <div className="inspector-field-group" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span className="studio-control-label">Switch State</span>
+                    <button
+                        type="button"
+                        className={`battery-switch-toggle-btn ${isSwitchOn ? "is-on" : "is-off"}`}
+                        onClick={() => {
+                            const nextState = !isSwitchOn;
+                            onUpdate && onUpdate(component.id, {
+                                switchState: nextState,
+                                isOn: nextState
+                            });
+                        }}
+                    >
+                        <span className="switch-status-dot"></span>
+                        <span>{isSwitchOn ? "ON (Supplying Power)" : "OFF (Disconnected)"}</span>
+                    </button>
+                </div>
+            )}
 
             <div className="inspector-field-group">
                 <span className="studio-control-label">Case Color</span>
@@ -528,7 +551,7 @@ function AaBatteryValueControl({ component, onUpdate }) {
                     ))}
                 </div>
             </div>
-            <span className="specs-subtext">{(cellCount * 1.5).toFixed(1)}V DC Nominal</span>
+            <span className="specs-subtext" style={{ fontSize: "10px", color: "#94a3b8" }}>{(cellCount * 1.5).toFixed(1)}V DC Nominal</span>
         </div>
     );
 }
@@ -632,15 +655,21 @@ function PirValueControl({ component, onUpdate }) {
                     type="button"
                     className={`cell-seg-btn ${isMotion ? "active" : ""}`}
                     style={{
-                        background: isMotion ? "#22c55e" : "rgba(255,255,255,0.08)",
+                        background: isMotion ? "#f59e0b" : "rgba(255,255,255,0.08)",
                         color: isMotion ? "#000" : "#fff",
                         fontWeight: 700,
                         padding: "4px 12px",
                         borderRadius: 6
                     }}
-                    onClick={() => onUpdate && onUpdate(component.id, { motionActive: !isMotion })}
+                    onClick={() => {
+                        const next = !isMotion;
+                        onUpdate && onUpdate(component.id, { motionActive: next });
+                        if (next) {
+                            try { soundManager.playSensorPing("pir"); } catch (_) {}
+                        }
+                    }}
                 >
-                    {isMotion ? "Motion Detected (HIGH)" : "Simulate Motion (LOW)"}
+                    {isMotion ? "🚨 Motion Detected (HIGH 3.3V)" : "Simulate Motion (LOW 0V)"}
                 </button>
             </div>
             <span className="specs-subtext">HC-SR501 • 120° Pyroelectric Dome</span>
@@ -650,6 +679,13 @@ function PirValueControl({ component, onUpdate }) {
 
 function ServoValueControl({ component, onUpdate }) {
     const curAngle = component.angle != null ? component.angle : 90;
+    const handleAngleChange = (newAngle) => {
+        const delta = Math.abs(curAngle - newAngle);
+        onUpdate && onUpdate(component.id, { angle: newAngle });
+        if (delta > 2) {
+            try { soundManager.playServoMovement(component.id, delta); } catch (_) {}
+        }
+    };
     return (
         <div className="inspector-servo-controls" style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div className="inspector-field-group">
@@ -660,7 +696,7 @@ function ServoValueControl({ component, onUpdate }) {
                         min="0" 
                         max="180" 
                         value={curAngle} 
-                        onChange={(e) => onUpdate && onUpdate(component.id, { angle: Number(e.target.value) })}
+                        onChange={(e) => handleAngleChange(Number(e.target.value))}
                         className="studio-manual-number-input"
                     />
                     <span className="specs-subtext" style={{ minWidth: 36, fontWeight: 700 }}>{curAngle}°</span>
@@ -672,7 +708,7 @@ function ServoValueControl({ component, onUpdate }) {
                         key={a}
                         type="button"
                         className={`cell-seg-btn ${curAngle === a ? "active" : ""}`}
-                        onClick={() => onUpdate && onUpdate(component.id, { angle: a })}
+                        onClick={() => handleAngleChange(a)}
                     >
                         {a}°
                     </button>
@@ -755,176 +791,151 @@ function MotorValueControl({ component, onUpdate }) {
 
     return (
         <div className="inspector-motor-controls">
-            {/* 1. Mode Segmented Toggle (2D / 3D WebGL) */}
-            <div className="inspector-field-group">
-                <span className="studio-control-label">Renderer</span>
-                <div className="motor-mode-toggle-group">
-                    <button
-                        type="button"
-                        className={`motor-mode-btn ${!is3D ? "active" : ""}`}
-                        onClick={() => onUpdate && onUpdate(component.id, { is3D: false, viewMode: "2d" })}
-                        title="2D Top-Down Schematic View"
-                    >
-                        <span>2D Canvas</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={`motor-mode-btn ${is3D ? "active" : ""}`}
-                        onClick={() => onUpdate && onUpdate(component.id, { is3D: true, viewMode: "3d" })}
-                        title="3D Ultra-Realistic Three.js WebGL Engine"
-                    >
-                        <span>3D Three.js</span>
-                    </button>
+            {/* ROW 1: Renderer Mode (2D / 3D) & Direction Toggle */}
+            <div className="motor-controls-row">
+                <div className="inspector-field-group">
+                    <span className="studio-control-label">Renderer</span>
+                    <div className="motor-mode-toggle-group">
+                        <button
+                            type="button"
+                            className={`motor-mode-btn ${!is3D ? "active" : ""}`}
+                            onClick={() => onUpdate && onUpdate(component.id, { is3D: false, viewMode: "2d" })}
+                            title="2D Top-Down Schematic View"
+                        >
+                            <span>2D Canvas</span>
+                        </button>
+                        <button
+                            type="button"
+                            className={`motor-mode-btn ${is3D ? "active" : ""}`}
+                            onClick={() => onUpdate && onUpdate(component.id, { is3D: true, viewMode: "3d" })}
+                            title="3D Ultra-Realistic Three.js WebGL Engine"
+                        >
+                            <span>3D Three.js</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div className="inspector-field-group">
+                    <span className="studio-control-label">Direction</span>
+                    <div className="motor-mode-toggle-group">
+                        <button
+                            type="button"
+                            className={`motor-mode-btn ${direction === "cw" ? "active" : ""}`}
+                            onClick={() => onUpdate && onUpdate(component.id, { direction: "cw" })}
+                            title="Clockwise Rotation"
+                        >
+                            <span>CW ↻</span>
+                        </button>
+                        <button
+                            type="button"
+                            className={`motor-mode-btn ${direction === "ccw" ? "active" : ""}`}
+                            onClick={() => onUpdate && onUpdate(component.id, { direction: "ccw" })}
+                            title="Counter-Clockwise Rotation"
+                        >
+                            <span>CCW ↺</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            {/* 2. 360° Circular Analog Joystick (Active in 3D Mode) */}
+            {/* ROW 2 (If 3D): 360° Circular Analog Joystick & Quick Snaps */}
             {is3D && (
-                <div className="inspector-field-group motor-joystick-group">
-                    <div className="joystick-header-row">
-                        <span className="studio-control-label">360° Joystick</span>
-                        <span className="joystick-angle-badge">{rot3D}°</span>
-                    </div>
-
-                    <div className="joystick-control-cluster">
-                        {/* Interactive Gimbal Pad */}
-                        <div
-                            ref={joystickRef}
-                            className={`motor-joystick-pad ${isDraggingJoystick ? "active-drag" : ""}`}
-                            onPointerDown={handlePointerDown}
-                            onPointerMove={handlePointerMove}
-                            onPointerUp={handlePointerUp}
-                            onPointerCancel={handlePointerUp}
-                            title="Drag or click to rotate 3D Motor 360°"
-                        >
-                            <div className="joystick-crosshair-h"></div>
-                            <div className="joystick-crosshair-v"></div>
-                            <div className="joystick-center-well"></div>
-
-                            {/* Degree markers */}
-                            <span className="joystick-tick tick-0">0°</span>
-                            <span className="joystick-tick tick-90">90°</span>
-                            <span className="joystick-tick tick-180">180°</span>
-                            <span className="joystick-tick tick-270">270°</span>
-
-                            {/* Floating Thumb Knob */}
+                <div className="motor-controls-row" style={{ background: "rgba(0, 0, 0, 0.35)", padding: "4px 8px", borderRadius: 8, border: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                    <div className="joystick-control-cluster" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", justifyContent: "space-between" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            {/* Interactive Gimbal Pad */}
                             <div
-                                className="motor-joystick-thumb"
-                                style={{
-                                    transform: `translate(calc(-50% + ${thumbX}px), calc(-50% + ${thumbY}px))`
-                                }}
+                                ref={joystickRef}
+                                className={`motor-joystick-pad ${isDraggingJoystick ? "active-drag" : ""}`}
+                                onPointerDown={handlePointerDown}
+                                onPointerMove={handlePointerMove}
+                                onPointerUp={handlePointerUp}
+                                onPointerCancel={handlePointerUp}
+                                title="Drag or click to rotate 3D Motor 360°"
                             >
-                                <span className="thumb-led-dot"></span>
+                                <div className="joystick-crosshair-h"></div>
+                                <div className="joystick-crosshair-v"></div>
+                                <div className="joystick-center-well"></div>
+                                <div
+                                    className="motor-joystick-thumb"
+                                    style={{
+                                        transform: `translate(calc(-50% + ${thumbX}px), calc(-50% + ${thumbY}px))`
+                                    }}
+                                >
+                                    <span className="thumb-led-dot"></span>
+                                </div>
                             </div>
+                            <span className="joystick-angle-badge" style={{ fontSize: "10px", fontWeight: 800 }}>{rot3D}°</span>
                         </div>
 
                         {/* Quick Snap Preset Orbit Angles */}
-                        <div className="joystick-presets-column">
-                            <button
-                                type="button"
-                                className={`joystick-snap-btn ${rot3D === 0 ? "snap-active" : ""}`}
-                                onClick={() => onUpdate && onUpdate(component.id, { rot3D: 0, pitch3D: 20 })}
-                                title="Snap Front View (0°)"
-                            >
-                                0° Front
-                            </button>
-                            <button
-                                type="button"
-                                className={`joystick-snap-btn ${rot3D === 45 ? "snap-active" : ""}`}
-                                onClick={() => onUpdate && onUpdate(component.id, { rot3D: 45, pitch3D: 25 })}
-                                title="Snap Isometric View (45°)"
-                            >
-                                45° Iso
-                            </button>
-                            <button
-                                type="button"
-                                className={`joystick-snap-btn ${rot3D === 90 ? "snap-active" : ""}`}
-                                onClick={() => onUpdate && onUpdate(component.id, { rot3D: 90, pitch3D: 20 })}
-                                title="Snap Side Profile (90°)"
-                            >
-                                90° Side
-                            </button>
-                            <button
-                                type="button"
-                                className={`joystick-snap-btn ${rot3D === 180 ? "snap-active" : ""}`}
-                                onClick={() => onUpdate && onUpdate(component.id, { rot3D: 180, pitch3D: 20 })}
-                                title="Snap Solder Lugs Rear View (180°)"
-                            >
-                                180° Rear
-                            </button>
+                        <div style={{ display: "flex", gap: 4 }}>
+                            {[
+                                { label: "0° Front", rot: 0, pitch: 20 },
+                                { label: "45° Iso", rot: 45, pitch: 25 },
+                                { label: "90° Side", rot: 90, pitch: 20 },
+                                { label: "180° Rear", rot: 180, pitch: 20 }
+                            ].map(p => (
+                                <button
+                                    key={p.rot}
+                                    type="button"
+                                    className={`joystick-snap-btn ${rot3D === p.rot ? "snap-active" : ""}`}
+                                    onClick={() => onUpdate && onUpdate(component.id, { rot3D: p.rot, pitch3D: p.pitch })}
+                                    style={{ fontSize: "10px", padding: "2px 6px" }}
+                                >
+                                    {p.label}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* 3. Motor Customization Options */}
-            {!isGeared ? (
-                /* DC Motor: Bare Axle vs Propeller Fan (Matching Image 1) */
-                <div className="inspector-field-group">
-                    <span className="studio-control-label">Shaft Accessory</span>
-                    <div className="motor-mode-toggle-group">
-                        <button
-                            type="button"
-                            className={`motor-mode-btn ${accessory === "propeller" ? "active" : ""}`}
-                            onClick={() => onUpdate && onUpdate(component.id, { accessory: "propeller" })}
-                            title="Mount 3-Blade Aviation Propeller Fan"
-                        >
-                            <span>🌀 Propeller</span>
-                        </button>
-                        <button
-                            type="button"
-                            className={`motor-mode-btn ${accessory === "axle" ? "active" : ""}`}
-                            onClick={() => onUpdate && onUpdate(component.id, { accessory: "axle" })}
-                            title="Bare Hardened Steel Axle Shaft (As in real hardware)"
-                        >
-                            <span>🔩 Bare Axle</span>
-                        </button>
-                    </div>
-                </div>
-            ) : (
-                /* Geared Motor: Gear Ratio (Image 2) */
-                <div className="inspector-field-group">
-                    <span className="studio-control-label">Gear Ratio</span>
-                    <div className="motor-mode-toggle-group">
-                        {["1:48", "1:120", "1:220"].map(ratio => (
+            {/* ROW 3: Customization Options (Gear Ratio or Shaft Accessory) */}
+            <div className="motor-controls-row">
+                {!isGeared ? (
+                    <div className="inspector-field-group">
+                        <span className="studio-control-label">Shaft Accessory</span>
+                        <div className="motor-mode-toggle-group">
                             <button
-                                key={ratio}
                                 type="button"
-                                className={`motor-mode-btn ${gearRatio === ratio ? "active" : ""}`}
-                                onClick={() => onUpdate && onUpdate(component.id, { gearRatio: ratio })}
-                                title={`Internal Gearbox Ratio ${ratio}`}
+                                className={`motor-mode-btn ${accessory === "propeller" ? "active" : ""}`}
+                                onClick={() => onUpdate && onUpdate(component.id, { accessory: "propeller" })}
+                                title="Mount 3-Blade Aviation Propeller Fan"
                             >
-                                <span>{ratio}</span>
+                                <span>🌀 Propeller</span>
                             </button>
-                        ))}
+                            <button
+                                type="button"
+                                className={`motor-mode-btn ${accessory === "axle" ? "active" : ""}`}
+                                onClick={() => onUpdate && onUpdate(component.id, { accessory: "axle" })}
+                                title="Bare Hardened Steel Axle Shaft"
+                            >
+                                <span>🔩 Bare Axle</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
-            )}
-
-            {/* 4. Direction Selector (CW / CCW) */}
-            <div className="inspector-field-group">
-                <span className="studio-control-label">Direction</span>
-                <div className="motor-mode-toggle-group">
-                    <button
-                        type="button"
-                        className={`motor-mode-btn ${direction === "cw" ? "active" : ""}`}
-                        onClick={() => onUpdate && onUpdate(component.id, { direction: "cw" })}
-                        title="Clockwise Rotation"
-                    >
-                        <span>CW ↻</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={`motor-mode-btn ${direction === "ccw" ? "active" : ""}`}
-                        onClick={() => onUpdate && onUpdate(component.id, { direction: "ccw" })}
-                        title="Counter-Clockwise Rotation"
-                    >
-                        <span>CCW ↺</span>
-                    </button>
-                </div>
+                ) : (
+                    <div className="inspector-field-group">
+                        <span className="studio-control-label">Gear Ratio</span>
+                        <div className="motor-mode-toggle-group">
+                            {["1:48", "1:120", "1:220"].map(ratio => (
+                                <button
+                                    key={ratio}
+                                    type="button"
+                                    className={`motor-mode-btn ${gearRatio === ratio ? "active" : ""}`}
+                                    onClick={() => onUpdate && onUpdate(component.id, { gearRatio: ratio })}
+                                    title={`Internal Gearbox Ratio ${ratio}`}
+                                >
+                                    <span>{ratio}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {/* 5. Live Tachometer Telemetry Card */}
+            {/* ROW 4: Live Tachometer Telemetry Card */}
             <div className="inspector-field-group" style={{ background: "rgba(2, 6, 23, 0.65)", padding: "4px 8px", borderRadius: 8, border: "1px solid rgba(56, 189, 248, 0.25)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -951,10 +962,101 @@ function MotorValueControl({ component, onUpdate }) {
                     <span className="specs-subtext" style={{ minWidth: 36, fontWeight: 700 }}>{speed}%</span>
                 </div>
             </div>
+        </div>
+    );
+}
 
-            <span className="specs-subtext specs-meta-pill">
-                {isGeared ? "TT Yellow BO Gearbox Motor • 3V-6V DC" : "Mabuchi 130 Cylindrical DC Motor • 3V-6V"}
-            </span>
+function PhotoresistorValueControl({ component, onUpdate }) {
+    const rawLux = component.lux != null ? Number(component.lux) : 300;
+    const calcR = Math.round(500000 / (Math.pow(Math.max(1, rawLux), 0.7) + 1));
+    const rStr = calcR >= 1e6 ? `${(calcR / 1e6).toFixed(2)} MΩ` : calcR >= 1e3 ? `${(calcR / 1e3).toFixed(1)} kΩ` : `${calcR} Ω`;
+
+    return (
+        <div className="inspector-field-group" style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span className="studio-control-label">Ambient Light (Lux)</span>
+                <span style={{ fontFamily: "monospace", color: "#f59e0b", fontWeight: 800, fontSize: "11px" }}>
+                    ☀️ {rawLux} Lux ({rStr})
+                </span>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                    type="range"
+                    min="0"
+                    max="1000"
+                    value={rawLux}
+                    onChange={(e) => onUpdate && onUpdate(component.id, { lux: Number(e.target.value), resistance: calcR })}
+                    className="studio-manual-number-input"
+                    style={{ flex: 1 }}
+                />
+            </div>
+
+            <div style={{ display: "flex", gap: 4 }}>
+                {[
+                    { label: "Dark (10 lx)", lux: 10 },
+                    { label: "Room (300 lx)", lux: 300 },
+                    { label: "Sunlight (1000 lx)", lux: 1000 }
+                ].map(p => (
+                    <button
+                        key={p.lux}
+                        type="button"
+                        className={`motor-mode-btn ${rawLux === p.lux ? "active" : ""}`}
+                        style={{ fontSize: "10px", padding: "2px 6px" }}
+                        onClick={() => onUpdate && onUpdate(component.id, { lux: p.lux, resistance: Math.round(500000 / (Math.pow(p.lux, 0.7) + 1)) })}
+                    >
+                        {p.label}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function TempSensorValueControl({ component, onUpdate }) {
+    const rawTemp = component.temperature != null ? Number(component.temperature) : 25;
+    const vOut = Math.min(5.0, Math.max(0.1, 0.5 + rawTemp * 0.01));
+
+    return (
+        <div className="inspector-field-group" style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span className="studio-control-label">Temperature (°C)</span>
+                <span style={{ fontFamily: "monospace", color: "#38bdf8", fontWeight: 800, fontSize: "11px" }}>
+                    🌡️ {rawTemp}°C (VOUT: {(vOut * 1000).toFixed(0)}mV)
+                </span>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                    type="range"
+                    min="-40"
+                    max="125"
+                    value={rawTemp}
+                    onChange={(e) => onUpdate && onUpdate(component.id, { temperature: Number(e.target.value) })}
+                    className="studio-manual-number-input"
+                    style={{ flex: 1 }}
+                />
+                <span className="specs-subtext" style={{ minWidth: 32, fontWeight: 700 }}>{rawTemp}°C</span>
+            </div>
+
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                {[
+                    { label: "Freezing (0°C)", temp: 0 },
+                    { label: "Room (25°C)", temp: 25 },
+                    { label: "Body (37°C)", temp: 37 },
+                    { label: "Boiling (100°C)", temp: 100 }
+                ].map(p => (
+                    <button
+                        key={p.temp}
+                        type="button"
+                        className={`motor-mode-btn ${rawTemp === p.temp ? "active" : ""}`}
+                        style={{ fontSize: "10px", padding: "2px 6px" }}
+                        onClick={() => onUpdate && onUpdate(component.id, { temperature: p.temp })}
+                    >
+                        {p.label}
+                    </button>
+                ))}
+            </div>
         </div>
     );
 }
@@ -1468,6 +1570,51 @@ function TopFloatingBar({
                                             </div>
                                             <span>Yellow Geared Motor</span>
                                         </button>
+
+                                        {/* TMP36 Temperature Sensor */}
+                                        <button
+                                            className="palette-item"
+                                            onClick={() => {
+                                                onAddComponent({ type: "sensor-temp", name: "TMP36 Temp Sensor", temperature: 25 });
+                                                setIsComponentsOpen(false);
+                                            }}
+                                            title="Add Precision TMP36 Temperature Sensor"
+                                        >
+                                            <div className="palette-item-miniature" style={{ background: "rgba(56, 189, 248, 0.15)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                <i className="ri-temp-hot-line" style={{ color: "#38bdf8", fontSize: 16 }}></i>
+                                            </div>
+                                            <span>Temp Sensor (TMP36)</span>
+                                        </button>
+
+                                        {/* Photoresistor (LDR) */}
+                                        <button
+                                            className="palette-item"
+                                            onClick={() => {
+                                                onAddComponent({ type: "photoresistor", name: "Photoresistor (LDR)", lux: 300 });
+                                                setIsComponentsOpen(false);
+                                            }}
+                                            title="Add Photoresistor / Light Dependent Resistor (LDR)"
+                                        >
+                                            <div className="palette-item-miniature" style={{ background: "rgba(245, 158, 11, 0.15)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                <i className="ri-sun-line" style={{ color: "#f59e0b", fontSize: 16 }}></i>
+                                            </div>
+                                            <span>Photoresistor (LDR)</span>
+                                        </button>
+
+                                        {/* Raspberry Pi Pico */}
+                                        <button
+                                            className="palette-item"
+                                            onClick={() => {
+                                                onAddComponent({ type: "rpi-pico", name: "Raspberry Pi Pico" });
+                                                setIsComponentsOpen(false);
+                                            }}
+                                            title="Add Raspberry Pi Pico (RP2040)"
+                                        >
+                                            <div className="palette-item-miniature" style={{ background: "rgba(16, 185, 129, 0.15)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                <i className="ri-cpu-line" style={{ color: "#10b981", fontSize: 16 }}></i>
+                                            </div>
+                                            <span>Raspberry Pi Pico</span>
+                                        </button>
                                     </div>
                                 </motion.div>
                             )}
@@ -1877,6 +2024,22 @@ function TopFloatingBar({
                                     {/* PIR Motion Sensor */}
                                     {(selectedComponent.type === "sensor-pir" || selectedComponent.type?.includes("pir")) && (
                                         <PirValueControl 
+                                            component={selectedComponent}
+                                            onUpdate={onUpdateComponent}
+                                        />
+                                    )}
+
+                                    {/* Photoresistor / Light Sensor (LDR) */}
+                                    {(selectedComponent.type === "photoresistor" || selectedComponent.type === "sensor-light") && (
+                                        <PhotoresistorValueControl
+                                            component={selectedComponent}
+                                            onUpdate={onUpdateComponent}
+                                        />
+                                    )}
+
+                                    {/* TMP36 Temperature Sensor */}
+                                    {(selectedComponent.type === "sensor-temp" || selectedComponent.type === "sensor-temperature") && (
+                                        <TempSensorValueControl
                                             component={selectedComponent}
                                             onUpdate={onUpdateComponent}
                                         />

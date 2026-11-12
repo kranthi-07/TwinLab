@@ -30,24 +30,33 @@
     height: 100%;
     transform-origin: 0 0;
     will-change: transform;
+    z-index: 2; /* STRICTLY ABOVE THE INFINITE BACKGROUND GRID */
 }
 
 /* ==========================================
-   ENGINEERING GRID (EXPANDS TO INFINITY)
+   TRULY INFINITE ENGINEERING GRID BACKGROUND
+   (Pinned to viewport screen, tiles infinitely via background-repeat with zero boundaries)
 ========================================== */
 
+.infinite-dot-grid,
 .dot-grid {
     position: absolute;
-    top: -8000px;
-    left: -8000px;
-    width: 20000px;
-    height: 20000px;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     background-image: 
         radial-gradient(circle, rgba(255, 255, 255, 0.32) 1.2px, transparent 1.2px),
         radial-gradient(circle, rgba(255, 138, 0, 0.22) 1.6px, transparent 1.6px);
-    background-size: 16px 16px, 80px 80px;
-    background-position: 0 0, 0 0;
+    background-repeat: repeat;
     pointer-events: none;
+    z-index: 0; /* STRICTLY AT BACKGROUND LEVEL BENEATH ALL COMPONENTS */
+}
+
+[data-theme="light"] .infinite-dot-grid,
+[data-theme="light"] .dot-grid {
+    background-image: 
+        radial-gradient(circle, rgba(15, 23, 42, 0.25) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(255, 138, 0, 0.28) 1.6px, transparent 1.6px);
 }
 
 /* ==========================================

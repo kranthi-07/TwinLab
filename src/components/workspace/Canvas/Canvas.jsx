@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Breadboard from "../components/Breadboard";
 import SmallComponent from "../components/SmallComponent";
 import Multimeter from "../components/Multimeter";
-import McuBoard, { ARDUINO_PINS, ARDUINO_MEGA_PINS, ARDUINO_NANO_PINS, ESP32_PINS } from "../components/McuBoard";
+import McuBoard, { ARDUINO_PINS, ARDUINO_MEGA_PINS, ARDUINO_NANO_PINS, ESP32_PINS, RPI_PICO_PINS } from "../components/McuBoard";
 import WireLayer from "../components/WireLayer";
 import { ECE_MOTIVATIONAL_QUOTES } from "../../../data/motivationalQuotes";
 
@@ -282,12 +282,12 @@ function Canvas({
                     if (d < minD) { minD = d; bestTarget = pt; }
                 });
             }
-            // AA & AAA Battery Packs (Negative 16,-12 and Positive posLeadX,-12)
+            // AA & AAA Battery Packs (Negative 20,-14 and Positive posLeadX,-14)
             else if (c.type === "battery-aa" || c.type === "battery-aaa") {
-                const cellCount = c.cells || (c.voltage === 1.5 ? 1 : c.voltage === 6 ? 4 : 2);
-                const totalWidth = cellCount === 1 ? 52 : cellCount === 4 ? 132 : 76;
-                const posLeadX = totalWidth - 16;
-                [toWorld(16, -12), toWorld(posLeadX, -12)].forEach(pt => {
+                const cellCount = c.cells || (c.voltage === 1.5 ? 1 : c.voltage === 6 ? 4 : c.voltage === 4.5 ? 3 : 2);
+                const totalWidth = cellCount === 1 ? 64 : cellCount === 4 ? 176 : cellCount === 3 ? 140 : 96;
+                const posLeadX = totalWidth - 20;
+                [toWorld(20, -14), toWorld(posLeadX, -14)].forEach(pt => {
                     const d = Math.hypot(wx - pt.x, wy - pt.y);
                     if (d < minD) { minD = d; bestTarget = pt; }
                 });
@@ -327,9 +327,31 @@ function Canvas({
                     if (d < minD) { minD = d; bestTarget = pt; }
                 });
             }
-            // Electrolytic Capacitor (Anode: 0,16, Cathode: 16,16)
+            // Power MOSFET TO-220 (Gate: 0, 0, Drain: 16, 0, Source: 32, 0)
+            else if (c.type === "mosfet-n" || c.type === "mosfet-p") {
+                [toWorld(0, 0), toWorld(16, 0), toWorld(32, 0)].forEach(pt => {
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // Electrolytic Capacitor (Anode: 0, 0, Cathode: 16, 0)
             else if (c.type === "capacitor-electrolytic") {
-                [toWorld(0, 16), toWorld(16, 16)].forEach(pt => {
+                [toWorld(0, 0), toWorld(16, 0)].forEach(pt => {
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // TMP36 Precision Temperature Sensor (VCC: 0, 0, VOUT: 16, 0, GND: 32, 0)
+            else if (c.type === "sensor-temp" || c.type === "sensor-temperature") {
+                [toWorld(0, 0), toWorld(16, 0), toWorld(32, 0)].forEach(pt => {
+                    const d = Math.hypot(wx - pt.x, wy - pt.y);
+                    if (d < minD) { minD = d; bestTarget = pt; }
+                });
+            }
+            // Raspberry Pi Pico (40 pins)
+            else if (c.type === "rpi-pico" || c.type === "raspberry-pi") {
+                [...RPI_PICO_PINS.leftCol, ...RPI_PICO_PINS.rightCol].forEach(pin => {
+                    const pt = toWorld(pin.x, pin.y);
                     const d = Math.hypot(wx - pt.x, wy - pt.y);
                     if (d < minD) { minD = d; bestTarget = pt; }
                 });
@@ -556,6 +578,8 @@ function Canvas({
     onUpdateViewportRef.current = onUpdateViewport;
 
     const viewportLayerRef = useRef(null);
+    const infiniteDotGridRef = useRef(null);
+    const isCanvasPanningRef = useRef(null);
     const rafIdRef = useRef(null);
     const pendingViewportRef = useRef(null);
 
@@ -609,10 +633,14 @@ function Canvas({
                 if (viewportLayerRef.current) {
                     viewportLayerRef.current.style.transform = `translate3d(${newPanX}px, ${newPanY}px, 0) scale(${newZoom})`;
                 }
+                if (infiniteDotGridRef.current) {
+                    infiniteDotGridRef.current.style.backgroundPosition = `${newPanX}px ${newPanY}px, ${newPanX}px ${newPanY}px`;
+                    infiniteDotGridRef.current.style.backgroundSize = `${16 * newZoom}px ${16 * newZoom}px, ${80 * newZoom}px ${80 * newZoom}px`;
+                }
 
                 scheduleViewportCommit();
             } else {
-                // NORMAL PANNING: Smooth trackpad/mouse scroll
+                // NORMAL PANNING: Smooth trackpad/mouse scroll across infinite space
                 const newPanX = currentPan.x - e.deltaX;
                 const newPanY = currentPan.y - e.deltaY;
 
@@ -623,6 +651,10 @@ function Canvas({
 
                 if (viewportLayerRef.current) {
                     viewportLayerRef.current.style.transform = `translate3d(${newPanX}px, ${newPanY}px, 0) scale(${currentZoom})`;
+                }
+                if (infiniteDotGridRef.current) {
+                    infiniteDotGridRef.current.style.backgroundPosition = `${newPanX}px ${newPanY}px, ${newPanX}px ${newPanY}px`;
+                    infiniteDotGridRef.current.style.backgroundSize = `${16 * currentZoom}px ${16 * currentZoom}px, ${80 * currentZoom}px ${80 * currentZoom}px`;
                 }
 
                 scheduleViewportCommit();
@@ -705,7 +737,27 @@ function Canvas({
                 return;
             }
 
-            // B. Double-tap & drag on empty space: Move ALL components and wires together!
+            // B0. Canvas Drag-Pan across truly infinite workspace (middle-click, space+drag, or empty canvas drag)
+            if (isCanvasPanningRef.current) {
+                const dx = e.clientX - isCanvasPanningRef.current.startX;
+                const dy = e.clientY - isCanvasPanningRef.current.startY;
+                if (Math.hypot(dx, dy) > 3 || isCanvasPanningRef.current.hasMoved) {
+                    isCanvasPanningRef.current.hasMoved = true;
+                    const newPanX = isCanvasPanningRef.current.initialPanX + dx;
+                    const newPanY = isCanvasPanningRef.current.initialPanY + dy;
+                    if (viewportLayerRef.current) {
+                        viewportLayerRef.current.style.transform = `translate3d(${newPanX}px, ${newPanY}px, 0) scale(${zoom})`;
+                    }
+                    if (infiniteDotGridRef.current) {
+                        infiniteDotGridRef.current.style.backgroundPosition = `${newPanX}px ${newPanY}px, ${newPanX}px ${newPanY}px`;
+                    }
+                    pendingViewportRef.current = { zoom, pan: { x: newPanX, y: newPanY } };
+                    scheduleViewportCommit();
+                    return;
+                }
+            }
+
+            // B. Double-tap & drag on empty space: Move ALL components and wires together across infinite space!
             if (doubleTapDragRef.current) {
                 const { initialMouseX, initialMouseY, initialComps, initialWires } = doubleTapDragRef.current;
                 const dx = (e.clientX - initialMouseX) / zoom;
@@ -717,8 +769,8 @@ function Canvas({
                     onUpdateAllComponentsAndWires(
                         initialComps.map(c => ({
                             ...c,
-                            x: Math.max(0, c.x + deltaX),
-                            y: Math.max(0, c.y + deltaY)
+                            x: c.x + deltaX,
+                            y: c.y + deltaY
                         })),
                         initialWires.map(w => ({
                             ...w,
@@ -727,7 +779,7 @@ function Canvas({
                     );
                 } else {
                     initialComps.forEach(c => {
-                        onUpdateComponent(c.id, { x: Math.max(0, c.x + deltaX), y: Math.max(0, c.y + deltaY) });
+                        onUpdateComponent(c.id, { x: c.x + deltaX, y: c.y + deltaY });
                     });
                 }
                 onNotifyChange && onNotifyChange();
@@ -754,14 +806,14 @@ function Canvas({
             dragData.lastSnappedY = snappedY;
 
             if (dragData.mode === "breadboard") {
-                // 1. Move breadboard
-                onUpdateComponent(dragData.id, { x: Math.max(0, snappedX), y: Math.max(0, snappedY) });
+                // 1. Move breadboard across infinite space
+                onUpdateComponent(dragData.id, { x: snappedX, y: snappedY });
 
                 // 2. Move all components mounted on this breadboard
                 dragData.mountedComponents?.forEach(m => {
                     onUpdateComponent(m.id, { 
-                        x: Math.max(0, m.initialX + deltaX), 
-                        y: Math.max(0, m.initialY + deltaY) 
+                        x: m.initialX + deltaX, 
+                        y: m.initialY + deltaY 
                     });
                 });
 
@@ -770,7 +822,7 @@ function Canvas({
                     onBatchUpdateWires(dragData.attachedWirePoints, deltaX, deltaY);
                 }
             } else {
-                // Single component drag
+                // Single component drag across infinite space
                 let finalCompY = snappedY;
                 const comp = componentsRef.current?.find(c => c.id === dragData.id);
                 if (comp?.type?.startsWith("ic-")) {
@@ -786,7 +838,7 @@ function Canvas({
                         }
                     }
                 }
-                onUpdateComponent(dragData.id, { x: Math.max(0, snappedX), y: Math.max(0, finalCompY) });
+                onUpdateComponent(dragData.id, { x: snappedX, y: finalCompY });
             }
 
             onNotifyChange && onNotifyChange();
@@ -806,6 +858,13 @@ function Canvas({
             if (animFrameId) {
                 cancelAnimationFrame(animFrameId);
                 animFrameId = null;
+            }
+            if (isCanvasPanningRef.current) {
+                if (isCanvasPanningRef.current.hasMoved && pendingViewportRef.current) {
+                    onUpdateViewportRef.current && onUpdateViewportRef.current(pendingViewportRef.current);
+                    pendingViewportRef.current = null;
+                }
+                isCanvasPanningRef.current = null;
             }
             if (draggingRef.current && draggingRef.current.mode === "single") {
                 const draggedId = draggingRef.current.id;
@@ -903,12 +962,13 @@ function Canvas({
         }
     };
 
-    // Canvas Mouse Down: Detect double-tap on empty space to move all components
+    // Canvas Mouse Down: Detect double-tap on empty space to move all components or drag-pan across infinite space
     const handleCanvasMouseDown = (e) => {
         if (activeWireRef.current || isWireModeRef.current) return;
 
         const isBackground = e.target === canvasRef.current || 
                              e.target.classList.contains("dot-grid") || 
+                             e.target.classList.contains("infinite-dot-grid") || 
                              e.target.classList.contains("canvas-viewport-layer");
 
         if (isBackground) {
@@ -940,13 +1000,28 @@ function Canvas({
                         points: w.points ? w.points.map(p => ({ ...p })) : []
                     }))
                 };
+                return;
             }
             lastEmptyClickTimeRef.current = now;
+
+            // Arm smooth background drag-pan across infinite workspace
+            isCanvasPanningRef.current = {
+                startX: e.clientX,
+                startY: e.clientY,
+                initialPanX: pan.x,
+                initialPanY: pan.y,
+                hasMoved: false
+            };
         }
     };
 
     // Canvas Click: Handle wire node placement, placing component commit, or selection clearing
     const handleCanvasClick = (e) => {
+        // If a drag-pan just completed, don't clear selection or trigger click events
+        if (isCanvasPanningRef.current?.hasMoved) {
+            return;
+        }
+
         // 1. Commit active placing component at clicked/cursor position
         if (placingComponentRef.current) {
             e.stopPropagation();
@@ -988,6 +1063,7 @@ function Canvas({
 
         const isBackground = e.target === canvasRef.current || 
                              e.target.classList.contains("dot-grid") || 
+                             e.target.classList.contains("infinite-dot-grid") || 
                              e.target.classList.contains("canvas-viewport-layer");
 
         if (isBackground) {
@@ -1010,6 +1086,7 @@ function Canvas({
         e.stopPropagation();
         const isBackground = e.target === canvasRef.current || 
                              e.target.classList.contains("dot-grid") || 
+                             e.target.classList.contains("infinite-dot-grid") || 
                              e.target.classList.contains("canvas-viewport-layer");
 
         if (isBackground && components.length > 0) {
@@ -1242,6 +1319,16 @@ function Canvas({
                 </div>
             )}
 
+            {/* TRULY INFINITE ENGINEERING GRID BACKGROUND (Zero edge / zero stopping space across all directions) */}
+            <div 
+                ref={infiniteDotGridRef}
+                className="infinite-dot-grid"
+                style={{
+                    backgroundPosition: `${pan.x}px ${pan.y}px, ${pan.x}px ${pan.y}px`,
+                    backgroundSize: `${16 * zoom}px ${16 * zoom}px, ${80 * zoom}px ${80 * zoom}px`
+                }}
+            />
+
             {/* TRANSFORMED INFINITE WORKSPACE VIEWPORT LAYER */}
             <div 
                 ref={viewportLayerRef}
@@ -1251,8 +1338,6 @@ function Canvas({
                     transformOrigin: "0 0"
                 }}
             >
-                {/* 16px Infinite Engineering Grid Background */}
-                <div className="dot-grid"></div>
 
                 {/* Wire Layer (Vector wires connecting grid points) */}
                 <WireLayer 
@@ -1359,7 +1444,12 @@ function Canvas({
                         );
                     }
 
-                    if (["arduino-uno", "arduino-mega", "arduino-nano", "esp32", "esp32-devkit", "esp32-s3"].includes(comp.type)) {
+                    if ([
+                        "arduino-uno", "arduino-mega", "arduino-nano", "esp32", "esp32-devkit", "esp32-s3", 
+                        "rpi-pico", "raspberry-pi", "rpi-pico-2", "stm32-nucleo", "stm32-blue-pill", "stm32-bluepill", 
+                        "stm32-black-pill", "nxp-lpc1768", "ti-tiva-c", "ti-msp430", "pic18f4550", "nordic-nrf52840", 
+                        "attiny85", "teensy-41", "esp8266-nodemcu"
+                    ].includes(comp.type)) {
                         return (
                             <McuBoard
                                 key={comp.id}
