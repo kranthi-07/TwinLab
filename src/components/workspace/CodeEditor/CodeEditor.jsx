@@ -149,22 +149,18 @@ function CodeEditor({
 }) {
     const [selectedPreset, setSelectedPreset] = useState(() => {
         try {
-            return localStorage.getItem("twinlab_user_code_preset") || "blink";
+            return localStorage.getItem("twinlab_user_code_preset") || "blank";
         } catch (_) {
-            return "blink";
+            return "blank";
         }
     });
 
     const [code, setCode] = useState(() => {
         if (externalCode !== undefined && externalCode !== null) return externalCode;
-        try {
-            const saved = localStorage.getItem("twinlab_user_code");
-            if (saved) return saved;
-        } catch (_) {}
-        return DEFAULT_SKETCHES.blink;
+        return DEFAULT_SKETCHES.blank;
     });
 
-    // Synchronize if external code changes from outside (e.g. project load)
+    // Synchronize if external code changes from outside (e.g. project load or switching boards)
     useEffect(() => {
         if (externalCode !== undefined && externalCode !== null && externalCode !== code) {
             setCode(externalCode);
@@ -196,11 +192,18 @@ function CodeEditor({
     const [uploadProgress, setUploadProgress] = useState(null); // null or number 0-100
     const [errorMsg, setErrorMsg] = useState(null);
 
-    // Inbuilt Serial Monitor State
-    const [isInbuiltSerialOpen, setIsInbuiltSerialOpen] = useState(true);
+    // Inbuilt Serial Monitor State: closed by default, opens automatically only on simulation run
+    const [isInbuiltSerialOpen, setIsInbuiltSerialOpen] = useState(false);
     const [serialInputText, setSerialInputText] = useState("");
     const [autoScroll, setAutoScroll] = useState(true);
     const [showTimestamps, setShowTimestamps] = useState(true);
+
+    // Auto-open Serial Monitor when code begins executing
+    useEffect(() => {
+        if (isExecuting) {
+            setIsInbuiltSerialOpen(true);
+        }
+    }, [isExecuting]);
 
     const textareaRef = useRef(null);
     const overlayRef = useRef(null);
@@ -249,8 +252,14 @@ function CodeEditor({
         }
     };
 
-    // Smart Tab and Enter handling
+    // Smart Tab and Enter handling + Ctrl+Enter Flash Hotkey
     const handleKeyDown = (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+            e.preventDefault();
+            handleUpload();
+            return;
+        }
+
         if (e.key === "Tab") {
             e.preventDefault();
             const start = textareaRef.current.selectionStart;
@@ -286,6 +295,7 @@ function CodeEditor({
     // Upload & Run handler
     const handleUpload = () => {
         setErrorMsg(null);
+        setIsInbuiltSerialOpen(true);
         setUploadProgress(15);
         setUploadStatus("Compiling C++ sketch...");
 
@@ -346,6 +356,7 @@ function CodeEditor({
     // Preset Options for Custom Dropdown
     const PRESET_OPTIONS = [
         { value: "custom", label: "Custom Sketch", desc: "User-written firmware sketch" },
+        { value: "blank", label: "Blank Sketch", desc: "Clean empty setup() & loop() template" },
         { value: "blink", label: "Blink (1s)", desc: "Standard built-in LED cycle" },
         { value: "strobe", label: "Fast Strobe (100ms)", desc: "High-frequency visual pulse" },
         { value: "ultrasonic", label: "HC-SR04 Sonar", desc: "Distance ping radar telemetry" },
@@ -431,7 +442,7 @@ function CodeEditor({
                 </div>
             </div>
 
-            {/* TIER 2: Action Toolbar (Tabs, Starter Presets, and Spacious Upload & Run Button) */}
+            {/* TIER 2: Action Toolbar (Tabs, Starter Presets, and Premium Action Command Console) */}
             <div className="editor-action-toolbar">
                 <div className="toolbar-left">
                     <div className="active-file-tab">
@@ -439,6 +450,17 @@ function CodeEditor({
                         <span className="tab-filename">sketch.ino</span>
                         <span className="tab-clean-dot"></span>
                     </div>
+
+                    {/* New Empty Sketch Quick Reset Button */}
+                    <button
+                        type="button"
+                        className="ide-tab-action-btn"
+                        onClick={() => updateCode(DEFAULT_SKETCHES.blank, "blank")}
+                        title="New Blank Sketch (Clear Old Code)"
+                    >
+                        <i className="ri-file-add-line"></i>
+                        <span>New</span>
+                    </button>
 
                     {/* 100% Custom Preset Examples Dropdown */}
                     <CustomIdeDropdown 
@@ -452,33 +474,48 @@ function CodeEditor({
                     />
 
                     <div className="tab-board-info font-mono">
-                        <i className="ri-speed-line"></i>
+                        <i className="ri-cpu-line"></i>
                         <span>{currentBoard.arch}</span>
                     </div>
                 </div>
 
                 <div className="toolbar-right">
-                    {/* Compile & Upload Button */}
-                    <button 
-                        className={`action-btn upload-btn ${isExecuting ? "active" : ""}`}
-                        onClick={handleUpload}
-                        title="Compile C++ Sketch and Flash to Microcontroller"
+                    {/* Toggle Inbuilt Serial Monitor Pane */}
+                    <button
+                        type="button"
+                        className={`action-btn serial-toggle-btn ${isInbuiltSerialOpen ? "active" : ""}`}
+                        onClick={() => setIsInbuiltSerialOpen(prev => !prev)}
+                        title={isInbuiltSerialOpen ? "Hide Serial Monitor" : "Open Serial Monitor"}
                     >
-                        <i className={isExecuting ? "ri-restart-line" : "ri-play-circle-fill"}></i>
-                        <span>{isExecuting ? "Re-Flash" : "Upload & Run"}</span>
+                        <i className="ri-terminal-box-line"></i>
+                        <span>Serial</span>
+                        <span className={`serial-status-dot ${isExecuting ? "online" : "idle"}`}></span>
                     </button>
 
-                    {/* Stop Button */}
+                    {/* Premium Stop / Halt Button */}
                     {isExecuting && (
                         <button 
-                            className="action-btn stop-btn"
+                            type="button"
+                            className="action-btn stop-btn premium-stop"
                             onClick={onStopExecution}
                             title="Halt Microcontroller Firmware Execution"
                         >
-                            <i className="ri-stop-circle-fill"></i>
+                            <i className="ri-stop-fill"></i>
                             <span>Stop</span>
                         </button>
                     )}
+
+                    {/* Premium Compile, Flash & Run / Re-Flash Button */}
+                    <button 
+                        type="button"
+                        className={`action-btn upload-btn premium-flash ${isExecuting ? "executing" : "idle"}`}
+                        onClick={handleUpload}
+                        title={isExecuting ? "Hot-Reload / Re-Flash Firmware (Ctrl+Enter)" : "Compile & Flash to Microcontroller (Ctrl+Enter)"}
+                    >
+                        <i className={isExecuting ? "ri-restart-line spin-on-hover" : "ri-flashlight-fill"}></i>
+                        <span className="primary-text">{isExecuting ? "Re-Flash" : "Upload & Run"}</span>
+                        <span className="kbd-shortcut font-mono">↵</span>
+                    </button>
                 </div>
             </div>
 

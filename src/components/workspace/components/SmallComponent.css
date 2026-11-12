@@ -1822,56 +1822,170 @@
     background: #09090b;
     border: 2px solid #27272a;
     border-radius: 4px;
-    padding: 4px;
+    padding: 5px 6px;
     box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.9);
 }
 
 .lcd-matrix-screen {
     background: #0c1a2e;
-    border-radius: 2px;
-    height: 38px;
+    border-radius: 3px;
+    min-height: 40px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 2px 8px;
-    gap: 3px;
+    padding: 3px 5px;
+    gap: 2px;
     transition: background 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
 }
 
-.lcd-module-container.powered-on .lcd-matrix-screen {
-    background: #0284c7;
-    box-shadow: inset 0 0 12px rgba(56, 189, 248, 0.8), 0 0 16px rgba(56, 189, 248, 0.4);
+.lcd-matrix-screen.backlight-active {
+    background: var(--lcd-backlight, #0284c7);
+    box-shadow: inset 0 0 14px rgba(255, 255, 255, 0.4), 0 0 16px var(--lcd-backlight, #0284c7);
+}
+
+.lcd-matrix-screen.backlight-dark {
+    background: #09121d;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.8);
 }
 
 .lcd-text-row {
-    height: 14px;
     display: flex;
     align-items: center;
+    justify-content: flex-start;
+    gap: 1px;
+    line-height: 1;
 }
 
-.lcd-dot-text {
-    font-family: 'Courier New', Courier, monospace;
+.lcd-matrix-cell {
+    position: relative;
+    width: 9.5px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lcd-ghost-block {
+    position: absolute;
+    inset: 1px;
+    background: rgba(0, 0, 0, var(--ghost-opacity, 0.05));
+    border-radius: 0.5px;
+    pointer-events: none;
+}
+
+.lcd-char-glyph {
+    position: relative;
+    z-index: 2;
+    font-family: 'Courier New', Courier, 'Lucida Console', monospace;
     font-size: 11px;
     font-weight: 900;
-    color: #1e293b;
-    letter-spacing: 0.1em;
-    text-shadow: none;
-    transition: color 0.3s ease;
+    color: var(--lcd-text-color, #ffffff);
+    opacity: var(--char-opacity, 1);
+    line-height: 1;
+    letter-spacing: 0;
+    text-shadow: 0 0 1px rgba(0, 0, 0, 0.4);
 }
 
-.lcd-module-container.powered-on .lcd-dot-text {
-    color: #ffffff;
-    text-shadow: 0 0 4px #ffffff, 0 0 8px #38bdf8;
+.lcd-cursor-underline {
+    position: absolute;
+    bottom: 0px;
+    left: 1px;
+    right: 1px;
+    height: 2px;
+    background: var(--lcd-text-color, #ffffff);
+    z-index: 3;
+    box-shadow: 0 0 3px var(--lcd-text-color, #ffffff);
+}
+
+.lcd-matrix-cell.cursor-blink .lcd-char-glyph {
+    animation: lcdCursorBlinkAnim 0.75s step-end infinite;
+}
+
+@keyframes lcdCursorBlinkAnim {
+    0%, 100% {
+        background: var(--lcd-text-color, #ffffff);
+        color: var(--lcd-backlight, #0284c7);
+        border-radius: 1px;
+    }
+    50% {
+        background: transparent;
+        color: var(--lcd-text-color, #ffffff);
+    }
+}
+
+.lcd-pcb-footer-details {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+    padding: 0 2px;
 }
 
 .lcd-brand-stamp {
-    font-size: 7px;
+    font-size: 6.5px;
     font-weight: 800;
     font-family: monospace;
-    color: rgba(255, 255, 255, 0.6);
-    display: block;
-    margin-top: 4px;
-    text-align: right;
+    color: rgba(255, 255, 255, 0.65);
+    letter-spacing: 0.05em;
+}
+
+.lcd-backpack-indicator {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.lcd-smd-pwr-led {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #334155;
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.lcd-smd-pwr-led.active {
+    background: #ef4444;
+    box-shadow: 0 0 6px #ef4444;
+}
+
+.lcd-contrast-trimpot {
+    width: 8px;
+    height: 8px;
+    background: #0284c7;
+    border: 1px solid #0369a1;
+    border-radius: 50%;
+    position: relative;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    transition: transform 0.2s ease;
+}
+
+.trimpot-slot-cross {
+    position: absolute;
+    inset: 1.5px;
+}
+
+.trimpot-slot-cross::before,
+.trimpot-slot-cross::after {
+    content: '';
+    position: absolute;
+    background: #fbbf24;
+}
+
+.trimpot-slot-cross::before {
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    transform: translateY(-50%);
+}
+
+.trimpot-slot-cross::after {
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    transform: translateX(-50%);
 }
 
 /* ============================================================
@@ -3598,4 +3712,52 @@
 @keyframes lcdCursorBlink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }
+}
+
+/* ============================================================
+   23. HC-SR04 ULTRASONIC ACOUSTIC CONE & DRAGGABLE TARGET BALL
+============================================================ */
+.ultrasonic-cone-svg {
+    user-select: none;
+    -webkit-user-select: none;
+    transition: filter 0.25s ease;
+}
+
+.ultrasonic-cone-svg:hover {
+    filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.45));
+}
+
+.ultrasonic-echo-pulse {
+    animation: ultrasonicEchoDash 0.9s linear infinite;
+}
+
+@keyframes ultrasonicEchoDash {
+    to {
+        stroke-dashoffset: -20;
+    }
+}
+
+.ultrasonic-ball-interactive-group {
+    transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.4, 1);
+}
+
+.ultrasonic-ball-interactive-group:hover .idle-halo {
+    opacity: 1;
+    transform: scale(1.18);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.ultrasonic-ball-interactive-group .dragging-halo {
+    animation: ultrasonicBallHaloPulse 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes ultrasonicBallHaloPulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(1.3); opacity: 1; }
+}
+
+.ultrasonic-hud-badge {
+    user-select: none;
+    -webkit-user-select: none;
+    transition: opacity 0.15s ease;
 }

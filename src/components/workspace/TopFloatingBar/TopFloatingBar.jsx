@@ -558,18 +558,52 @@ function AaBatteryValueControl({ component, onUpdate }) {
 
 function LcdValueControl({ component, onUpdate }) {
     const is2004 = component.type === "lcd-2004" || Boolean(component.is2004) || component.size === "20x4";
+    const maxCols = is2004 ? 20 : 16;
+    const maxRows = is2004 ? 4 : 2;
     const backlightColor = component.backlightColor || "#0284c7";
+    const contrast = component.contrast != null ? component.contrast : 85;
+    const backlightOn = component.backlightOn !== false;
+    const i2cAddress = component.i2cAddress || "0x27";
+    const showCursor = Boolean(component.showCursor);
+    const blinkCursor = Boolean(component.blinkCursor);
+    const textLines = component.textLines || [
+        component.line1 || (is2004 ? "TwinLab 2004 I2C" : "TwinLab 1602 LCD"),
+        component.line2 || (is2004 ? "Simulation Online" : "Online 0x27 OK"),
+        ...(is2004 ? [component.line3 || "5.0V Active Bus", component.line4 || "HD44780 Ready"] : [])
+    ];
+
+    const handleTextChange = (rowIdx, newText) => {
+        const updated = [...textLines];
+        updated[rowIdx] = newText.slice(0, maxCols);
+        onUpdate && onUpdate(component.id, {
+            textLines: updated,
+            [`line${rowIdx + 1}`]: updated[rowIdx]
+        });
+    };
+
+    const handleClearText = () => {
+        const cleared = Array(maxRows).fill("");
+        onUpdate && onUpdate(component.id, {
+            textLines: cleared,
+            line1: "",
+            line2: "",
+            line3: "",
+            line4: ""
+        });
+    };
 
     const LCD_BACKLIGHTS = [
         { name: "Classic Blue", color: "#0284c7", textColor: "#ffffff" },
-        { name: "Neon Green", color: "#059669", textColor: "#064e3b" },
-        { name: "Retro Amber", color: "#d97706", textColor: "#451a03" },
+        { name: "Retro Green", color: "#059669", textColor: "#022c22" },
+        { name: "Amber Gold", color: "#d97706", textColor: "#451a03" },
         { name: "Ice Cyan", color: "#06b6d4", textColor: "#083344" },
-        { name: "OLED Obsidian", color: "#18181b", textColor: "#f8fafc" }
+        { name: "Ruby Red", color: "#e11d48", textColor: "#ffffff" },
+        { name: "Monochrome Dark", color: "#18181b", textColor: "#f8fafc" }
     ];
 
     return (
-        <div className="inspector-lcd-controls">
+        <div className="inspector-lcd-controls" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+            {/* Display Size Toggle */}
             <div className="inspector-field-group">
                 <span className="studio-control-label">Size</span>
                 <div className="cells-segmented-picker">
@@ -585,13 +619,105 @@ function LcdValueControl({ component, onUpdate }) {
                         className={`cell-seg-btn ${is2004 ? "active" : ""}`}
                         onClick={() => onUpdate && onUpdate(component.id, { type: "lcd-2004", is2004: true, size: "20x4", name: "20x4 Character LCD" })}
                     >
-                        20x4 Large
+                        20x4
                     </button>
                 </div>
             </div>
 
+            {/* Live Text Editing */}
+            <div className="inspector-field-group" style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                <span className="studio-control-label">Text Lines ({maxCols} chars)</span>
+                <div style={{ display: "flex", gap: 4 }}>
+                    <input
+                        type="text"
+                        maxLength={maxCols}
+                        className="studio-input-box"
+                        style={{ width: 110, fontSize: 11, padding: "3px 6px" }}
+                        placeholder="Row 1 text..."
+                        value={textLines[0] || ""}
+                        onChange={(e) => handleTextChange(0, e.target.value)}
+                        title="Row 1 Text"
+                    />
+                    <input
+                        type="text"
+                        maxLength={maxCols}
+                        className="studio-input-box"
+                        style={{ width: 110, fontSize: 11, padding: "3px 6px" }}
+                        placeholder="Row 2 text..."
+                        value={textLines[1] || ""}
+                        onChange={(e) => handleTextChange(1, e.target.value)}
+                        title="Row 2 Text"
+                    />
+                    {is2004 && (
+                        <>
+                            <input
+                                type="text"
+                                maxLength={maxCols}
+                                className="studio-input-box"
+                                style={{ width: 90, fontSize: 11, padding: "3px 6px" }}
+                                placeholder="Row 3..."
+                                value={textLines[2] || ""}
+                                onChange={(e) => handleTextChange(2, e.target.value)}
+                                title="Row 3 Text"
+                            />
+                            <input
+                                type="text"
+                                maxLength={maxCols}
+                                className="studio-input-box"
+                                style={{ width: 90, fontSize: 11, padding: "3px 6px" }}
+                                placeholder="Row 4..."
+                                value={textLines[3] || ""}
+                                onChange={(e) => handleTextChange(3, e.target.value)}
+                                title="Row 4 Text"
+                            />
+                        </>
+                    )}
+                    <button
+                        type="button"
+                        className="cell-seg-btn"
+                        style={{ padding: "2px 6px", fontSize: 10 }}
+                        onClick={handleClearText}
+                        title="Clear Display Lines"
+                    >
+                        <i className="ri-delete-bin-line"></i>
+                    </button>
+                </div>
+            </div>
+
+            {/* Contrast Slider */}
+            <div className="inspector-field-group">
+                <span className="studio-control-label">Contrast: {contrast}%</span>
+                <div className="slider-with-val" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={contrast}
+                        className="studio-range-slider"
+                        style={{ width: 68 }}
+                        onChange={(e) => onUpdate && onUpdate(component.id, { contrast: Number(e.target.value) })}
+                        title="Trimmer Potentiometer Contrast"
+                    />
+                </div>
+            </div>
+
+            {/* Backlight Toggle */}
             <div className="inspector-field-group">
                 <span className="studio-control-label">Backlight</span>
+                <button
+                    type="button"
+                    className={`cell-seg-btn ${backlightOn ? "active" : ""}`}
+                    style={{ padding: "3px 8px", fontSize: 11 }}
+                    onClick={() => onUpdate && onUpdate(component.id, { backlightOn: !backlightOn })}
+                >
+                    <i className={backlightOn ? "ri-lightbulb-fill" : "ri-lightbulb-line"} style={{ color: backlightOn ? backlightColor : "inherit", marginRight: 3 }}></i>
+                    {backlightOn ? "ON" : "OFF"}
+                </button>
+            </div>
+
+            {/* Backlight Theme Swatches */}
+            <div className="inspector-field-group">
+                <span className="studio-control-label">Color</span>
                 <div className="wire-color-swatches compact-swatches">
                     {LCD_BACKLIGHTS.map((bl) => (
                         <button
@@ -605,7 +731,58 @@ function LcdValueControl({ component, onUpdate }) {
                     ))}
                 </div>
             </div>
-            <span className="specs-subtext">HD44780 Controller • I2C 0x27</span>
+
+            {/* I2C Address */}
+            <div className="inspector-field-group">
+                <span className="studio-control-label">I2C Addr</span>
+                <div className="cells-segmented-picker">
+                    <button
+                        type="button"
+                        className={`cell-seg-btn ${i2cAddress === "0x27" ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { i2cAddress: "0x27" })}
+                    >
+                        0x27
+                    </button>
+                    <button
+                        type="button"
+                        className={`cell-seg-btn ${i2cAddress === "0x3F" ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { i2cAddress: "0x3F" })}
+                    >
+                        0x3F
+                    </button>
+                </div>
+            </div>
+
+            {/* Cursor Mode */}
+            <div className="inspector-field-group">
+                <span className="studio-control-label">Cursor</span>
+                <div className="cells-segmented-picker">
+                    <button
+                        type="button"
+                        className={`cell-seg-btn ${!showCursor && !blinkCursor ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { showCursor: false, blinkCursor: false })}
+                        title="No Cursor"
+                    >
+                        Off
+                    </button>
+                    <button
+                        type="button"
+                        className={`cell-seg-btn ${showCursor && !blinkCursor ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { showCursor: true, blinkCursor: false })}
+                        title="Underline Cursor"
+                    >
+                        Line
+                    </button>
+                    <button
+                        type="button"
+                        className={`cell-seg-btn ${blinkCursor ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { showCursor: true, blinkCursor: true })}
+                        title="Blinking Block Cursor"
+                    >
+                        Blink
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

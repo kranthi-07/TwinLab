@@ -21,6 +21,15 @@ import { soundManager } from "../../utils/audioManager";
 const STORAGE_KEY = "twinlab_active_project";
 const DRAFT_KEY = "twinlab_workspace_draft";
 
+function isPureBlankTemplate(code) {
+    if (!code) return true;
+    const stripped = code
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/\/\/.*$/gm, "")
+        .replace(/\s+/g, "");
+    return stripped === "" || stripped === "voidsetup(){}voidloop(){}";
+}
+
 // Symmetrical Centering Algorithm: takes circuit wherever created in space and centers it symmetrically in viewport
 function calculateSymmetricalCenter(compsList, wiresList) {
     if (!compsList || compsList.length === 0) {
@@ -85,6 +94,112 @@ function calculateSymmetricalCenter(compsList, wiresList) {
             y: Math.round(viewH / 2 - circuitCenterY * optimalZoom)
         }
     };
+}
+
+function getStarterCircuit(type) {
+    const now = Date.now();
+    if (type === "starter-led-resistor" || type === "starter-battery-led") {
+        const bbId = `breadboard-${now}`;
+        const batId = `battery-9v-${now + 1}`;
+        const resId = `resistor-${now + 2}`;
+        const ledId = `led-${now + 3}`;
+
+        const bb = { id: bbId, type: "breadboard-half", name: "Breadboard (Half)", x: 320, y: 160, rotation: 0 };
+        const bat = { id: batId, type: "battery-9v", name: "9V Battery", x: 160, y: 208, rotation: 0, voltage: 9 };
+        const res = { id: resId, type: "resistor", name: "Resistor (220Ω)", resistance: 220, x: 512, y: 272, rotation: 0 };
+        const led = { id: ledId, type: "led", name: "5mm LED (Red)", color: "#ef4444", x: 576, y: 288, rotation: 0 };
+
+        const wirePos = {
+            id: `wire-${now + 4}`,
+            color: "#ef4444",
+            points: [{ x: 176, y: 208 }, { x: 512, y: 240 }],
+            routingMode: "curved"
+        };
+        const wireNeg = {
+            id: `wire-${now + 5}`,
+            color: "#0f172a",
+            points: [{ x: 208, y: 208 }, { x: 592, y: 240 }],
+            routingMode: "curved"
+        };
+
+        return {
+            components: [bb, bat, res, led],
+            wires: [wirePos, wireNeg],
+            selectedId: led.id,
+            toast: "Imported Starter: LED + Resistor Circuit"
+        };
+    }
+    if (type === "starter-pot-led") {
+        const bbId = `breadboard-${now}`;
+        const batId = `battery-9v-${now + 1}`;
+        const potId = `potentiometer-${now + 2}`;
+        const resId = `resistor-${now + 3}`;
+        const ledId = `led-${now + 4}`;
+
+        const bb = { id: bbId, type: "breadboard-half", name: "Breadboard (Half)", x: 320, y: 160, rotation: 0 };
+        const bat = { id: batId, type: "battery-9v", name: "9V Battery", x: 160, y: 208, rotation: 0, voltage: 9 };
+        const pot = { id: potId, type: "potentiometer", name: "Potentiometer (10k)", resistance: 10000, wiperValue: 0.7, x: 480, y: 272, rotation: 0 };
+        const res = { id: resId, type: "resistor", name: "Resistor (330Ω)", resistance: 330, x: 560, y: 272, rotation: 0 };
+        const led = { id: ledId, type: "led", name: "5mm LED (Green)", color: "#22c55e", x: 640, y: 288, rotation: 0 };
+
+        const wirePos = {
+            id: `wire-${now + 5}`,
+            color: "#ef4444",
+            points: [{ x: 176, y: 208 }, { x: 480, y: 256 }],
+            routingMode: "curved"
+        };
+        const wireNeg = {
+            id: `wire-${now + 6}`,
+            color: "#0f172a",
+            points: [{ x: 208, y: 208 }, { x: 656, y: 256 }],
+            routingMode: "curved"
+        };
+
+        return {
+            components: [bb, bat, pot, res, led],
+            wires: [wirePos, wireNeg],
+            selectedId: led.id,
+            toast: "Imported Starter: Variable LED Dimmer"
+        };
+    }
+    if (type === "starter-button-buzzer") {
+        const bbId = `breadboard-${now}`;
+        const batId = `battery-9v-${now + 1}`;
+        const btnId = `button-${now + 2}`;
+        const buzId = `buzzer-${now + 3}`;
+
+        const bb = { id: bbId, type: "breadboard-half", name: "Breadboard (Half)", x: 320, y: 160, rotation: 0 };
+        const bat = { id: batId, type: "battery-9v", name: "9V Battery", x: 160, y: 208, rotation: 0, voltage: 9 };
+        const btn = { id: btnId, type: "button", name: "Tactile Pushbutton", x: 496, y: 272, rotation: 0 };
+        const buz = { id: buzId, type: "buzzer", name: "Piezo Buzzer", x: 592, y: 256, rotation: 0 };
+
+        const wirePos = {
+            id: `wire-${now + 4}`,
+            color: "#ef4444",
+            points: [{ x: 176, y: 208 }, { x: 496, y: 240 }],
+            routingMode: "curved"
+        };
+        const wireMid = {
+            id: `wire-${now + 5}`,
+            color: "#eab308",
+            points: [{ x: 528, y: 240 }, { x: 592, y: 240 }],
+            routingMode: "curved"
+        };
+        const wireNeg = {
+            id: `wire-${now + 6}`,
+            color: "#0f172a",
+            points: [{ x: 208, y: 208 }, { x: 608, y: 240 }],
+            routingMode: "curved"
+        };
+
+        return {
+            components: [bb, bat, btn, buz],
+            wires: [wirePos, wireMid, wireNeg],
+            selectedId: buz.id,
+            toast: "Imported Starter: Doorbell Buzzer"
+        };
+    }
+    return null;
 }
 
 function Workspace({ onBackToHome }) {
@@ -201,6 +316,14 @@ function Workspace({ onBackToHome }) {
     const [serialLogs, setSerialLogs] = useState([]);
     const [isFirmwareExecuting, setIsFirmwareExecuting] = useState(false);
     const mcuSessionsRef = useRef({});
+    const boardFlashedCodesRef = useRef({});
+
+    // Available MCU boards on canvas
+    const availableMcuBoards = useMemo(() => {
+        return components.filter(c => ["arduino-uno", "arduino-mega", "arduino-nano", "esp32-devkit", "esp32", "esp32-s3"].includes(c.type));
+    }, [components]);
+
+    const activeTargetBoard = availableMcuBoards.find(b => b.id === targetMcuId) || availableMcuBoards[0] || null;
 
     // User Firmware Sketch Code: persisted across code window toggles, project saves, and sessions
     const [userCode, setUserCode] = useState(() => {
@@ -215,13 +338,21 @@ function Workspace({ onBackToHome }) {
                 const parsed = JSON.parse(saved);
                 if (parsed.firmwareCode) return parsed.firmwareCode;
             }
-            const globalCode = localStorage.getItem("twinlab_user_code");
-            if (globalCode) return globalCode;
         } catch (e) {
             console.error("Code load error:", e);
         }
-        return DEFAULT_SKETCHES?.blink || `void setup() {\n  pinMode(LED_BUILTIN, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(LED_BUILTIN, HIGH);\n  delay(1000);\n  digitalWrite(LED_BUILTIN, LOW);\n  delay(1000);\n}`;
+        return DEFAULT_SKETCHES?.blank || `// Clean Arduino Sketch\nvoid setup() {\n  // put your setup code here, to run once:\n\n}\n\nvoid loop() {\n  // put your main code here, to run repeatedly:\n\n}`;
     });
+
+    // Synchronize userCode with active board's flashed firmware
+    useEffect(() => {
+        if (activeTargetBoard) {
+            const boardCode = activeTargetBoard.flashedCode || activeTargetBoard.codeDraft || boardFlashedCodesRef.current[activeTargetBoard.id];
+            if (boardCode !== undefined && boardCode !== null) {
+                setUserCode(boardCode);
+            }
+        }
+    }, [activeTargetBoard?.id]);
 
     const handleCodeChange = useCallback((newCode) => {
         setUserCode(newCode);
@@ -237,13 +368,6 @@ function Workspace({ onBackToHome }) {
         window.addEventListener("twinlab:toggle_code_editor", handleToggleCode);
         return () => window.removeEventListener("twinlab:toggle_code_editor", handleToggleCode);
     }, []);
-
-    // Available MCU boards on canvas
-    const availableMcuBoards = useMemo(() => {
-        return components.filter(c => ["arduino-uno", "arduino-mega", "arduino-nano", "esp32-devkit", "esp32", "esp32-s3"].includes(c.type));
-    }, [components]);
-
-    const activeTargetBoard = availableMcuBoards.find(b => b.id === targetMcuId) || availableMcuBoards[0] || null;
 
     // Real-Time SPICE/EDA Circuit Simulation
     const simulationResult = useMemo(() => {
@@ -314,10 +438,20 @@ function Workspace({ onBackToHome }) {
                 });
 
                 mcuSessionsRef.current[board.id] = session;
-                session.startDefaultBlink();
+
+                // Only execute if this board has actual flashed code
+                const flashed = board.flashedCode || boardFlashedCodesRef.current[board.id] || (board.id === targetMcuId ? userCode : null);
+                const hasExecutableCode = flashed && !isPureBlankTemplate(flashed);
+
+                if (hasExecutableCode) {
+                    session.compileAndRun(flashed);
+                    setIsFirmwareExecuting(true);
+                } else {
+                    session.stop();
+                }
             }
         });
-    }, [isSimulating, availableMcuBoards]);
+    }, [isSimulating, availableMcuBoards, targetMcuId, userCode]);
 
     const handleUploadAndRunSketch = useCallback((sketchCode, cb) => {
         if (sketchCode) {
@@ -344,6 +478,14 @@ function Workspace({ onBackToHome }) {
             setComponents(prev => [...prev, newBoard]);
             setTargetMcuId(boardId);
         }
+
+        // Store and flash code to MCU component so closing editor and restarting simulation never loses it
+        boardFlashedCodesRef.current[boardId] = sketchCode;
+        handleUpdateComponent(boardId, {
+            flashedCode: sketchCode,
+            isFlashed: true,
+            firmwareCode: sketchCode
+        });
 
         if (!isSimulating) {
             setIsSimulating(true);
@@ -984,115 +1126,13 @@ function Workspace({ onBackToHome }) {
         setIsWireMode(false);
         setSelectedWireId(null);
 
-        if (newComp.type === "starter-led-resistor" || newComp.type === "starter-battery-led") {
-            const now = Date.now();
-            const bbId = `breadboard-${now}`;
-            const batId = `battery-9v-${now + 1}`;
-            const resId = `resistor-${now + 2}`;
-            const ledId = `led-${now + 3}`;
-
-            // Breadboard placed at x: 320, y: 160
-            const bb = { id: bbId, type: "breadboard-half", name: "Breadboard (Half)", x: 320, y: 160, rotation: 0 };
-            // 9V Battery on the left
-            const bat = { id: batId, type: "battery-9v", name: "9V Battery", x: 160, y: 208, rotation: 0, voltage: 9 };
-            // Resistor: Col 10 (320 + 48 + 9*16 = 512), Row d (160 + 112 = 272). 64px span to Col 14 (576, 272)
-            const res = { id: resId, type: "resistor", name: "Resistor (220Ω)", resistance: 220, x: 512, y: 272, rotation: 0 };
-            // LED: Anode at Col 14 Row e (576, 288), Cathode at Col 15 Row e (592, 288)
-            const led = { id: ledId, type: "led", name: "5mm LED (Red)", color: "#ef4444", x: 576, y: 288, rotation: 0 };
-
-            // Accurate pre-routed wires completing the closed-loop circuit:
-            const wirePos = {
-                id: `wire-${now + 4}`,
-                color: "#ef4444",
-                points: [{ x: 176, y: 208 }, { x: 512, y: 240 }], // Battery + to Col 10 Row b
-                routingMode: "curved"
-            };
-            const wireNeg = {
-                id: `wire-${now + 5}`,
-                color: "#0f172a",
-                points: [{ x: 208, y: 208 }, { x: 592, y: 240 }], // Battery - to Col 15 Row b
-                routingMode: "curved"
-            };
-
-            setComponents(prev => [...prev, bb, bat, res, led]);
-            setWires(prev => [...prev, wirePos, wireNeg]);
-            setSelectedId(led.id);
+        const starter = getStarterCircuit(newComp.type);
+        if (starter) {
+            setComponents(prev => [...prev, ...starter.components]);
+            setWires(prev => [...prev, ...starter.wires]);
+            setSelectedId(starter.selectedId);
             setIsUnsaved(true);
-            setToastMessage("Imported Starter: LED + Resistor Circuit");
-            setTimeout(() => setToastMessage(""), 2000);
-            return;
-        }
-        if (newComp.type === "starter-pot-led") {
-            const now = Date.now();
-            const bbId = `breadboard-${now}`;
-            const batId = `battery-9v-${now + 1}`;
-            const potId = `potentiometer-${now + 2}`;
-            const resId = `resistor-${now + 3}`;
-            const ledId = `led-${now + 4}`;
-
-            const bb = { id: bbId, type: "breadboard-half", name: "Breadboard (Half)", x: 320, y: 160, rotation: 0 };
-            const bat = { id: batId, type: "battery-9v", name: "9V Battery", x: 160, y: 208, rotation: 0, voltage: 9 };
-            const pot = { id: potId, type: "potentiometer", name: "Potentiometer (10k)", resistance: 10000, wiperValue: 0.7, x: 480, y: 272, rotation: 0 };
-            const res = { id: resId, type: "resistor", name: "Resistor (330Ω)", resistance: 330, x: 560, y: 272, rotation: 0 };
-            const led = { id: ledId, type: "led", name: "5mm LED (Green)", color: "#22c55e", x: 640, y: 288, rotation: 0 };
-
-            const wirePos = {
-                id: `wire-${now + 5}`,
-                color: "#ef4444",
-                points: [{ x: 176, y: 208 }, { x: 480, y: 256 }],
-                routingMode: "curved"
-            };
-            const wireNeg = {
-                id: `wire-${now + 6}`,
-                color: "#0f172a",
-                points: [{ x: 208, y: 208 }, { x: 656, y: 256 }],
-                routingMode: "curved"
-            };
-
-            setComponents(prev => [...prev, bb, bat, pot, res, led]);
-            setWires(prev => [...prev, wirePos, wireNeg]);
-            setSelectedId(led.id);
-            setIsUnsaved(true);
-            setToastMessage("Imported Starter: Variable LED Dimmer");
-            setTimeout(() => setToastMessage(""), 2000);
-            return;
-        }
-        if (newComp.type === "starter-button-buzzer") {
-            const now = Date.now();
-            const bbId = `breadboard-${now}`;
-            const batId = `battery-9v-${now + 1}`;
-            const btnId = `button-${now + 2}`;
-            const buzId = `buzzer-${now + 3}`;
-
-            const bb = { id: bbId, type: "breadboard-half", name: "Breadboard (Half)", x: 320, y: 160, rotation: 0 };
-            const bat = { id: batId, type: "battery-9v", name: "9V Battery", x: 160, y: 208, rotation: 0, voltage: 9 };
-            const btn = { id: btnId, type: "button", name: "Tactile Pushbutton", x: 496, y: 272, rotation: 0 };
-            const buz = { id: buzId, type: "buzzer", name: "Piezo Buzzer", x: 592, y: 256, rotation: 0 };
-
-            const wirePos = {
-                id: `wire-${now + 4}`,
-                color: "#ef4444",
-                points: [{ x: 176, y: 208 }, { x: 496, y: 240 }],
-                routingMode: "curved"
-            };
-            const wireMid = {
-                id: `wire-${now + 5}`,
-                color: "#eab308",
-                points: [{ x: 528, y: 240 }, { x: 592, y: 240 }],
-                routingMode: "curved"
-            };
-            const wireNeg = {
-                id: `wire-${now + 6}`,
-                color: "#0f172a",
-                points: [{ x: 208, y: 208 }, { x: 608, y: 240 }],
-                routingMode: "curved"
-            };
-
-            setComponents(prev => [...prev, bb, bat, btn, buz]);
-            setWires(prev => [...prev, wirePos, wireMid, wireNeg]);
-            setSelectedId(buz.id);
-            setIsUnsaved(true);
-            setToastMessage("Imported Starter: Doorbell Buzzer");
+            setToastMessage(starter.toast);
             setTimeout(() => setToastMessage(""), 2000);
             return;
         }

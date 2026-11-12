@@ -67,6 +67,37 @@ function getResistorColorBands(resistance = 220) {
     return [band1, band2, band3, band4];
 }
 
+// Convert client mouse/pointer coordinates into the local coordinate system of an SVG element
+function getLocalSvgPoint(svgElement, clientX, clientY) {
+    if (!svgElement) return null;
+    try {
+        const ctm = svgElement.getScreenCTM();
+        if (!ctm) return null;
+        let pt;
+        if (typeof svgElement.createSVGPoint === "function") {
+            pt = svgElement.createSVGPoint();
+        } else if (svgElement.ownerSVGElement && typeof svgElement.ownerSVGElement.createSVGPoint === "function") {
+            pt = svgElement.ownerSVGElement.createSVGPoint();
+        }
+        if (pt && typeof pt.matrixTransform === "function") {
+            pt.x = clientX;
+            pt.y = clientY;
+            return pt.matrixTransform(ctm.inverse());
+        }
+        const a = ctm.a, b = ctm.b, c = ctm.c, d = ctm.d, e = ctm.e, f = ctm.f;
+        const det = a * d - b * c;
+        if (Math.abs(det) < 1e-6) return null;
+        const x = clientX - e;
+        const y = clientY - f;
+        return {
+            x: (d * x - c * y) / det,
+            y: (-b * x + a * y) / det
+        };
+    } catch {
+        return null;
+    }
+}
+
 function SmallComponent({
     id,
     type,
@@ -99,8 +130,18 @@ function SmallComponent({
     capacitance = "100nF",
     backlightColor = "#0284c7",
     lcdTextColor = "#ffffff",
+    textLines,
+    contrast = 85,
+    backlightOn = true,
+    i2cAddress = "0x27",
+    cursorCol = 0,
+    cursorRow = 0,
+    showCursor = false,
+    blinkCursor = false,
+    displayOn = true,
     angle = 90,
     distanceCm = 25,
+    targetAngle = 0,
     is3D = true,
     viewMode = "3d",
     rot3D = 35,
@@ -112,12 +153,21 @@ function SmallComponent({
     onUpdate
 }) {
     const [hoveredTerminal, setHoveredTerminal] = useState(null);
+    const [ballAngle, setBallAngle] = useState(targetAngle || 0);
+    const [isDraggingBall, setIsDraggingBall] = useState(false);
+    const coneSvgRef = useRef(null);
     const lastMouseDownRef = useRef({ time: 0, key: "" });
     const rotorRef = useRef(null);
     const tachRpmRef = useRef(null);
     const liveAngleRef = useRef(0);
     const liveRpmRef = useRef(0);
     const voltageDisplay = voltage != null ? `${voltage}V` : "9V";
+
+    useEffect(() => {
+        if (targetAngle != null) {
+            setBallAngle(targetAngle);
+        }
+    }, [targetAngle]);
 
     // Play/stop electronic chime tone for buzzer
     useEffect(() => {
@@ -255,6 +305,69 @@ function SmallComponent({
         if (activeWire || isDouble || isWireMode) {
             handleTerminalAction(e, localX, localY);
         }
+    };
+
+    // Interactive mouse drag handler for ultrasonic obstacle target ball & acoustic cone
+    const handleBallDragStart = (e) => {
+        if (isWireMode) return;
+        e && e.stopPropagation && e.stopPropagation();
+        e && e.preventDefault && e.preventDefault();
+        setIsDraggingBall(true);
+
+        const svgEl = coneSvgRef.current;
+        if (!svgEl) return;
+
+        const updatePosition = (evt) => {
+            const localPt = getLocalSvgPoint(svgEl, evt.clientX, evt.clientY);
+            if (!localPt) return;
+
+            // Transducers apex is located at (24, -56)
+            const dx = localPt.x - 24;
+            const dy = -56 - localPt.y; // forward direction points towards negative Y
+
+            const maxHalfAngleRad = (18 * Math.PI) / 180; // ±18 degrees beam cone
+            let phi = Math.atan2(dx, dy);
+
+            if (dy < 0) {
+                phi = dx >= 0 ? maxHalfAngleRad : -maxHalfAngleRad;
+            } else {
+                phi = Math.max(-maxHalfAngleRad, Math.min(maxHalfAngleRad, phi));
+            }
+
+            const rawDistPx = Math.sqrt(dx * dx + (dy > 0 ? dy * dy : 0));
+            // Clamp radius between 2 cm and 300 cm (R = 32 + distCm * 1.2 px)
+            const minR = 32 + 2 * 1.2;    // 34.4 px
+            const maxR = 32 + 300 * 1.2;  // 392 px
+            const clampedR = Math.max(minR, Math.min(maxR, rawDistPx));
+
+            const newDistCm = Math.max(2, Math.min(300, Math.round((clampedR - 32) / 1.2)));
+            setBallAngle(phi);
+            if (onUpdate) {
+                onUpdate({ distanceCm: newDistCm, targetAngle: Math.round(phi * 1000) / 1000 });
+            }
+        };
+
+        updatePosition(e);
+
+        const handlePointerMove = (moveEvt) => {
+            moveEvt.stopPropagation();
+            moveEvt.preventDefault();
+            updatePosition(moveEvt);
+        };
+
+        const handlePointerUp = (upEvt) => {
+            upEvt && upEvt.stopPropagation && upEvt.stopPropagation();
+            setIsDraggingBall(false);
+            window.removeEventListener("pointermove", handlePointerMove);
+            window.removeEventListener("pointerup", handlePointerUp);
+            window.removeEventListener("mousemove", handlePointerMove);
+            window.removeEventListener("mouseup", handlePointerUp);
+        };
+
+        window.addEventListener("pointermove", handlePointerMove, { passive: false });
+        window.addEventListener("pointerup", handlePointerUp);
+        window.addEventListener("mousemove", handlePointerMove, { passive: false });
+        window.addEventListener("mouseup", handlePointerUp);
     };
 
     return (
@@ -1148,9 +1261,31 @@ function SmallComponent({
             {/* REALISTIC 16x2 & 20x4 CHARACTER LCD (HD44780 / I2C DISPLAY) */}
             {(type === "lcd-1602" || type === "lcd-2004") && (() => {
                 const is2004 = type === "lcd-2004";
+                const numCols = is2004 ? 20 : 16;
+                const numRows = is2004 ? 4 : 2;
                 const isPowered = Boolean(isSimulating && simState?.isPowered);
+                const isBacklightActive = isPowered && backlightOn !== false;
+                const isDisplayVisible = isPowered && displayOn !== false;
                 const bgColor = backlightColor || "#0284c7";
                 const txtColor = lcdTextColor || "#ffffff";
+                const contrastVal = contrast != null ? contrast : 85;
+
+                // Authentic HD44780 contrast curve
+                const charOpacity = isDisplayVisible ? (contrastVal < 25 ? 0.08 : Math.min(1, contrastVal / 75)) : 0;
+                const ghostOpacity = isBacklightActive ? (contrastVal > 85 ? ((contrastVal - 85) / 15) * 0.35 : 0.05) : 0;
+
+                // Extract or default lines
+                const defaultLines = [
+                    isPowered ? (is2004 ? "TwinLab 2004 I2C" : "TwinLab 1602 LCD") : "",
+                    isPowered ? (is2004 ? "Simulation Online" : "Online 0x27 OK") : "",
+                    ...(is2004 ? [isPowered ? "5.0V Active Bus" : "", isPowered ? "HD44780 Ready" : ""] : [])
+                ];
+                const activeLines = (textLines && Array.isArray(textLines) && textLines.length > 0)
+                    ? textLines
+                    : defaultLines;
+
+                // Trimpot rotation angle for backpack based on contrast
+                const trimpotAngle = Math.round((contrastVal / 100) * 270 - 135);
 
                 return (
                     <div 
@@ -1158,7 +1293,7 @@ function SmallComponent({
                         style={{
                             "--lcd-backlight": bgColor,
                             "--lcd-text-color": txtColor,
-                            width: is2004 ? 240 : 196
+                            width: is2004 ? 248 : 204
                         }}
                     >
                         {/* 4-Pin I2C Header at Top (GND, VCC, SDA, SCL) */}
@@ -1201,30 +1336,53 @@ function SmallComponent({
                             {/* Metallic Screen Bezel */}
                             <div className="lcd-bezel-frame">
                                 {/* Dot-Matrix LCD Screen Area */}
-                                <div className={`lcd-matrix-screen ${isPowered ? "backlight-active" : ""}`}>
-                                    <div className="lcd-text-row row-1">
-                                        <span className="lcd-dot-text">{isPowered ? (is2004 ? "TwinLab X 2004 LCD" : "TwinLab X 1602") : ""}</span>
-                                    </div>
-                                    <div className="lcd-text-row row-2">
-                                        <span className="lcd-dot-text">
-                                            {isPowered ? "Simulation Online" : ""}
-                                            {isPowered && <span className="lcd-cursor-prompt"></span>}
-                                        </span>
-                                    </div>
-                                    {is2004 && (
-                                        <>
-                                            <div className="lcd-text-row row-3">
-                                                <span className="lcd-dot-text">{isPowered ? "Supply: 5.0V DC" : ""}</span>
+                                <div className={`lcd-matrix-screen ${isBacklightActive ? "backlight-active" : "backlight-dark"}`} style={{ opacity: isPowered ? 1 : 0.65 }}>
+                                    {Array.from({ length: numRows }).map((_, rIdx) => {
+                                        const rawLine = activeLines[rIdx] || "";
+                                        const chars = rawLine.padEnd(numCols, " ").slice(0, numCols).split("");
+
+                                        return (
+                                            <div key={rIdx} className={`lcd-text-row row-${rIdx + 1}`}>
+                                                {chars.map((char, cIdx) => {
+                                                    const isCursorCell = isPowered && rIdx === (cursorRow || 0) && cIdx === (cursorCol || 0);
+                                                    return (
+                                                        <div 
+                                                            key={cIdx} 
+                                                            className={`lcd-matrix-cell ${isCursorCell && blinkCursor ? "cursor-blink" : ""}`}
+                                                            style={{
+                                                                "--ghost-opacity": ghostOpacity,
+                                                                "--char-opacity": charOpacity
+                                                            }}
+                                                        >
+                                                            {/* 5x8 Ghost Matrix Cell Block Background */}
+                                                            <div className="lcd-ghost-block"></div>
+
+                                                            {/* Character Glyphs */}
+                                                            <span className="lcd-char-glyph">{char}</span>
+
+                                                            {/* Underline Cursor */}
+                                                            {isCursorCell && showCursor && (
+                                                                <span className="lcd-cursor-underline"></span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
-                                            <div className="lcd-text-row row-4">
-                                                <span className="lcd-dot-text">{isPowered ? "I2C Bus: 0x27 OK" : ""}</span>
-                                            </div>
-                                        </>
-                                    )}
+                                        );
+                                    })}
                                 </div>
                             </div>
 
-                            <span className="lcd-brand-stamp">{is2004 ? "2004A HD44780" : "1602A HD44780"}</span>
+                            {/* PCB Bottom Details: Brand Stamp + I2C Backpack Preview */}
+                            <div className="lcd-pcb-footer-details">
+                                <span className="lcd-brand-stamp">{is2004 ? "2004A HD44780 • I2C 0x27" : "1602A HD44780 • I2C 0x27"}</span>
+                                <div className="lcd-backpack-indicator" title={`PCF8574 Backpack • Contrast: ${contrastVal}%`}>
+                                    <span className={`lcd-smd-pwr-led ${isPowered ? "active" : ""}`}></span>
+                                    <div className="lcd-contrast-trimpot" style={{ transform: `rotate(${trimpotAngle}deg)` }}>
+                                        <div className="trimpot-slot-cross"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 );
@@ -2478,8 +2636,315 @@ function SmallComponent({
                 const distCm = distanceCm != null ? distanceCm : 25;
                 const isPowered = Boolean(isSimulating && simState?.isPowered);
                 const isPinging = Boolean(isPowered && simState?.isPinging);
+
+                const maxHalfAngleRad = (18 * Math.PI) / 180; // ±18 degrees beam cone
+                const effectiveR = 32 + Math.max(2, Math.min(300, distCm)) * 1.2;
+                const currentAngle = Math.max(-maxHalfAngleRad, Math.min(maxHalfAngleRad, ballAngle || 0));
+
+                // Transducers apex is located at (24, -56)
+                const xL = 24 + effectiveR * Math.sin(-maxHalfAngleRad);
+                const yL = -56 - effectiveR * Math.cos(-maxHalfAngleRad);
+                const xR = 24 + effectiveR * Math.sin(maxHalfAngleRad);
+                const yR = -56 - effectiveR * Math.cos(maxHalfAngleRad);
+
+                const ballX = 24 + effectiveR * Math.sin(currentAngle);
+                const ballY = -56 - effectiveR * Math.cos(currentAngle);
+
+                // Intermediate radar range rings
+                const guideDistances = [50, 100, 150, 200, 250].filter(d => (32 + d * 1.2) < (effectiveR - 16));
+
                 return (
                     <div className={`ultrasonic-container ${isPinging ? "is-pinging" : ""} ${isPowered ? "is-powered" : "is-unpowered"}`}>
+                        {/* 1. PREMIUM DYNAMIC ACOUSTIC CONE & DRAGGABLE TARGET OBSTACLE BALL */}
+                        <svg
+                            ref={coneSvgRef}
+                            className="ultrasonic-cone-svg"
+                            viewBox="-200 -480 448 485"
+                            width="448"
+                            height="485"
+                            style={{
+                                position: "absolute",
+                                left: -200,
+                                top: -480,
+                                pointerEvents: "none",
+                                overflow: "visible",
+                                zIndex: 12
+                            }}
+                        >
+                            <defs>
+                                <radialGradient id={`sonar-beam-fill-${id}`} cx="24" cy="-56" r={effectiveR} gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.32" />
+                                    <stop offset="35%" stopColor="#0ea5e9" stopOpacity="0.20" />
+                                    <stop offset="70%" stopColor="#0284c7" stopOpacity="0.10" />
+                                    <stop offset="92%" stopColor="#0369a1" stopOpacity="0.04" />
+                                    <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.22" />
+                                </radialGradient>
+
+                                <linearGradient id={`sonar-ray-grad-${id}`} x1="0%" y1="100%" x2="0%" y2="0%">
+                                    <stop offset="0%" stopColor="#0284c7" stopOpacity="0.25" />
+                                    <stop offset="60%" stopColor="#38bdf8" stopOpacity="0.85" />
+                                    <stop offset="100%" stopColor="#7dd3fc" stopOpacity="1" />
+                                </linearGradient>
+
+                                <radialGradient id={`sonar-ball-grad-${id}`} cx="32%" cy="28%" r="68%">
+                                    <stop offset="0%" stopColor="#ffffff" />
+                                    <stop offset="22%" stopColor="#7dd3fc" />
+                                    <stop offset="55%" stopColor="#0284c7" />
+                                    <stop offset="85%" stopColor="#0f172a" />
+                                    <stop offset="100%" stopColor="#020617" />
+                                </radialGradient>
+
+                                <radialGradient id={`sonar-ball-halo-${id}`} cx="50%" cy="50%" r="50%">
+                                    <stop offset="0%" stopColor="#38bdf8" stopOpacity={isDraggingBall ? "0.95" : "0.75"} />
+                                    <stop offset="45%" stopColor="#0ea5e9" stopOpacity={isDraggingBall ? "0.45" : "0.25"} />
+                                    <stop offset="100%" stopColor="#0284c7" stopOpacity="0" />
+                                </radialGradient>
+
+                                <filter id={`sonar-glow-${id}`} x="-30%" y="-30%" width="160%" height="160%">
+                                    <feGaussianBlur stdDeviation="3" result="blur" />
+                                    <feMerge>
+                                        <feMergeNode in="blur" />
+                                        <feMergeNode in="SourceGraphic" />
+                                    </feMerge>
+                                </filter>
+                            </defs>
+
+                            {/* Main Acoustic Cone Sector with Interactive Click/Drag Hit Area */}
+                            <path
+                                d={`M 24 -56 L ${xL.toFixed(1)} ${yL.toFixed(1)} A ${effectiveR.toFixed(1)} ${effectiveR.toFixed(1)} 0 0 1 ${xR.toFixed(1)} ${yR.toFixed(1)} Z`}
+                                fill={`url(#sonar-beam-fill-${id})`}
+                                stroke="none"
+                                style={{ pointerEvents: "all", cursor: isDraggingBall ? "grabbing" : "crosshair" }}
+                                onMouseDown={handleBallDragStart}
+                            />
+
+                            {/* Intermediate Concentric Radar Distance Guide Arcs & Markings */}
+                            {guideDistances.map(d => {
+                                const rGuide = 32 + d * 1.2;
+                                const gxL = 24 + rGuide * Math.sin(-maxHalfAngleRad);
+                                const gyL = -56 - rGuide * Math.cos(-maxHalfAngleRad);
+                                const gxR = 24 + rGuide * Math.sin(maxHalfAngleRad);
+                                const gyR = -56 - rGuide * Math.cos(maxHalfAngleRad);
+                                return (
+                                    <g key={d} style={{ pointerEvents: "none" }}>
+                                        <path
+                                            d={`M ${gxL.toFixed(1)} ${gyL.toFixed(1)} A ${rGuide.toFixed(1)} ${rGuide.toFixed(1)} 0 0 1 ${gxR.toFixed(1)} ${gyR.toFixed(1)}`}
+                                            fill="none"
+                                            stroke="rgba(56, 189, 248, 0.28)"
+                                            strokeWidth="1"
+                                            strokeDasharray="3 4"
+                                        />
+                                        <text
+                                            x={gxR + 5}
+                                            y={gyR + 3}
+                                            fill="rgba(125, 211, 252, 0.75)"
+                                            fontSize="7"
+                                            fontWeight="600"
+                                            fontFamily="monospace"
+                                        >
+                                            {d}cm
+                                        </text>
+                                    </g>
+                                );
+                            })}
+
+                            {/* Central Boresight Axis Line */}
+                            <line
+                                x1="24"
+                                y1="-56"
+                                x2="24"
+                                y2={-56 - effectiveR}
+                                stroke="rgba(56, 189, 248, 0.25)"
+                                strokeWidth="1"
+                                strokeDasharray="2 4"
+                                style={{ pointerEvents: "none" }}
+                            />
+
+                            {/* Left & Right Boundary Rays with Subtle Glowing Edge */}
+                            <line
+                                x1="24"
+                                y1="-56"
+                                x2={xL.toFixed(1)}
+                                y2={yL.toFixed(1)}
+                                stroke={`url(#sonar-ray-grad-${id})`}
+                                strokeWidth="1.8"
+                                strokeDasharray="5 3"
+                                style={{ pointerEvents: "none" }}
+                            />
+                            <line
+                                x1="24"
+                                y1="-56"
+                                x2={xR.toFixed(1)}
+                                y2={yR.toFixed(1)}
+                                stroke={`url(#sonar-ray-grad-${id})`}
+                                strokeWidth="1.8"
+                                strokeDasharray="5 3"
+                                style={{ pointerEvents: "none" }}
+                            />
+
+                            {/* Dynamic Outer Wavefront Detection Arc (Extends / Contracts Exactly with Distance) */}
+                            <path
+                                d={`M ${xL.toFixed(1)} ${yL.toFixed(1)} A ${effectiveR.toFixed(1)} ${effectiveR.toFixed(1)} 0 0 1 ${xR.toFixed(1)} ${yR.toFixed(1)}`}
+                                fill="none"
+                                stroke="rgba(56, 189, 248, 0.4)"
+                                strokeWidth="5"
+                                strokeLinecap="round"
+                                style={{ pointerEvents: "none" }}
+                            />
+                            <path
+                                d={`M ${xL.toFixed(1)} ${yL.toFixed(1)} A ${effectiveR.toFixed(1)} ${effectiveR.toFixed(1)} 0 0 1 ${xR.toFixed(1)} ${yR.toFixed(1)}`}
+                                fill="none"
+                                stroke="#38bdf8"
+                                strokeWidth="2.2"
+                                strokeLinecap="round"
+                                filter={`url(#sonar-glow-${id})`}
+                                style={{ pointerEvents: "none" }}
+                            />
+
+                            {/* Acoustic Echo Return Line from Obstacle Ball to Receiver Transducer (R at 84, -56) */}
+                            <line
+                                x1={ballX.toFixed(1)}
+                                y1={ballY.toFixed(1)}
+                                x2="84"
+                                y2="-56"
+                                stroke="#2dd4bf"
+                                strokeWidth="1.4"
+                                strokeDasharray="4 3"
+                                opacity={isPinging ? 0.95 : 0.45}
+                                className={isPinging ? "ultrasonic-echo-pulse" : ""}
+                                style={{ pointerEvents: "none" }}
+                            />
+
+                            {/* 2. DRAGGABLE TARGET OBSTACLE BALL WITH 3D METALLIC SHADING & HUD TELEMETRY BADGE */}
+                            <g
+                                className="ultrasonic-ball-interactive-group"
+                                style={{ pointerEvents: "all", cursor: isDraggingBall ? "grabbing" : "grab" }}
+                                onMouseDown={handleBallDragStart}
+                            >
+                                {/* Generous Invisible Hitbox for Ultra-Reliable Dragging */}
+                                <circle cx={ballX.toFixed(1)} cy={ballY.toFixed(1)} r="22" fill="transparent" />
+
+                                {/* Depth Cast Shadow on Ground */}
+                                <ellipse
+                                    cx={ballX.toFixed(1)}
+                                    cy={(ballY + 8).toFixed(1)}
+                                    rx="13"
+                                    ry="4.5"
+                                    fill="rgba(0,0,0,0.5)"
+                                    filter="blur(2px)"
+                                />
+
+                                {/* Outer Target Glowing Halo */}
+                                <circle
+                                    cx={ballX.toFixed(1)}
+                                    cy={ballY.toFixed(1)}
+                                    r={isDraggingBall ? "22" : "18"}
+                                    fill={`url(#sonar-ball-halo-${id})`}
+                                    className={isDraggingBall ? "dragging-halo" : "idle-halo"}
+                                />
+
+                                {/* 3D Realistic Metallic Sphere */}
+                                <circle
+                                    cx={ballX.toFixed(1)}
+                                    cy={ballY.toFixed(1)}
+                                    r="12"
+                                    fill={`url(#sonar-ball-grad-${id})`}
+                                    stroke={isDraggingBall ? "#ffffff" : "#38bdf8"}
+                                    strokeWidth="1.6"
+                                    filter="drop-shadow(0 2px 4px rgba(0,0,0,0.5))"
+                                />
+
+                                {/* Spherical Specular Glint */}
+                                <ellipse
+                                    cx={(ballX - 4).toFixed(1)}
+                                    cy={(ballY - 4).toFixed(1)}
+                                    rx="4"
+                                    ry="2.4"
+                                    fill="#ffffff"
+                                    opacity="0.88"
+                                    transform={`rotate(-35 ${(ballX - 4).toFixed(1)} ${(ballY - 4).toFixed(1)})`}
+                                />
+
+                                {/* High-Tech Tactical Target Reticle */}
+                                <circle
+                                    cx={ballX.toFixed(1)}
+                                    cy={ballY.toFixed(1)}
+                                    r="6.5"
+                                    fill="none"
+                                    stroke="rgba(255,255,255,0.75)"
+                                    strokeWidth="0.8"
+                                    strokeDasharray="2 2"
+                                />
+                                <line
+                                    x1={(ballX - 8).toFixed(1)}
+                                    y1={ballY.toFixed(1)}
+                                    x2={(ballX + 8).toFixed(1)}
+                                    y2={ballY.toFixed(1)}
+                                    stroke="rgba(255,255,255,0.7)"
+                                    strokeWidth="0.8"
+                                />
+                                <line
+                                    x1={ballX.toFixed(1)}
+                                    y1={(ballY - 8).toFixed(1)}
+                                    x2={ballX.toFixed(1)}
+                                    y2={(ballY + 8).toFixed(1)}
+                                    stroke="rgba(255,255,255,0.7)"
+                                    strokeWidth="0.8"
+                                />
+                                <circle
+                                    cx={ballX.toFixed(1)}
+                                    cy={ballY.toFixed(1)}
+                                    r="1.5"
+                                    fill="#ffffff"
+                                />
+
+                                {/* Floating HUD Telemetry Badge Displaying Exact Clamped Distance */}
+                                <g className="ultrasonic-hud-badge" style={{ pointerEvents: "none" }}>
+                                    {/* Connecting Tick Line */}
+                                    <line
+                                        x1={ballX.toFixed(1)}
+                                        y1={(ballY - 12).toFixed(1)}
+                                        x2={ballX.toFixed(1)}
+                                        y2={(ballY - 17).toFixed(1)}
+                                        stroke="#38bdf8"
+                                        strokeWidth="1.2"
+                                    />
+                                    {/* Glassmorphic Capsule Badge */}
+                                    <rect
+                                        x={(ballX - 30).toFixed(1)}
+                                        y={(ballY - 34).toFixed(1)}
+                                        width="60"
+                                        height="17"
+                                        rx="8.5"
+                                        fill="rgba(10, 15, 30, 0.94)"
+                                        stroke={isDraggingBall ? "#38bdf8" : "rgba(56, 189, 248, 0.65)"}
+                                        strokeWidth="1.2"
+                                        filter="drop-shadow(0 4px 8px rgba(0,0,0,0.7))"
+                                    />
+                                    {/* Sonar Status Indicator Light */}
+                                    <circle
+                                        cx={(ballX - 19).toFixed(1)}
+                                        cy={(ballY - 25.5).toFixed(1)}
+                                        r="2.5"
+                                        fill={isPinging ? "#22c55e" : "#38bdf8"}
+                                        filter="drop-shadow(0 0 3px #38bdf8)"
+                                    />
+                                    {/* Distance Text Readout */}
+                                    <text
+                                        x={(ballX + 2).toFixed(1)}
+                                        y={(ballY - 22.5).toFixed(1)}
+                                        fill="#f0f9ff"
+                                        fontSize="8.5"
+                                        fontWeight="800"
+                                        textAnchor="middle"
+                                        fontFamily="monospace"
+                                    >
+                                        {distCm} cm
+                                    </text>
+                                </g>
+                            </g>
+                        </svg>
+
                         <svg className="ultrasonic-realistic-svg" viewBox="-100 -115 248 120" width="248" height="120" style={{ position: "absolute", left: -100, top: -115, pointerEvents: "auto", cursor: "move" }}>
                             {/* Full Hit-Box to ensure 100% reliable click-to-select anywhere on ultrasonic sensor */}
                             <rect x="-100" y="-115" width="248" height="120" fill="transparent" pointerEvents="all" cursor="pointer" />
@@ -2577,13 +3042,6 @@ function SmallComponent({
                                     <div className="sonar-wave wave-1 echo-wave"></div>
                                     <div className="sonar-wave wave-2 echo-wave"></div>
                                     <div className="sonar-wave wave-3 echo-wave"></div>
-                                </div>
-
-                                {/* Front Combined Acoustic Radar Arcs */}
-                                <div className="sonar-acoustic-cone" style={{ left: 24, top: -56 }}>
-                                    <div className="sonar-cone-arc arc-1"></div>
-                                    <div className="sonar-cone-arc arc-2"></div>
-                                    <div className="sonar-cone-arc arc-3"></div>
                                 </div>
                             </>
                         )}

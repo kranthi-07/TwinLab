@@ -32,7 +32,8 @@ export function getComponentTerminalPoints(c) {
         const cellCount = c.cells || (c.voltage === 1.5 ? 1 : c.voltage === 6 ? 4 : c.voltage === 4.5 ? 3 : 2);
         const totalWidth = cellCount === 1 ? 64 : cellCount === 4 ? 176 : cellCount === 3 ? 140 : 96;
         const posLeadX = totalWidth - 20;
-        pts.push(toWorld(20, -14), toWorld(posLeadX, -14));
+        pts.push(toWorld(20, -14), toWorld(posLeadX, -14), toWorld(18, -14), toWorld(totalWidth - 18, -14));
+        [64, 96, 140, 176].forEach(w => pts.push(toWorld(w - 20, -14)));
     }
     // Coin Cell Battery CR2032 3V (Negative 16,32 and Positive 48,32)
     else if (c.type === "battery-coin") {
@@ -1467,7 +1468,7 @@ function Canvas({
             currentWires.forEach(w => {
                 if (!w.points || w.points.length === 0) return;
                 w.points.forEach((pt, ptIdx) => {
-                    const isNear = termPts.some(tp => Math.hypot(pt.x - tp.x, pt.y - tp.y) <= 22);
+                    const isNear = termPts.some(tp => Math.hypot(pt.x - tp.x, pt.y - tp.y) <= 30);
                     if (isNear) {
                         attachedWirePoints.push({
                             wireId: w.id,
@@ -1730,8 +1731,18 @@ function Canvas({
                             lux={comp.lux}
                             backlightColor={comp.backlightColor}
                             lcdTextColor={comp.lcdTextColor}
+                            textLines={comp.textLines || comp.lines}
+                            contrast={comp.contrast}
+                            backlightOn={comp.backlightOn}
+                            i2cAddress={comp.i2cAddress}
+                            cursorCol={comp.cursorCol}
+                            cursorRow={comp.cursorRow}
+                            showCursor={comp.showCursor}
+                            blinkCursor={comp.blinkCursor}
+                            displayOn={comp.displayOn}
                             angle={comp.angle}
                             distanceCm={comp.distanceCm}
+                            targetAngle={comp.targetAngle}
                             is3D={comp.is3D}
                             viewMode={comp.viewMode}
                             rot3D={comp.rot3D}

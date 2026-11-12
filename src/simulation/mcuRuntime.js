@@ -3,6 +3,8 @@
 import { soundManager } from "../utils/audioManager";
 
 export const DEFAULT_SKETCHES = {
+    blank: `// Clean Empty Arduino Sketch\nvoid setup() {\n  // put your setup code here, to run once:\n\n}\n\nvoid loop() {\n  // put your main code here, to run repeatedly:\n\n}`,
+
     blink: `// TwinLab X Arduino / ESP32 Blink Sketch
 // Onboard LED is Pin 13 (Arduino Uno) or Pin 2 (ESP32 DevKit)
 
@@ -188,6 +190,35 @@ void loop() {
     Serial.println(pos);
     delay(200);
   }
+}`,
+
+    lcd: `// TwinLab X 16x2 / 20x4 I2C Character LCD
+// SDA -> Pin A4, SCL -> Pin A5, VCC -> 5V, GND -> GND
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+int counter = 0;
+
+void setup() {
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("TwinLab X 1602");
+  lcd.setCursor(0, 1);
+  lcd.print("Counter: 0");
+  Serial.begin(9600);
+  Serial.println("LCD I2C Display Initialized (0x27)");
+}
+
+void loop() {
+  delay(1000);
+  counter++;
+  lcd.setCursor(9, 1);
+  lcd.print(counter);
+  lcd.print("   ");
+  Serial.print("LCD Telemetry Value: ");
+  Serial.println(counter);
 }`
 };
 
@@ -253,7 +284,7 @@ export class McuExecutionSession {
             const builtinPin = this.getBuiltinLedPin();
 
             // 1. Preprocess & Transpile Arduino C++ to safe async JavaScript
-            let code = sketchCode || DEFAULT_SKETCHES.blink;
+            let code = sketchCode != null ? String(sketchCode) : "";
 
             // Normalize line endings
             code = code.replace(/\r\n/g, "\n");
@@ -262,7 +293,14 @@ export class McuExecutionSession {
             const sanitizedCode = code
                 .replace(/#include\s*<[^>]+>/g, "")
                 .replace(/\/\*[\s\S]*?\*\//g, "")
-                .replace(/\/\/.*$/gm, "");
+                .replace(/\/\/.*$/gm, "")
+                .trim();
+
+            // If empty sketch or blank template with no instructions, stay in quiet standby
+            const strippedBody = sanitizedCode.replace(/\s+/g, "");
+            if (!sanitizedCode || strippedBody === "" || strippedBody === "voidsetup(){}voidloop(){}") {
+                return;
+            }
 
             // Transform #define NAME VALUE
             const defines = {};
@@ -290,6 +328,15 @@ export class McuExecutionSession {
                 globalVarLines.push(`let ${srvMatch[1]} = new __Servo();`);
             }
 
+            // Extract global LiquidCrystal & LiquidCrystal_I2C instances
+            const lcdRegex = /\b(?:LiquidCrystal_I2C|LiquidCrystal)\s+([A-Za-z0-9_]+)\s*\(([^)]*)\)\s*;/g;
+            let lcdMatch;
+            while ((lcdMatch = lcdRegex.exec(sanitizedCode)) !== null) {
+                const varName = lcdMatch[1];
+                const args = lcdMatch[2] ? lcdMatch[2].trim() : "0x27, 16, 2";
+                globalVarLines.push(`let ${varName} = new __LiquidCrystal(${args});`);
+            }
+
             // Extract setup() body
             const setupMatch = sanitizedCode.match(/void\s+setup\s*\(\s*\)\s*\{([\s\S]*?)\}(?=\s*(?:void\s+loop|\n\s*void|$))/);
             const setupBody = setupMatch ? setupMatch[1] : "";
@@ -305,6 +352,7 @@ export class McuExecutionSession {
                 // Replace C++ types inside functions
                 s = s.replace(/\b(?:const\s+)?(?:int|float|double|long|unsigned\s+int|byte|bool|boolean|char|String|auto)\s+/g, "let ");
                 s = s.replace(/\bServo\s+([A-Za-z0-9_]+)\s*;/g, "let $1 = new __Servo();");
+                s = s.replace(/\b(?:LiquidCrystal_I2C|LiquidCrystal)\s+([A-Za-z0-9_]+)\s*\(([^)]*)\)\s*;/g, "let $1 = new __LiquidCrystal($2);");
 
                 // Replace constants
                 s = s.replace(/\bLED_BUILTIN\b/g, String(builtinPin));
@@ -367,6 +415,7 @@ export class McuExecutionSession {
                         __pulseIn,
                         __analogWrite,
                         __Servo,
+                        __LiquidCrystal,
                         __digitalWrite,
                         __digitalRead,
                         __analogRead,
@@ -482,6 +531,174 @@ export class McuExecutionSession {
                         return this.currentAngle;
                     }
                 },
+                __LiquidCrystal: class {
+                    constructor(addrOrRs = 0x27, colsOrEn = 16, rowsOrD4 = 2) {
+                        this.address = typeof addrOrRs === "number" ? addrOrRs : 0x27;
+                        this.cols = Number(colsOrEn) || 16;
+                        this.rows = Number(rowsOrD4) || 2;
+                        this.cursorCol = 0;
+                        this.cursorRow = 0;
+                        this.showCursor = false;
+                        this.blinkCursor = false;
+                        this.backlightOn = true;
+                        this.displayOn = true;
+                        this.contrast = 85;
+                        this.lines = Array(this.rows).fill("").map(() => "".padEnd(this.cols, " "));
+                        this.customChars = {};
+                    }
+
+                    _notify() {
+                        const comps = context.__getComponents ? context.__getComponents() : [];
+                        const lcds = comps.filter(c => c.type === "lcd-1602" || c.type === "lcd-2004" || c.type?.startsWith("lcd"));
+                        lcds.forEach(lcd => {
+                            if (context.__onUpdateComponent) {
+                                context.__onUpdateComponent(lcd.id, {
+                                    textLines: [...this.lines],
+                                    lines: [...this.lines],
+                                    backlightOn: this.backlightOn,
+                                    displayOn: this.displayOn,
+                                    cursorCol: this.cursorCol,
+                                    cursorRow: this.cursorRow,
+                                    showCursor: this.showCursor,
+                                    blinkCursor: this.blinkCursor,
+                                    contrast: this.contrast
+                                });
+                            }
+                        });
+                    }
+
+                    init(cols, rows) {
+                        this.begin(cols || this.cols, rows || this.rows);
+                    }
+
+                    begin(cols = 16, rows = 2) {
+                        this.cols = Number(cols) || 16;
+                        this.rows = Number(rows) || 2;
+                        this.lines = Array(this.rows).fill("").map(() => "".padEnd(this.cols, " "));
+                        this.cursorCol = 0;
+                        this.cursorRow = 0;
+                        this.backlightOn = true;
+                        this.displayOn = true;
+                        this._notify();
+                    }
+
+                    clear() {
+                        this.lines = Array(this.rows).fill("").map(() => "".padEnd(this.cols, " "));
+                        this.cursorCol = 0;
+                        this.cursorRow = 0;
+                        this._notify();
+                    }
+
+                    home() {
+                        this.cursorCol = 0;
+                        this.cursorRow = 0;
+                        this._notify();
+                    }
+
+                    setCursor(col, row) {
+                        this.cursorCol = Math.max(0, Math.min(this.cols - 1, Number(col) || 0));
+                        this.cursorRow = Math.max(0, Math.min(this.rows - 1, Number(row) || 0));
+                        this._notify();
+                    }
+
+                    print(val) {
+                        const str = String(val != null ? val : "");
+                        if (!this.lines[this.cursorRow]) {
+                            this.lines[this.cursorRow] = "".padEnd(this.cols, " ");
+                        }
+                        const rowChars = this.lines[this.cursorRow].padEnd(this.cols, " ").split("");
+                        for (let i = 0; i < str.length; i++) {
+                            const targetCol = this.cursorCol + i;
+                            if (targetCol < this.cols) {
+                                rowChars[targetCol] = str[i];
+                            }
+                        }
+                        this.lines[this.cursorRow] = rowChars.join("").slice(0, this.cols);
+                        this.cursorCol = Math.min(this.cols - 1, this.cursorCol + str.length);
+                        this._notify();
+                    }
+
+                    println(val) {
+                        this.print(val);
+                        this.cursorCol = 0;
+                        this.cursorRow = (this.cursorRow + 1) % this.rows;
+                        this._notify();
+                    }
+
+                    write(charOrCode) {
+                        let ch = "";
+                        if (typeof charOrCode === "number") {
+                            ch = String.fromCharCode(charOrCode);
+                        } else {
+                            ch = String(charOrCode || "");
+                        }
+                        this.print(ch);
+                    }
+
+                    cursor() {
+                        this.showCursor = true;
+                        this._notify();
+                    }
+
+                    noCursor() {
+                        this.showCursor = false;
+                        this._notify();
+                    }
+
+                    blink() {
+                        this.blinkCursor = true;
+                        this._notify();
+                    }
+
+                    noBlink() {
+                        this.blinkCursor = false;
+                        this._notify();
+                    }
+
+                    display() {
+                        this.displayOn = true;
+                        this._notify();
+                    }
+
+                    noDisplay() {
+                        this.displayOn = false;
+                        this._notify();
+                    }
+
+                    backlight() {
+                        this.backlightOn = true;
+                        this._notify();
+                    }
+
+                    noBacklight() {
+                        this.backlightOn = false;
+                        this._notify();
+                    }
+
+                    scrollDisplayLeft() {
+                        this.lines = this.lines.map(row => {
+                            const r = row.padEnd(this.cols, " ");
+                            return r.slice(1) + r.slice(0, 1);
+                        });
+                        this._notify();
+                    }
+
+                    scrollDisplayRight() {
+                        this.lines = this.lines.map(row => {
+                            const r = row.padEnd(this.cols, " ");
+                            return r.slice(-1) + r.slice(0, -1);
+                        });
+                        this._notify();
+                    }
+
+                    autoscroll() {}
+                    noAutoscroll() {}
+
+                    createChar(num, charmap) {
+                        const idx = Math.max(0, Math.min(7, Number(num) || 0));
+                        this.customChars[idx] = charmap;
+                    }
+                },
                 __getComponents: () => (this.callbacks.getComponents ? this.callbacks.getComponents() : []),
                 __onUpdateComponent: (id, updates) => {
                     if (this.callbacks.onUpdateComponent) {
@@ -507,10 +724,30 @@ export class McuExecutionSession {
                     if (pir && pir.motionActive) {
                         return 1;
                     }
+                    const btn = comps.find(c => c.type === "button" && c.isPressed);
+                    if (btn) return 1;
+                    const sw = comps.find(c => (c.type === "switch-spst" || c.type === "slide-switch") && (c.isOn || c.switchState === "closed"));
+                    if (sw) return 1;
                     return this.pinStates[p] || 0;
                 },
                 __analogRead: (pin) => {
-                    // Simulates analog readings (e.g. 512 mid-rail or 1023 if connected)
+                    const comps = this.callbacks.getComponents ? this.callbacks.getComponents() : [];
+                    const pot = comps.find(c => c.type === "potentiometer");
+                    if (pot) {
+                        const wiper = pot.wiperValue != null ? pot.wiperValue : 0.5;
+                        return Math.round(wiper * 1023);
+                    }
+                    const tempSen = comps.find(c => c.type === "sensor-temp" || c.type === "sensor-temperature");
+                    if (tempSen) {
+                        const temp = tempSen.temperature != null ? tempSen.temperature : 25;
+                        const vOut = 0.5 + temp * 0.01;
+                        return Math.min(1023, Math.max(0, Math.round((vOut / 5.0) * 1023)));
+                    }
+                    const photo = comps.find(c => c.type === "photoresistor");
+                    if (photo) {
+                        const light = photo.lightLevel != null ? photo.lightLevel : 0.5;
+                        return Math.round(light * 1023);
+                    }
                     return 512;
                 },
                 __pinMode: (pin, mode) => {
