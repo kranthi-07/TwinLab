@@ -799,7 +799,21 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
 
     // 3e. Add Powered PIR Sensors with Active Motion as 3.3V Logic Output Sources
     components.forEach((c) => {
-        if (c.type === "sensor-pir" && c.motionActive) {
+        if (c.type === "sensor-pir") {
+            let isPirActive = false;
+            if (c.pirBallX != null && c.pirBallY != null) {
+                const rM = c.rangeM != null ? c.rangeM : 5;
+                const pirRangeR = 60 + rM * 35;
+                const pirAngleRad = (32 * Math.PI) / 180;
+                const dx = c.pirBallX - 16;
+                const dy = -70 - c.pirBallY;
+                const distPx = Math.hypot(dx, dy);
+                const phi = Math.atan2(dx, dy);
+                isPirActive = dy > 0 && Math.abs(phi) <= pirAngleRad && distPx <= pirRangeR;
+            } else {
+                isPirActive = Boolean(c.motionActive || c.isMotion);
+            }
+            if (!isPirActive) return;
             const rot = ((c.rotation || 0) * Math.PI) / 180;
             const cos = Math.cos(rot);
             const sin = Math.sin(rot);
@@ -1208,7 +1222,19 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             if (vccNode !== gndNode) {
                 const powerConn = findActivePowerSourceForLoad(vccNode, gndNode);
                 if (powerConn && powerConn.polarity === "forward" && powerConn.voltage >= 3.0) {
-                    const isMotion = Boolean(c.motionActive);
+                    let isMotion = false;
+                    if (c.pirBallX != null && c.pirBallY != null) {
+                        const rM = c.rangeM != null ? c.rangeM : 5;
+                        const pirRangeR = 60 + rM * 35;
+                        const pirAngleRad = (32 * Math.PI) / 180;
+                        const dx = c.pirBallX - 16;
+                        const dy = -70 - c.pirBallY;
+                        const distPx = Math.hypot(dx, dy);
+                        const phi = Math.atan2(dx, dy);
+                        isMotion = dy > 0 && Math.abs(phi) <= pirAngleRad && distPx <= pirRangeR;
+                    } else {
+                        isMotion = Boolean(c.motionActive || c.isMotion);
+                    }
                     sensorStates[c.id] = {
                         isPowered: true,
                         isScanning: true,

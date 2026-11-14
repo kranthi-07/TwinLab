@@ -343,7 +343,7 @@ function ElectrolyticCapValueControl({ component, onUpdate }) {
             </div>
 
             <span className="specs-subtext font-mono">
-                Pin 1: Anode (+) • Pin 2: Cathode (−)
+                ±Polarized
             </span>
         </div>
     );
@@ -783,7 +783,7 @@ function IcLogicGateControl({ component, onUpdate }) {
     ];
 
     return (
-        <div className="inspector-ic-controls" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, width: "100%" }}>
+        <div className="inspector-ic-controls" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, width: "100%", flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span className="studio-control-label" style={{ fontWeight: 700, fontSize: "11px" }}>IC MODEL</span>
                 <div className="cells-segmented-picker" style={{ display: "flex", gap: 4 }}>
@@ -807,7 +807,7 @@ function IcLogicGateControl({ component, onUpdate }) {
                     ))}
                 </div>
             </div>
-            <span className="specs-subtext" style={{ fontSize: "10px", color: "#94a3b8" }}>DIP-14 • 2.0V-6.0V VCC</span>
+            <span className="specs-subtext" style={{ fontSize: "10px", color: "#94a3b8" }}>DIP-14 • 5V</span>
         </div>
     );
 }
@@ -816,9 +816,9 @@ function PirValueControl({ component, onUpdate }) {
     const isMotion = Boolean(component.motionActive);
     const rangeM = component.rangeM != null ? component.rangeM : 5;
     return (
-        <div className="inspector-pir-controls" style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div className="inspector-pir-controls" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", width: "100%" }}>
             <div className="inspector-field-group">
-                <span className="studio-control-label">Sensor State</span>
+                <span className="studio-control-label" style={{ display: "block", marginBottom: 2 }}>Sensor State</span>
                 <button
                     type="button"
                     className={`cell-seg-btn ${isMotion ? "active" : ""}`}
@@ -826,9 +826,10 @@ function PirValueControl({ component, onUpdate }) {
                         background: isMotion ? "#ef4444" : "rgba(255,255,255,0.08)",
                         color: "#fff",
                         fontWeight: 700,
-                        padding: "4px 12px",
+                        padding: "4px 10px",
                         borderRadius: 6,
-                        boxShadow: isMotion ? "0 0 10px rgba(239, 68, 68, 0.6)" : "none"
+                        boxShadow: isMotion ? "0 0 10px rgba(239, 68, 68, 0.6)" : "none",
+                        cursor: "pointer"
                     }}
                     onClick={() => {
                         const next = !isMotion;
@@ -838,7 +839,7 @@ function PirValueControl({ component, onUpdate }) {
                         }
                     }}
                 >
-                    {isMotion ? "🚨 Motion Detected (HIGH 3.3V)" : "Simulate Motion (LOW 0V)"}
+                    {isMotion ? "🚨 Motion Active" : "Simulate Motion"}
                 </button>
             </div>
 
@@ -855,7 +856,7 @@ function PirValueControl({ component, onUpdate }) {
                         step="0.5"
                         value={rangeM}
                         className="studio-range-slider"
-                        style={{ width: 70 }}
+                        style={{ width: 65 }}
                         onChange={(e) => onUpdate && onUpdate(component.id, { rangeM: Number(e.target.value) })}
                     />
                     <div style={{ display: "flex", gap: 3 }}>
@@ -874,7 +875,7 @@ function PirValueControl({ component, onUpdate }) {
                 </div>
             </div>
 
-            <span className="specs-subtext">HC-SR501 • 120° Pyroelectric Dome</span>
+            <span className="specs-subtext">HC-SR501</span>
         </div>
     );
 }
@@ -1353,7 +1354,8 @@ function TopFloatingBar({
     onRedo,
     canUndo = false,
     canRedo = false,
-    onOpenSearch
+    onOpenSearch,
+    onCloseInspector
 }) {
     const { isDark, toggleTheme } = useTheme();
     const [isComponentsOpen, setIsComponentsOpen] = useState(false);
@@ -1519,6 +1521,8 @@ function TopFloatingBar({
                                 setIsComponentsOpen(next);
                                 if (next) {
                                     window.dispatchEvent(new CustomEvent("twinlab:close_other_drawers", { detail: { source: "components-palette" } }));
+                                    window.dispatchEvent(new CustomEvent("twinlab:close_inspector"));
+                                    if (onCloseInspector) onCloseInspector();
                                 }
                             }}
                             title="Open Components Palette"
@@ -2021,7 +2025,11 @@ function TopFloatingBar({
                     {/* Search Component Modal Trigger */}
                     <button 
                         className="top-search-btn" 
-                        onClick={onOpenSearch}
+                        onClick={() => {
+                            window.dispatchEvent(new CustomEvent("twinlab:close_inspector"));
+                            if (onCloseInspector) onCloseInspector();
+                            onOpenSearch && onOpenSearch();
+                        }}
                         title="Search Components (Ctrl+F)"
                     >
                         <i className="ri-search-line"></i>
@@ -2415,9 +2423,9 @@ function TopFloatingBar({
                                                 ))}
                                             </div>
                                             <span className="specs-subtext">
-                                                {selectedComponent.type === "breadboard-mini" ? "170 Tie-Points • No Rails" :
-                                                 selectedComponent.type === "breadboard-full" ? "830 Tie-Points • Dual Bus" :
-                                                 "400 Tie-Points • Solderless"}
+                                                {selectedComponent.type === "breadboard-mini" ? "Mini 170" :
+                                                 selectedComponent.type === "breadboard-full" ? "Full 830" :
+                                                 "Half 400"}
                                             </span>
                                         </div>
                                     )}
@@ -2426,7 +2434,7 @@ function TopFloatingBar({
                                     {selectedComponent.type === "multimeter" && (
                                         <div className="inspector-simple-badge-row">
                                             <i className="ri-dashboard-3-line"></i>
-                                            <span>Auto-Range • True RMS Probes</span>
+                                            <span>Auto-Range Probes</span>
                                         </div>
                                     )}
 
@@ -2434,10 +2442,10 @@ function TopFloatingBar({
                                     {(selectedComponent.type?.startsWith("arduino") || selectedComponent.type?.startsWith("esp32")) && (
                                         <div className="inspector-mcu-row">
                                             <span className="specs-subtext">
-                                                {selectedComponent.type === "arduino-mega" ? "ATmega2560 • 54 I/O • 16 Analog" :
-                                                 selectedComponent.type === "arduino-nano" ? "ATmega328P DIP-30 • 5V" :
-                                                 selectedComponent.type === "esp32" || selectedComponent.type === "esp32-devkit" || selectedComponent.type === "esp32-s3" ? "ESP32-S3 Dual-Core • 3.3V" :
-                                                 "ATmega328P • 5V Logic"}
+                                                {selectedComponent.type === "arduino-mega" ? "Mega 2560" :
+                                                 selectedComponent.type === "arduino-nano" ? "Nano 328P" :
+                                                 selectedComponent.type === "esp32" || selectedComponent.type === "esp32-devkit" || selectedComponent.type === "esp32-s3" ? "ESP32-S3" :
+                                                 "Uno 328P"}
                                             </span>
                                             <button
                                                 type="button"

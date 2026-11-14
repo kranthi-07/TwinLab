@@ -458,7 +458,7 @@ function OldComponentCatalogThumbnail({ component }) {
     );
 }
 
-function LeftSidebar({ onAddComponent }) {
+function LeftSidebar({ onAddComponent, onCloseInspector }) {
     const [open, setOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("all");
     const [searchQuery, setSearchQuery] = useState("");
@@ -544,6 +544,8 @@ function LeftSidebar({ onAddComponent }) {
         setActiveTab(tabId);
         setOpen(true);
         window.dispatchEvent(new CustomEvent("twinlab:close_other_drawers", { detail: { source: "sidebar" } }));
+        window.dispatchEvent(new CustomEvent("twinlab:close_inspector"));
+        if (onCloseInspector) onCloseInspector();
     };
 
     const setViewModePref = (mode) => {

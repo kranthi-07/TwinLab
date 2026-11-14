@@ -517,6 +517,9 @@ export const COMPONENTS_CATALOG = [
         icon: "ri-radar-line",
         width: 80,
         height: 56,
+        rangeCm: 200,
+        maxRangeCm: 200,
+        distanceCm: 200,
         desc: "4-pin 40kHz sonar distance sensor with transmitter, receiver, and cm range",
         tag: "Sensor"
     },

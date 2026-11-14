@@ -168,9 +168,9 @@ function SmallComponent({
     blinkCursor = false,
     displayOn = true,
     angle = 90,
-    distanceCm = 25,
-    rangeCm,
-    maxRangeCm,
+    distanceCm = 200,
+    rangeCm = 200,
+    maxRangeCm = 200,
     rangeM,
     targetAngle = 0,
     targetBallX,
@@ -449,7 +449,8 @@ function SmallComponent({
             const distPx = Math.hypot(dx, dy);
             const rM = component?.rangeM != null ? component.rangeM : 5;
             const coneLimit = 60 + rM * 35;
-            const inCone = dy > 0 && Math.abs(phi) <= (35 * Math.PI / 180) && distPx <= coneLimit;
+            const pirAngleRad = (32 * Math.PI) / 180;
+            const inCone = dy > 0 && Math.abs(phi) <= pirAngleRad && distPx <= coneLimit;
 
             if (onUpdate) {
                 onUpdate({
@@ -2832,7 +2833,7 @@ function SmallComponent({
 
             {/* HC-SR04 ULTRASONIC DISTANCE SENSOR (HUGE REALISTIC FULL-SCALE SVG): Pins VCC (0, 0), Trig (16, 0), Echo (32, 0), GND (48, 0) */}
             {type === "sensor-ultrasonic" && (() => {
-                const coneRangeCm = component?.rangeCm || component?.maxRangeCm || (distanceCm && distanceCm >= 10 ? distanceCm : 200);
+                const coneRangeCm = component?.rangeCm ?? component?.maxRangeCm ?? rangeCm ?? maxRangeCm ?? (component?.distanceCm && component.distanceCm >= 10 ? component.distanceCm : 200);
                 const isPowered = Boolean(isSimulating && simState?.isPowered);
                 const isPinging = Boolean(isPowered && (simState?.isPinging ?? true));
 
@@ -3186,7 +3187,14 @@ function SmallComponent({
                 const pDistPx = Math.hypot(pDx, pDy);
                 const pPhi = Math.atan2(pDx, pDy);
                 const isBallInPirCone = pDy > 0 && Math.abs(pPhi) <= pirAngleRad && pDistPx <= pirRangeR;
-                const isMotion = Boolean(isPowered && (simState?.isMotion || motionActive || component?.motionActive || isBallInPirCone));
+                
+                // Red LEDs on PIR glow ONLY when simulation is active AND object is within detection range
+                const isMotion = Boolean(
+                    isSimulating && (
+                        isBallInPirCone || 
+                        (Boolean(motionActive || component?.motionActive) && !localPirBallPos && component?.pirBallX == null)
+                    )
+                );
                 const isScanning = Boolean(isPowered && simState?.isScanning);
                 return (
                     <div className={`pir-container ${isScanning ? "is-scanning" : ""} ${isPowered ? "is-powered" : "is-unpowered"} ${isMotion ? "motion-active" : ""}`}>
@@ -3211,7 +3219,15 @@ function SmallComponent({
                             <text x="-74" y="-36" fill={isPowered ? "#86efac" : "#cbd5e1"} fontSize="5" fontWeight="bold" textAnchor="middle" fontFamily="monospace">PWR</text>
 
                             {/* Detection LED (OUT) */}
-                            <circle cx="104" cy="-30" r="3" fill={isMotion ? "#ef4444" : "#450a0a"} filter={isMotion ? "drop-shadow(0 0 10px #ef4444) drop-shadow(0 0 18px #dc2626)" : "none"} />
+                            <circle 
+                                cx="104" 
+                                cy="-30" 
+                                r="3.5" 
+                                fill={isMotion ? "#ef4444" : "#450a0a"} 
+                                stroke={isMotion ? "#fca5a5" : "#7f1d1d"}
+                                strokeWidth="0.8"
+                                filter={isMotion ? "drop-shadow(0 0 10px #ef4444) drop-shadow(0 0 20px #dc2626)" : "none"} 
+                            />
                             <text x="104" y="-36" fill={isMotion ? "#fde68a" : "#cbd5e1"} fontSize="5" fontWeight="bold" textAnchor="middle" fontFamily="monospace">OUT</text>
 
                             {/* Dual Large SMD Trimmer Potentiometers (Sensitivity & Time Delay) */}
@@ -3223,13 +3239,15 @@ function SmallComponent({
                             <text x="-60" y="-82" fill="#ffffff" fontSize="5.5" fontWeight="900" textAnchor="middle">SENS</text>
 
                             {/* Left Red Detection Indication Light near SENS */}
-                            <circle cx="-60" cy="-48" r="4.5" fill="#18181b" stroke="#3f3f46" strokeWidth="0.8" />
+                            <circle cx="-60" cy="-48" r="4.8" fill="#18181b" stroke={isMotion ? "#ef4444" : "#3f3f46"} strokeWidth="0.8" />
                             <circle
                                 cx="-60"
                                 cy="-48"
-                                r="3"
+                                r="3.4"
                                 fill={isMotion ? "#ef4444" : "#450a0a"}
-                                filter={isMotion ? "drop-shadow(0 0 8px #ef4444) drop-shadow(0 0 16px rgba(239, 68, 68, 0.95))" : "none"}
+                                stroke={isMotion ? "#fca5a5" : "none"}
+                                strokeWidth="0.6"
+                                filter={isMotion ? "drop-shadow(0 0 10px #ef4444) drop-shadow(0 0 20px rgba(239, 68, 68, 0.95))" : "none"}
                             />
                             <text x="-60" y="-39" fill={isMotion ? "#fca5a5" : "#94a3b8"} fontSize="4.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">DET-1</text>
 
@@ -3241,13 +3259,15 @@ function SmallComponent({
                             <text x="92" y="-82" fill="#ffffff" fontSize="5.5" fontWeight="900" textAnchor="middle">TIME</text>
 
                             {/* Right Red Detection Indication Light near TIME */}
-                            <circle cx="92" cy="-48" r="4.5" fill="#18181b" stroke="#3f3f46" strokeWidth="0.8" />
+                            <circle cx="92" cy="-48" r="4.8" fill="#18181b" stroke={isMotion ? "#ef4444" : "#3f3f46"} strokeWidth="0.8" />
                             <circle
                                 cx="92"
                                 cy="-48"
-                                r="3"
+                                r="3.4"
                                 fill={isMotion ? "#ef4444" : "#450a0a"}
-                                filter={isMotion ? "drop-shadow(0 0 8px #ef4444) drop-shadow(0 0 16px rgba(239, 68, 68, 0.95))" : "none"}
+                                stroke={isMotion ? "#fca5a5" : "none"}
+                                strokeWidth="0.6"
+                                filter={isMotion ? "drop-shadow(0 0 10px #ef4444) drop-shadow(0 0 20px rgba(239, 68, 68, 0.95))" : "none"}
                             />
                             <text x="92" y="-39" fill={isMotion ? "#fca5a5" : "#94a3b8"} fontSize="4.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">DET-2</text>
 

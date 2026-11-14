@@ -1,5 +1,5 @@
 import "./CodeEditor.css";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DEFAULT_SKETCHES } from "../../../simulation/mcuRuntime";
 
@@ -9,13 +9,11 @@ import { DEFAULT_SKETCHES } from "../../../simulation/mcuRuntime";
 export function highlightArduinoCpp(code) {
     if (!code) return "";
 
-    // Escape HTML characters safely
     const escaped = code
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 
-    // Order matters: comments and strings must take precedence so keywords inside them aren't tokenized
     const tokenRegex = new RegExp(
         [
             "(?<comment>\\/\\/[^\\n]*|\\/\\*[\\s\\S]*?\\*\\/)",
@@ -49,182 +47,255 @@ export function highlightArduinoCpp(code) {
     });
 }
 
-/**
- * 100% Custom Dropdown Component - Zero Browser Native Elements
- */
-function CustomIdeDropdown({
-    label,
-    icon,
-    value,
-    options = [],
-    onChange,
-    className = "",
-    title = "",
-    alignRight = false
-}) {
-    const [isOpen, setIsOpen] = useState(false);
-    const containerRef = useRef(null);
-
-    const selectedOption = options.find(o => String(o.value) === String(value)) || options[0];
-
-    useEffect(() => {
-        const handleClickOutside = (e) => {
-            if (containerRef.current && !containerRef.current.contains(e.target)) {
-                setIsOpen(false);
-            }
-        };
-        if (isOpen) {
-            document.addEventListener("mousedown", handleClickOutside);
-        }
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [isOpen]);
-
-    return (
-        <div className={`custom-ide-dropdown-wrapper ${className}`} ref={containerRef} title={title}>
-            <button
-                type="button"
-                className={`custom-ide-dropdown-trigger ${isOpen ? "active" : ""}`}
-                onClick={() => setIsOpen(prev => !prev)}
-            >
-                {icon && <i className={`${icon} ide-dropdown-icon`} />}
-                {label && <span className="ide-dropdown-label">{label}</span>}
-                <span className="ide-dropdown-value-text">{selectedOption ? selectedOption.label : value}</span>
-                <i className={`ri-arrow-down-s-line ide-dropdown-chevron ${isOpen ? "rotate" : ""}`} />
-            </button>
-
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        className={`custom-ide-dropdown-menu ${alignRight ? "align-right" : ""}`}
-                        initial={{ opacity: 0, y: -6, scale: 0.96 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -6, scale: 0.96 }}
-                        transition={{ duration: 0.15 }}
-                    >
-                        {options.map((opt) => {
-                            const isSelected = String(opt.value) === String(value);
-                            return (
-                                <button
-                                    key={String(opt.value)}
-                                    type="button"
-                                    className={`custom-ide-dropdown-item ${isSelected ? "selected" : ""}`}
-                                    onClick={() => {
-                                        onChange && onChange(opt.value);
-                                        setIsOpen(false);
-                                    }}
-                                >
-                                    <div className="item-text-group">
-                                        <span className="item-label">{opt.label}</span>
-                                        {opt.desc && <span className="item-desc">{opt.desc}</span>}
-                                    </div>
-                                    {isSelected && <i className="ri-check-line item-check-icon" />}
-                                </button>
-                            );
-                        })}
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
-    );
+const DEFAULT_BLANK_TEMPLATE = `// TwinLab MCU Firmware
+void setup() {
+  pinMode(13, OUTPUT);
+  Serial.begin(9600);
+  Serial.println("MCU Initialized");
 }
+
+void loop() {
+  digitalWrite(13, HIGH);
+  delay(1000);
+  digitalWrite(13, LOW);
+  delay(1000);
+}`;
 
 function CodeEditor({
     isOpen = false,
     onClose,
     code: externalCode,
     onCodeChange,
-    targetBoard, // { id, type, name }
+    targetBoard,
     availableBoards = [],
     onSelectTargetBoard,
     onUploadAndRun,
     onStopExecution,
     isExecuting = false,
-    onToggleSerialMonitor,
-    isSerialOpen = false,
-    baudRate = 9600,
-    onChangeBaudRate,
     serialLogs = [],
     onClearSerialLogs,
-    onSendSerialInput
+    onSendSerialInput,
+    baudRate = 9600,
+    onChangeBaudRate
 }) {
-    const [selectedPreset, setSelectedPreset] = useState(() => {
+    // -------------------------------------------------------------
+    // 1. ACTIVE CODE & PERSISTENCE
+    // -------------------------------------------------------------
+    const [code, setCode] = useState(() => {
         try {
-            return localStorage.getItem("twinlab_user_code_preset") || "blank";
+            const savedActive = localStorage.getItem("twinlab_active_code");
+            if (savedActive) return savedActive;
+            const persistent = localStorage.getItem("twinlab_user_code");
+            if (persistent) return persistent;
+        } catch (_) {}
+        if (externalCode !== undefined && externalCode !== null) return externalCode;
+        return DEFAULT_SKETCHES?.blank || DEFAULT_BLANK_TEMPLATE;
+    });
+
+    const [activeFileName, setActiveFileName] = useState(() => {
+        try {
+            return localStorage.getItem("twinlab_active_filename") || "sketch.ino";
         } catch (_) {
-            return "blank";
+            return "sketch.ino";
         }
     });
 
-    const [code, setCode] = useState(() => {
-        if (externalCode !== undefined && externalCode !== null) return externalCode;
-        return DEFAULT_SKETCHES.blank;
+    // Baseline code when last saved or opened, used for the '.' dirty indication
+    const [savedCodeBaseline, setSavedCodeBaseline] = useState(() => {
+        try {
+            return localStorage.getItem("twinlab_saved_code_baseline") || null;
+        } catch (_) {
+            return null;
+        }
     });
 
-    // Synchronize if external code changes from outside (e.g. project load or switching boards)
+    // Whether the current sketch has unsaved modifications
+    const isDirty = useMemo(() => {
+        if (!code || code.trim().length === 0) return false;
+        if (savedCodeBaseline === null) return true; // Never saved yet
+        return code !== savedCodeBaseline;
+    }, [code, savedCodeBaseline]);
+
+    // Synchronize if external code is injected from parent (e.g. project load)
     useEffect(() => {
         if (externalCode !== undefined && externalCode !== null && externalCode !== code) {
             setCode(externalCode);
         }
     }, [externalCode]);
 
-    const updateCode = (newCode, preset = "custom") => {
+    // Update code helper that preserves immediately into localStorage
+    const handleCodeTextChange = (newCode) => {
         setCode(newCode);
-        setSelectedPreset(preset);
         try {
+            localStorage.setItem("twinlab_active_code", newCode);
             localStorage.setItem("twinlab_user_code", newCode);
-            localStorage.setItem("twinlab_user_code_preset", preset);
+            localStorage.setItem("twinlab_code_is_custom", "true");
         } catch (_) {}
         if (onCodeChange) {
             onCodeChange(newCode);
         }
     };
 
+    // Close handler that guarantees persistence
     const handleClose = () => {
         try {
+            localStorage.setItem("twinlab_active_code", code);
             localStorage.setItem("twinlab_user_code", code);
-            localStorage.setItem("twinlab_user_code_preset", selectedPreset);
+            localStorage.setItem("twinlab_active_filename", activeFileName);
         } catch (_) {}
         if (onCodeChange) onCodeChange(code);
         if (onClose) onClose();
     };
 
-    const [uploadStatus, setUploadStatus] = useState("Ready");
-    const [uploadProgress, setUploadProgress] = useState(null); // null or number 0-100
-    const [errorMsg, setErrorMsg] = useState(null);
+    // -------------------------------------------------------------
+    // 2. SAVED FILES LIBRARY (Local Storage Database)
+    // -------------------------------------------------------------
+    const [savedFiles, setSavedFiles] = useState(() => {
+        try {
+            const list = localStorage.getItem("twinlab_saved_files");
+            if (list) {
+                const parsed = JSON.parse(list);
+                if (Array.isArray(parsed)) return parsed;
+            }
+        } catch (_) {}
+        return [];
+    });
 
-    // Inbuilt Serial Monitor State: closed by default, opens automatically only on simulation run
+    const persistSavedFiles = (newList) => {
+        setSavedFiles(newList);
+        try {
+            localStorage.setItem("twinlab_saved_files", JSON.stringify(newList));
+        } catch (_) {}
+    };
+
+    // -------------------------------------------------------------
+    // 3. MODALS (Save Modal & Saved Files Library Modal)
+    // -------------------------------------------------------------
+    const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+    const [saveFileNameInput, setSaveFileNameInput] = useState(activeFileName);
+    const [isSavedFilesOpen, setIsSavedFilesOpen] = useState(false);
+    const [editorToast, setEditorToast] = useState(null);
+
+    const showToast = (msg) => {
+        setEditorToast(msg);
+        setTimeout(() => setEditorToast(null), 2400);
+    };
+
+    // Save File logic
+    const handleCommitSaveFile = (e) => {
+        if (e) e.preventDefault();
+        let name = (saveFileNameInput || "").trim();
+        if (!name) name = "sketch.ino";
+        if (!name.endsWith(".ino") && !name.endsWith(".cpp")) {
+            name += ".ino";
+        }
+
+        const now = new Date();
+        const dateStr = now.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
+        const newFileRecord = {
+            id: `sketch_${Date.now()}`,
+            name,
+            code,
+            board: targetBoard?.name || "Arduino Uno R3",
+            updatedAt: dateStr,
+            timestamp: Date.now()
+        };
+
+        const existingIdx = savedFiles.findIndex(f => f.name.toLowerCase() === name.toLowerCase());
+        let updatedList = [];
+        if (existingIdx >= 0) {
+            updatedList = [...savedFiles];
+            updatedList[existingIdx] = newFileRecord;
+        } else {
+            updatedList = [newFileRecord, ...savedFiles];
+        }
+
+        persistSavedFiles(updatedList);
+        setActiveFileName(name);
+        setSavedCodeBaseline(code);
+        try {
+            localStorage.setItem("twinlab_active_filename", name);
+            localStorage.setItem("twinlab_saved_code_baseline", code);
+        } catch (_) {}
+
+        setIsSaveModalOpen(false);
+        showToast(`Saved "${name}" successfully`);
+    };
+
+    // Open an existing saved file
+    const handleOpenSavedFile = (file) => {
+        setCode(file.code);
+        setActiveFileName(file.name);
+        setSavedCodeBaseline(file.code);
+        try {
+            localStorage.setItem("twinlab_active_code", file.code);
+            localStorage.setItem("twinlab_user_code", file.code);
+            localStorage.setItem("twinlab_active_filename", file.name);
+            localStorage.setItem("twinlab_saved_code_baseline", file.code);
+        } catch (_) {}
+        if (onCodeChange) onCodeChange(file.code);
+        setIsSavedFilesOpen(false);
+        showToast(`Loaded "${file.name}"`);
+    };
+
+    // Delete a saved file
+    const handleDeleteSavedFile = (fileId, e) => {
+        e.stopPropagation();
+        const updated = savedFiles.filter(f => f.id !== fileId);
+        persistSavedFiles(updated);
+        showToast("File deleted from library");
+    };
+
+    // New Blank Sketch (+)
+    const handleNewSketch = () => {
+        const blank = DEFAULT_BLANK_TEMPLATE;
+        setCode(blank);
+        setActiveFileName("sketch.ino");
+        setSavedCodeBaseline(null);
+        try {
+            localStorage.setItem("twinlab_active_code", blank);
+            localStorage.setItem("twinlab_user_code", blank);
+            localStorage.setItem("twinlab_active_filename", "sketch.ino");
+            localStorage.removeItem("twinlab_saved_code_baseline");
+        } catch (_) {}
+        if (onCodeChange) onCodeChange(blank);
+        showToast("Created new sketch");
+    };
+
+    // -------------------------------------------------------------
+    // 4. SERIAL MONITOR STATE
+    // (Closed by default, automatically opens on simulation run)
+    // -------------------------------------------------------------
     const [isInbuiltSerialOpen, setIsInbuiltSerialOpen] = useState(false);
     const [serialInputText, setSerialInputText] = useState("");
     const [autoScroll, setAutoScroll] = useState(true);
     const [showTimestamps, setShowTimestamps] = useState(true);
 
-    // Auto-open Serial Monitor when code begins executing
     useEffect(() => {
         if (isExecuting) {
             setIsInbuiltSerialOpen(true);
         }
     }, [isExecuting]);
 
+    // -------------------------------------------------------------
+    // 5. EDITOR REFS & SCROLL SYNC
+    // -------------------------------------------------------------
     const textareaRef = useRef(null);
     const overlayRef = useRef(null);
     const lineNumbersRef = useRef(null);
     const serialOutputRef = useRef(null);
 
-    // Compute syntax highlighted HTML
     const highlightedCode = useMemo(() => highlightArduinoCpp(code), [code]);
-
-    // Sync line numbers count with code lines
     const lineCount = Math.max(1, code.split("\n").length);
     const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
 
-    // Auto-scroll serial output
     useEffect(() => {
         if (autoScroll && serialOutputRef.current && isInbuiltSerialOpen) {
             serialOutputRef.current.scrollTop = serialOutputRef.current.scrollHeight;
         }
     }, [serialLogs, autoScroll, isInbuiltSerialOpen]);
 
-    // Sync scroll between textarea, syntax overlay, and line numbers
     const handleScroll = () => {
         if (textareaRef.current) {
             const { scrollTop, scrollLeft } = textareaRef.current;
@@ -238,22 +309,23 @@ function CodeEditor({
         }
     };
 
-    // Switch preset
-    const handlePresetChange = (presetKey) => {
-        if (presetKey === "custom") {
-            setSelectedPreset("custom");
-            return;
-        }
-        if (DEFAULT_SKETCHES[presetKey]) {
-            const newSketch = DEFAULT_SKETCHES[presetKey];
-            updateCode(newSketch, presetKey);
-            setErrorMsg(null);
-            setUploadStatus(`Loaded example: ${presetKey}`);
+    // Upload & Run handler
+    const handleUpload = () => {
+        setIsInbuiltSerialOpen(true);
+        if (onUploadAndRun) {
+            onUploadAndRun(code);
         }
     };
 
-    // Smart Tab and Enter handling + Ctrl+Enter Flash Hotkey
+    // Keyboard Shortcuts: Ctrl+S to save, Ctrl+Enter to upload, Tab indentation
     const handleKeyDown = (e) => {
+        if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) {
+            e.preventDefault();
+            setSaveFileNameInput(activeFileName);
+            setIsSaveModalOpen(true);
+            return;
+        }
+
         if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
             e.preventDefault();
             handleUpload();
@@ -262,258 +334,241 @@ function CodeEditor({
 
         if (e.key === "Tab") {
             e.preventDefault();
-            const start = textareaRef.current.selectionStart;
-            const end = textareaRef.current.selectionEnd;
-            const newCode = code.substring(0, start) + "  " + code.substring(end);
-            updateCode(newCode, "custom");
+            const textarea = textareaRef.current;
+            if (!textarea) return;
+
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const tabSpaces = "  ";
+
+            const newCode = code.substring(0, start) + tabSpaces + code.substring(end);
+            handleCodeTextChange(newCode);
+
             setTimeout(() => {
-                if (textareaRef.current) {
-                    textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 2;
-                }
-            }, 0);
-        } else if (e.key === "Enter") {
-            const start = textareaRef.current.selectionStart;
-            const lineStart = code.lastIndexOf("\n", start - 1) + 1;
-            const currentLine = code.substring(lineStart, start);
-            const matchIndent = currentLine.match(/^\s*/);
-            const indent = matchIndent ? matchIndent[0] : "";
-            const extraIndent = currentLine.trim().endsWith("{") ? "  " : "";
-            
-            e.preventDefault();
-            const insert = "\n" + indent + extraIndent;
-            const newCode = code.substring(0, start) + insert + code.substring(start);
-            updateCode(newCode, "custom");
-            setTimeout(() => {
-                if (textareaRef.current) {
-                    textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + insert.length;
-                    handleScroll();
-                }
+                textarea.selectionStart = textarea.selectionEnd = start + tabSpaces.length;
             }, 0);
         }
     };
 
-    // Upload & Run handler
-    const handleUpload = () => {
-        setErrorMsg(null);
-        setIsInbuiltSerialOpen(true);
-        setUploadProgress(15);
-        setUploadStatus("Compiling C++ sketch...");
-
-        setTimeout(() => {
-            setUploadProgress(65);
-            setUploadStatus("Flashing firmware to MCU via USB...");
-
-            setTimeout(() => {
-                setUploadProgress(100);
-                setUploadStatus("Uploaded successfully • Running");
-
-                setTimeout(() => setUploadProgress(null), 800);
-
-                if (onUploadAndRun) {
-                    onUploadAndRun(code, (err) => {
-                        if (err) {
-                            setErrorMsg(err);
-                            setUploadStatus("Compilation error");
-                        }
-                    });
-                }
-            }, 300);
-        }, 250);
-    };
-
-    // Serial Input Form Submit
+    // Serial Send input
     const handleSendSerial = (e) => {
-        e && e.preventDefault();
-        const text = serialInputText.trim();
-        if (!text) return;
-        if (onSendSerialInput) {
-            onSendSerialInput(text);
-        }
-        setSerialInputText("");
-    };
-
-    if (!isOpen) return null;
-
-    const getBoardInfo = (board) => {
-        if (!board) return { name: "Arduino Uno R3", type: "arduino-uno", port: "COM3", arch: "ATmega328P 16MHz" };
-        switch (board.type) {
-            case "arduino-mega":
-                return { name: board.name || "Arduino Mega 2560", type: "arduino-mega", port: "COM4", arch: "ATmega2560 16MHz" };
-            case "arduino-nano":
-                return { name: board.name || "Arduino Nano V3", type: "arduino-nano", port: "COM5", arch: "ATmega328P DIP-30" };
-            case "esp32":
-            case "esp32-devkit":
-            case "esp32-s3":
-                return { name: board.name || "ESP32-S3 DevKit", type: "esp32", port: "COM8", arch: "Xtensa Dual-Core 240MHz" };
-            case "arduino-uno":
-            default:
-                return { name: board.name || "Arduino Uno R3", type: "arduino-uno", port: "COM3", arch: "ATmega328P 16MHz" };
+        e.preventDefault();
+        const trimmed = serialInputText.trim();
+        if (trimmed && onSendSerialInput) {
+            onSendSerialInput(trimmed);
+            setSerialInputText("");
         }
     };
 
-    const currentBoard = getBoardInfo(targetBoard);
-
-    // Preset Options for Custom Dropdown
-    const PRESET_OPTIONS = [
-        { value: "custom", label: "Custom Sketch", desc: "User-written firmware sketch" },
-        { value: "blank", label: "Blank Sketch", desc: "Clean empty setup() & loop() template" },
-        { value: "blink", label: "Blink (1s)", desc: "Standard built-in LED cycle" },
-        { value: "strobe", label: "Fast Strobe (100ms)", desc: "High-frequency visual pulse" },
-        { value: "ultrasonic", label: "HC-SR04 Sonar", desc: "Distance ping radar telemetry" },
-        { value: "pir", label: "PIR Motion Alarm", desc: "Digital motion intruder detection" },
-        { value: "servo", label: "SG90 Servo Sweep", desc: "0°-180° positional sweep" },
-        { value: "counter", label: "Serial Counter", desc: "Streams loop telemetry to serial" },
-        { value: "dual_pins", label: "Dual Pins (13 & 12)", desc: "Alternating dual channel phase" },
-        { value: "analog_serial", label: "Analog Monitor (A0)", desc: "ADC voltage telemetry loop" }
-    ];
-
-    // Baud Rate Options for Custom Dropdown
-    const BAUD_OPTIONS = [
-        { value: 9600, label: "9600 Baud", desc: "Standard Arduino default" },
-        { value: 19200, label: "19200 Baud", desc: "Medium speed serial" },
-        { value: 38400, label: "38400 Baud", desc: "Fast data link" },
-        { value: 57600, label: "57600 Baud", desc: "High throughput" },
-        { value: 115200, label: "115200 Baud", desc: "ESP32 native high-speed" }
-    ];
-
-    // Target Board Options for Custom Dropdown
-    const BOARD_OPTIONS = availableBoards.map(b => {
-        const info = getBoardInfo(b);
+    // Target Board Display
+    const currentBoard = useMemo(() => {
+        if (targetBoard) {
+            return {
+                id: targetBoard.id,
+                name: targetBoard.name || "Arduino Uno R3",
+                port: "COM3"
+            };
+        }
         return {
-            value: b.id,
-            label: info.name,
-            desc: `${info.port} • ${info.arch}`
+            id: "arduino-default",
+            name: "Arduino Uno R3",
+            port: "COM3"
         };
-    });
+    }, [targetBoard]);
+
+    const [isBoardDropdownOpen, setIsBoardDropdownOpen] = useState(false);
 
     return (
         <motion.div 
-            className="code-editor-dock studio-dark-theme"
-            initial={{ x: 500, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 500, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 320, damping: 30 }}
+            className="code-editor-dock"
+            initial={{ opacity: 0, scale: 0.96, y: 14 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 14 }}
+            transition={{ type: "spring", stiffness: 360, damping: 32 }}
         >
-            {/* TIER 1: Window Title Bar (Mac-style dots, title, board pill, and clean close button) */}
-            <div className="code-editor-header">
-                <div className="header-left">
-                    {/* IDE Window Controls */}
-                    <div className="ide-window-dots">
-                        <span className="window-dot dot-close" onClick={handleClose} title="Close Editor"></span>
-                        <span className="window-dot dot-min" onClick={() => setIsInbuiltSerialOpen(prev => !prev)} title="Toggle Serial Monitor"></span>
-                        <span className="window-dot dot-max" title="Ready"></span>
-                    </div>
-
-                    <div className="editor-title-wrap">
-                        <i className="ri-code-s-slash-fill code-icon"></i>
-                        <span className="editor-title">Firmware Studio</span>
-                        <span className="lang-tag font-mono">C++ / INO</span>
-                    </div>
-
-                    {/* Target Board Custom Dropdown */}
+            {/* ============================================================
+               1. TOPBAR: Strictly Board Name & Upload / Stop Controls
+               (Everything else removed per user requirement)
+            ============================================================ */}
+            <div className="code-editor-topbar">
+                {/* Left: Selected Board Name Badge */}
+                <div className="topbar-board-section">
                     {availableBoards.length > 1 ? (
-                        <CustomIdeDropdown 
-                            icon="ri-cpu-line"
-                            value={targetBoard?.id || availableBoards[0]?.id}
-                            options={BOARD_OPTIONS}
-                            onChange={(id) => onSelectTargetBoard && onSelectTargetBoard(id)}
-                            title="Select Target Microcontroller Board"
-                            className="board-custom-dropdown"
-                        />
+                        <div className="board-selector-wrap">
+                            <button
+                                type="button"
+                                className="board-pill-btn interactive"
+                                onClick={() => setIsBoardDropdownOpen(prev => !prev)}
+                                title="Switch Active Target Board"
+                            >
+                                <span className={`board-status-dot ${isExecuting ? "executing" : "idle"}`}></span>
+                                <i className="ri-cpu-line board-icon"></i>
+                                <span className="board-name">{currentBoard.name}</span>
+                                <span className="board-com-chip font-mono">USB {currentBoard.port}</span>
+                                <i className="ri-arrow-down-s-line board-chevron"></i>
+                            </button>
+
+                            <AnimatePresence>
+                                {isBoardDropdownOpen && (
+                                    <motion.div 
+                                        className="board-dropdown-menu"
+                                        initial={{ opacity: 0, y: -4, scale: 0.96 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: -4, scale: 0.96 }}
+                                        transition={{ duration: 0.14 }}
+                                    >
+                                        {availableBoards.map(b => (
+                                            <button
+                                                key={b.id}
+                                                type="button"
+                                                className={`board-dropdown-item ${b.id === currentBoard.id ? "active" : ""}`}
+                                                onClick={() => {
+                                                    onSelectTargetBoard && onSelectTargetBoard(b.id);
+                                                    setIsBoardDropdownOpen(false);
+                                                }}
+                                            >
+                                                <i className="ri-cpu-line"></i>
+                                                <span>{b.name || "Microcontroller"}</span>
+                                            </button>
+                                        ))}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     ) : (
-                        <div className="board-badge" title={`Active Target: ${currentBoard.name} (${currentBoard.arch})`}>
-                            <span className="board-status-dot pulse"></span>
-                            <i className="ri-cpu-line"></i>
-                            <span>{currentBoard.name}</span>
-                            <small className="board-port-chip font-mono">{currentBoard.port}</small>
+                        <div className="board-pill-btn">
+                            <span className={`board-status-dot ${isExecuting ? "executing" : "idle"}`}></span>
+                            <i className="ri-cpu-line board-icon"></i>
+                            <span className="board-name">{currentBoard.name}</span>
+                            <span className="board-com-chip font-mono">USB {currentBoard.port}</span>
                         </div>
                     )}
                 </div>
 
-                {/* Right Header Control */}
-                <div className="header-right">
-                    <button 
-                        className="close-panel-btn" 
+                {/* Center / Right: Upload & Run OR Stop + Re-Upload */}
+                <div className="topbar-actions-section">
+                    {!isExecuting ? (
+                        <button
+                            type="button"
+                            className="ide-topbar-action-btn run-btn"
+                            onClick={handleUpload}
+                            title="Compile & Flash Sketch to Board (Ctrl+Enter)"
+                        >
+                            <i className="ri-play-fill"></i>
+                            <span>Upload & Run</span>
+                        </button>
+                    ) : (
+                        <div className="running-controls-cluster">
+                            <button
+                                type="button"
+                                className="ide-topbar-action-btn stop-btn"
+                                onClick={onStopExecution}
+                                title="Stop Firmware Execution"
+                            >
+                                <i className="ri-stop-fill"></i>
+                                <span>Stop</span>
+                            </button>
+                            <button
+                                type="button"
+                                className="ide-topbar-action-btn reupload-btn"
+                                onClick={handleUpload}
+                                title="Hot-Reload / Re-Upload Firmware (Ctrl+Enter)"
+                            >
+                                <i className="ri-restart-line"></i>
+                                <span>Re-Upload</span>
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Clean Close Button */}
+                    <button
+                        type="button"
+                        className="ide-topbar-close-btn"
                         onClick={handleClose}
-                        title="Close Code Editor (Ctrl+D)"
+                        title="Close Code Editor (Esc)"
                     >
                         <i className="ri-close-line"></i>
                     </button>
                 </div>
             </div>
 
-            {/* TIER 2: Action Toolbar (Tabs, Starter Presets, and Premium Action Command Console) */}
-            <div className="editor-action-toolbar">
-                <div className="toolbar-left">
-                    <div className="active-file-tab">
-                        <span className="tab-ino-icon font-mono">ino</span>
-                        <span className="tab-filename">sketch.ino</span>
-                        <span className="tab-clean-dot"></span>
+            {/* ============================================================
+               2. SUB-TOPBAR: File Tab, Unsaved Indicator '.', '+', Saved Files
+            ============================================================ */}
+            <div className="code-editor-filebar">
+                <div className="filebar-left">
+                    {/* Active File Tab */}
+                    <div className="active-sketch-tab">
+                        <i className="ri-file-code-line sketch-tab-icon"></i>
+                        <span className="sketch-tab-name font-mono">{activeFileName}</span>
+                        {/* Dot indicator: Appears when file is unsaved */}
+                        {isDirty && (
+                            <span 
+                                className="unsaved-dot-indicator" 
+                                title="Unsaved changes (Press Ctrl+S to save)"
+                            >
+                                ●
+                            </span>
+                        )}
                     </div>
 
-                    {/* New Empty Sketch Quick Reset Button */}
+                    {/* '+' Symbol beside file tab to create/clear new sketch */}
                     <button
                         type="button"
-                        className="ide-tab-action-btn"
-                        onClick={() => updateCode(DEFAULT_SKETCHES.blank, "blank")}
-                        title="New Blank Sketch (Clear Old Code)"
+                        className="filebar-icon-btn add-sketch-btn"
+                        onClick={handleNewSketch}
+                        title="New Blank Sketch (+)"
                     >
-                        <i className="ri-file-add-line"></i>
-                        <span>New</span>
+                        <i className="ri-add-line"></i>
                     </button>
 
-                    {/* 100% Custom Preset Examples Dropdown */}
-                    <CustomIdeDropdown 
-                        label="Example:"
-                        icon="ri-folder-code-line"
-                        value={selectedPreset}
-                        options={PRESET_OPTIONS}
-                        onChange={handlePresetChange}
-                        title="Load Starter Firmware Sketch"
-                        className="preset-custom-dropdown"
-                    />
-
+                    {/* 'Saved Files' button */}
+                    <button
+                        type="button"
+                        className={`filebar-pill-btn saved-files-btn ${isSavedFilesOpen ? "active" : ""}`}
+                        onClick={() => setIsSavedFilesOpen(prev => !prev)}
+                        title="View Saved Files Library"
+                    >
+                        <i className="ri-folder-open-line"></i>
+                        <span>Saved Files</span>
+                        {savedFiles.length > 0 && (
+                            <span className="saved-count-chip font-mono">{savedFiles.length}</span>
+                        )}
+                    </button>
                 </div>
 
-                <div className="toolbar-right">
-                    {/* Premium Stop / Halt Button */}
-                    {isExecuting && (
-                        <button 
-                            type="button"
-                            className="action-btn stop-btn premium-stop"
-                            onClick={onStopExecution}
-                            title="Halt Microcontroller Firmware Execution"
-                        >
-                            <i className="ri-stop-fill"></i>
-                            <span>Stop</span>
-                        </button>
-                    )}
-
-                    {/* Premium Compile, Flash & Run / Re-Flash Button */}
-                    <button 
+                <div className="filebar-right">
+                    {/* Save Button (Ctrl+S popup trigger) */}
+                    <button
                         type="button"
-                        className={`action-btn upload-btn premium-flash ${isExecuting ? "executing" : "idle"}`}
-                        onClick={handleUpload}
-                        title={isExecuting ? "Hot-Reload / Re-Flash Firmware (Ctrl+Enter)" : "Compile & Flash to Microcontroller (Ctrl+Enter)"}
+                        className="filebar-pill-btn save-sketch-btn"
+                        onClick={() => {
+                            setSaveFileNameInput(activeFileName);
+                            setIsSaveModalOpen(true);
+                        }}
+                        title="Save Sketch to Website Library (Ctrl+S)"
                     >
-                        <i className={isExecuting ? "ri-restart-line spin-on-hover" : "ri-flashlight-fill"}></i>
-                        <span className="primary-text">{isExecuting ? "Re-Flash" : "Upload & Run"}</span>
-                        <span className="kbd-shortcut font-mono">↵</span>
+                        <i className="ri-save-3-line"></i>
+                        <span>Save</span>
+                        <kbd className="save-kbd-badge font-mono">Ctrl+S</kbd>
+                    </button>
+
+                    {/* Serial Monitor Toggle */}
+                    <button
+                        type="button"
+                        className={`filebar-pill-btn serial-pill-btn ${isInbuiltSerialOpen ? "active" : ""}`}
+                        onClick={() => setIsInbuiltSerialOpen(prev => !prev)}
+                        title="Toggle Built-in Serial Monitor"
+                    >
+                        <i className="ri-terminal-box-line"></i>
+                        <span>Serial</span>
                     </button>
                 </div>
             </div>
 
-            {/* Flash upload progress bar */}
-            {uploadProgress !== null && (
-                <div className="upload-progress-track">
-                    <div 
-                        className="upload-progress-fill" 
-                        style={{ width: `${uploadProgress}%` }}
-                    ></div>
-                </div>
-            )}
-
-            {/* Editor Workspace with Line Numbers & Real-Time Syntax Highlighting */}
+            {/* ============================================================
+               3. EDITOR WORKSPACE (Line Numbers & Syntax Overlay)
+            ============================================================ */}
             <div className={`code-editor-body ${isInbuiltSerialOpen ? "with-serial-split" : ""}`}>
                 {/* Line numbers gutter */}
                 <div className="line-numbers-gutter" ref={lineNumbersRef}>
@@ -536,7 +591,7 @@ function CodeEditor({
                         ref={textareaRef}
                         className="code-textarea font-mono"
                         value={code}
-                        onChange={(e) => updateCode(e.target.value, "custom")}
+                        onChange={(e) => handleCodeTextChange(e.target.value)}
                         onScroll={handleScroll}
                         onKeyDown={handleKeyDown}
                         spellCheck={false}
@@ -548,16 +603,8 @@ function CodeEditor({
                 </div>
             </div>
 
-            {/* Error banner if compile error */}
-            {errorMsg && (
-                <div className="compile-error-banner font-mono">
-                    <i className="ri-error-warning-fill"></i>
-                    <span>{errorMsg}</span>
-                </div>
-            )}
-
             {/* ============================================================
-               INBUILT INTEGRATED SERIAL MONITOR (NESTED INSIDE CODE WINDOW)
+               4. INBUILT SERIAL MONITOR (Opened on simulation or toggle)
             ============================================================ */}
             <AnimatePresence>
                 {isInbuiltSerialOpen && (
@@ -566,9 +613,8 @@ function CodeEditor({
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 210, opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ duration: 0.18, ease: "easeOut" }}
                     >
-                        {/* Serial Header */}
                         <div className="inbuilt-serial-header">
                             <div className="serial-header-left">
                                 <span className="serial-title">
@@ -578,10 +624,7 @@ function CodeEditor({
                                 <span className="serial-port-chip font-mono">
                                     USB {currentBoard.port} @ {baudRate} Baud
                                 </span>
-                                <span className={`serial-live-pill ${isExecuting ? "online" : "idle"}`}>
-                                    <span className="live-dot pulse"></span>
-                                    {isExecuting ? "ONLINE" : "STANDBY"}
-                                </span>
+                                <span className="serial-status-tag online">● ONLINE</span>
                             </div>
 
                             <div className="serial-header-right">
@@ -589,7 +632,7 @@ function CodeEditor({
                                     type="button"
                                     className={`serial-icon-btn ${showTimestamps ? "active" : ""}`}
                                     onClick={() => setShowTimestamps(!showTimestamps)}
-                                    title={showTimestamps ? "Hide Timestamps" : "Show Timestamps"}
+                                    title="Toggle Timestamps"
                                 >
                                     <i className="ri-time-line"></i>
                                 </button>
@@ -597,7 +640,7 @@ function CodeEditor({
                                     type="button"
                                     className={`serial-icon-btn ${autoScroll ? "active" : ""}`}
                                     onClick={() => setAutoScroll(!autoScroll)}
-                                    title={autoScroll ? "Disable Auto-Scroll" : "Enable Auto-Scroll"}
+                                    title="Auto-scroll"
                                 >
                                     <i className="ri-arrow-down-double-line"></i>
                                 </button>
@@ -609,24 +652,14 @@ function CodeEditor({
                                 >
                                     <i className="ri-delete-bin-line"></i>
                                 </button>
-                                <button
-                                    type="button"
-                                    className="serial-icon-btn collapse-btn"
-                                    onClick={() => setIsInbuiltSerialOpen(false)}
-                                    title="Minimize Serial Monitor"
-                                >
-                                    <i className="ri-arrow-down-s-line"></i>
-                                </button>
                             </div>
                         </div>
 
-                        {/* Terminal Logs Output */}
                         <div className="inbuilt-serial-output font-mono" ref={serialOutputRef}>
                             {serialLogs.length === 0 ? (
-                                <div className="serial-placeholder-banner">
-                                    <span className="banner-line">// TwinLab Integrated Serial Monitor v2.5</span>
-                                    <span className="banner-line">// Listening on {currentBoard.port} at {baudRate} baud rate.</span>
-                                    <span className="banner-line sub">// Outputs from Serial.print() &amp; Serial.println() will stream here in real-time.</span>
+                                <div className="serial-empty-placeholder">
+                                    <i className="ri-terminal-line"></i>
+                                    <span>Serial interface active. Listening for Serial.print() telemetry...</span>
                                 </div>
                             ) : (
                                 serialLogs.map((log, idx) => (
@@ -634,24 +667,18 @@ function CodeEditor({
                                         {showTimestamps && log.timestamp && (
                                             <span className="entry-time">[{log.timestamp}]</span>
                                         )}
-                                        {log.source && (
-                                            <span className={`entry-source ${log.source.toLowerCase()}`}>
-                                                [{log.source}]
-                                            </span>
-                                        )}
                                         <span className="entry-text">{log.text || log.message}</span>
                                     </div>
                                 ))
                             )}
                         </div>
 
-                        {/* Serial Input Command Row */}
                         <form className="inbuilt-serial-input-form" onSubmit={handleSendSerial}>
                             <span className="input-prompt font-mono">&gt;</span>
                             <input
                                 type="text"
                                 className="serial-input-field font-mono"
-                                placeholder="Send message or command to MCU (e.g. 1, 0, PING)..."
+                                placeholder="Send message or command to MCU..."
                                 value={serialInputText}
                                 onChange={(e) => setSerialInputText(e.target.value)}
                             />
@@ -664,40 +691,184 @@ function CodeEditor({
                 )}
             </AnimatePresence>
 
-            {/* Footer status bar with 100% Custom Baud Selector and Inbuilt Serial Monitor Toggle */}
-            <div className="code-editor-footer">
-                <div className="footer-status-left">
-                    <span className={`status-indicator-dot ${isExecuting ? "running" : "idle"}`}></span>
-                    <span className="status-text">{uploadStatus}</span>
-                    <span className="com-port-tag font-mono">USB {currentBoard.port}</span>
-                </div>
+            {/* ============================================================
+               5. POPUP MODAL: SAVE SKETCH TO WEBSITE (Ctrl+S)
+            ============================================================ */}
+            <AnimatePresence>
+                {isSaveModalOpen && (
+                    <div className="ide-modal-backdrop" onClick={() => setIsSaveModalOpen(false)}>
+                        <motion.div 
+                            className="ide-modal-card"
+                            onClick={(e) => e.stopPropagation()}
+                            initial={{ opacity: 0, scale: 0.94, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.94, y: 10 }}
+                            transition={{ duration: 0.18 }}
+                        >
+                            <div className="ide-modal-header">
+                                <div className="modal-title-wrap">
+                                    <i className="ri-save-3-line modal-icon"></i>
+                                    <h3>Save Sketch to TwinLab</h3>
+                                </div>
+                                <button 
+                                    type="button" 
+                                    className="modal-close-btn"
+                                    onClick={() => setIsSaveModalOpen(false)}
+                                >
+                                    <i className="ri-close-line"></i>
+                                </button>
+                            </div>
 
-                <div className="footer-status-right">
-                    {/* 100% Custom Baud Rate Selector Dropdown */}
-                    <CustomIdeDropdown 
-                        icon="ri-wireless-charging-line"
-                        value={baudRate}
-                        options={BAUD_OPTIONS}
-                        onChange={(val) => onChangeBaudRate && onChangeBaudRate(Number(val))}
-                        title="Serial Communication Baud Rate"
-                        alignRight={true}
-                        className="baud-custom-dropdown"
-                    />
+                            <form onSubmit={handleCommitSaveFile} className="ide-modal-form">
+                                <p className="modal-desc">
+                                    Choose a file name for this sketch. It will be saved into your website library.
+                                </p>
 
-                    {/* Quick Inbuilt Serial Monitor Toggle */}
-                    <button 
-                        className={`serial-toggle-btn ${isInbuiltSerialOpen ? "active" : ""}`}
-                        onClick={() => setIsInbuiltSerialOpen(prev => !prev)}
-                        title="Toggle Inbuilt Serial Monitor (Ctrl+M)"
+                                <div className="modal-field-group">
+                                    <label className="modal-field-label">File Name</label>
+                                    <div className="modal-input-wrap">
+                                        <input
+                                            type="text"
+                                            className="modal-text-input font-mono"
+                                            value={saveFileNameInput}
+                                            onChange={(e) => setSaveFileNameInput(e.target.value)}
+                                            placeholder="my_sketch.ino"
+                                            autoFocus
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="modal-actions">
+                                    <button
+                                        type="button"
+                                        className="modal-btn secondary"
+                                        onClick={() => setIsSaveModalOpen(false)}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="modal-btn primary"
+                                    >
+                                        <i className="ri-check-line"></i>
+                                        <span>Save File</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* ============================================================
+               6. POPUP MODAL: SAVED FILES LIBRARY
+            ============================================================ */}
+            <AnimatePresence>
+                {isSavedFilesOpen && (
+                    <div className="ide-modal-backdrop" onClick={() => setIsSavedFilesOpen(false)}>
+                        <motion.div 
+                            className="ide-modal-card saved-files-modal"
+                            onClick={(e) => e.stopPropagation()}
+                            initial={{ opacity: 0, scale: 0.94, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.94, y: 10 }}
+                            transition={{ duration: 0.18 }}
+                        >
+                            <div className="ide-modal-header">
+                                <div className="modal-title-wrap">
+                                    <i className="ri-folder-open-line modal-icon"></i>
+                                    <h3>Saved Sketches Library</h3>
+                                    <span className="saved-library-chip font-mono">{savedFiles.length} files</span>
+                                </div>
+                                <button 
+                                    type="button" 
+                                    className="modal-close-btn"
+                                    onClick={() => setIsSavedFilesOpen(false)}
+                                >
+                                    <i className="ri-close-line"></i>
+                                </button>
+                            </div>
+
+                            <div className="saved-files-list">
+                                {savedFiles.length === 0 ? (
+                                    <div className="saved-files-empty">
+                                        <i className="ri-file-code-line empty-icon"></i>
+                                        <h4>No Saved Files Yet</h4>
+                                        <p>Save your active sketch with <kbd>Ctrl+S</kbd> to access it here anytime.</p>
+                                    </div>
+                                ) : (
+                                    savedFiles.map((file) => (
+                                        <div 
+                                            key={file.id} 
+                                            className={`saved-file-row ${file.name === activeFileName ? "current-active" : ""}`}
+                                            onClick={() => handleOpenSavedFile(file)}
+                                        >
+                                            <div className="file-info-group">
+                                                <i className="ri-file-code-fill file-row-icon"></i>
+                                                <div className="file-texts">
+                                                    <span className="file-name font-mono">{file.name}</span>
+                                                    <span className="file-meta font-mono">
+                                                        {file.board} • {file.updatedAt || "Saved"}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="file-actions-group">
+                                                <button
+                                                    type="button"
+                                                    className="file-open-btn"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleOpenSavedFile(file);
+                                                    }}
+                                                    title="Open in Code Editor"
+                                                >
+                                                    <i className="ri-folder-open-fill"></i>
+                                                    <span>Open</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="file-delete-btn"
+                                                    onClick={(e) => handleDeleteSavedFile(file.id, e)}
+                                                    title="Delete File"
+                                                >
+                                                    <i className="ri-delete-bin-line"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            <div className="modal-footer-row">
+                                <button
+                                    type="button"
+                                    className="modal-btn secondary"
+                                    onClick={() => setIsSavedFilesOpen(false)}
+                                >
+                                    Close Library
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Inline Editor Toast Notification */}
+            <AnimatePresence>
+                {editorToast && (
+                    <motion.div 
+                        className="editor-inline-toast font-mono"
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.16 }}
                     >
-                        <i className="ri-terminal-box-line"></i>
-                        <span>Serial Monitor</span>
-                        {serialLogs.length > 0 && (
-                            <span className="serial-count-pill font-mono">{serialLogs.length}</span>
-                        )}
-                    </button>
-                </div>
-            </div>
+                        <i className="ri-checkbox-circle-fill"></i>
+                        <span>{editorToast}</span>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 }

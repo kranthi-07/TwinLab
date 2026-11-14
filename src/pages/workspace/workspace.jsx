@@ -247,6 +247,16 @@ function Workspace({ onBackToHome }) {
     const [selectedId, setSelectedId] = useState(null);
     const [selectedWireId, setSelectedWireId] = useState(null);
 
+    // Auto-close component bar when left sidebar, components catalog or search opens
+    useEffect(() => {
+        const handleCloseInspector = () => {
+            setSelectedId(null);
+            setSelectedWireId(null);
+        };
+        window.addEventListener("twinlab:close_inspector", handleCloseInspector);
+        return () => window.removeEventListener("twinlab:close_inspector", handleCloseInspector);
+    }, []);
+
     // Active project metadata
     const [projectMeta, setProjectMeta] = useState(() => {
         try {
@@ -328,6 +338,12 @@ function Workspace({ onBackToHome }) {
     // User Firmware Sketch Code: persisted across code window toggles, project saves, and sessions
     const [userCode, setUserCode] = useState(() => {
         try {
+            const activeCode = localStorage.getItem("twinlab_active_code");
+            if (activeCode && activeCode.trim().length > 0) return activeCode;
+
+            const persistentUserCode = localStorage.getItem("twinlab_user_code");
+            if (persistentUserCode && persistentUserCode.trim().length > 0) return persistentUserCode;
+
             const draft = sessionStorage.getItem(DRAFT_KEY);
             if (draft) {
                 const parsedDraft = JSON.parse(draft);
@@ -348,7 +364,7 @@ function Workspace({ onBackToHome }) {
     useEffect(() => {
         if (activeTargetBoard) {
             const boardCode = activeTargetBoard.flashedCode || activeTargetBoard.codeDraft || boardFlashedCodesRef.current[activeTargetBoard.id];
-            if (boardCode !== undefined && boardCode !== null) {
+            if (boardCode !== undefined && boardCode !== null && boardCode.trim().length > 0) {
                 setUserCode(boardCode);
             }
         }
@@ -358,7 +374,9 @@ function Workspace({ onBackToHome }) {
         setUserCode(newCode);
         setIsUnsaved(true);
         try {
+            localStorage.setItem("twinlab_active_code", newCode);
             localStorage.setItem("twinlab_user_code", newCode);
+            localStorage.setItem("twinlab_code_is_custom", "true");
         } catch (_) {}
     }, []);
 
@@ -1413,6 +1431,12 @@ function Workspace({ onBackToHome }) {
 
     // Exit flow
     const handleBackClick = () => {
+        try {
+            if (userCode) {
+                localStorage.setItem("twinlab_active_code", userCode);
+                localStorage.setItem("twinlab_user_code", userCode);
+            }
+        } catch (_) {}
         if (isUnsaved) {
             setShowExitModal(true);
         } else {
@@ -1565,10 +1589,20 @@ function Workspace({ onBackToHome }) {
                 onToggleCodeEditor={() => setIsCodeEditorOpen(prev => !prev)}
                 viewMode={viewMode}
                 onChangeViewMode={(mode) => setViewMode(mode)}
+                onCloseInspector={() => {
+                    setSelectedId(null);
+                    setSelectedWireId(null);
+                }}
             />
 
             {/* Left Sidebar: Seamlessly fades out & in via CSS transitions */}
-            <LeftSidebar onAddComponent={handleAddComponent} />
+            <LeftSidebar 
+                onAddComponent={handleAddComponent} 
+                onCloseInspector={() => {
+                    setSelectedId(null);
+                    setSelectedWireId(null);
+                }}
+            />
 
             {/* Right Sidebar: Seamlessly fades out & in via CSS transitions */}
             <RightSidebar 
@@ -1585,8 +1619,8 @@ function Workspace({ onBackToHome }) {
                 simulationResult={simulationResult}
             />
 
-            {/* Bottom Console: Hidden in Focus Mode, seamlessly fades out & in */}
-            {!isFocusMode && (
+            {/* Bottom Console: Hidden in Focus Mode OR when Code Editor is Open */}
+            {!isFocusMode && !isCodeEditorOpen && (
                 <BottomConsole 
                     logs={combinedLogs} 
                     isSimulating={isSimulating} 
