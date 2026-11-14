@@ -513,6 +513,447 @@ export class McuExecutionSession {
         return s;
     }
 
+    createExecutionContext(builtinPin) {
+        const context = {
+            __delay: (ms) => {
+                const duration = Math.max(1, Number(ms) || 0);
+                return new Promise((resolve) => {
+                    const t = setTimeout(() => {
+                        this.activeTimeouts.delete(t);
+                        resolve();
+                    }, duration);
+                    this.activeTimeouts.add(t);
+                });
+            },
+            __delayMicroseconds: (us) => {
+                const duration = Math.max(1, Math.round((Number(us) || 1) / 500));
+                return new Promise((resolve) => {
+                    const t = setTimeout(() => {
+                        this.activeTimeouts.delete(t);
+                        resolve();
+                    }, duration);
+                    this.activeTimeouts.add(t);
+                });
+            },
+            __pulseIn: async (pin, val, timeout) => {
+                const comps = this.callbacks.getComponents ? this.callbacks.getComponents() : [];
+                const ultrasonic = comps.find(c => c.type === "sensor-ultrasonic");
+                if (!ultrasonic) return 0;
+                let dist = null;
+                if (typeof window !== "undefined" && window.__twinlab_sensor_live?.[ultrasonic.id]?.measuredDistanceCm != null) {
+                    dist = window.__twinlab_sensor_live[ultrasonic.id].measuredDistanceCm;
+                } else if (typeof window !== "undefined" && window.__twinlab_ultrasonic_distance != null) {
+                    dist = window.__twinlab_ultrasonic_distance;
+                } else if (ultrasonic.inRange !== false && ultrasonic.measuredDistanceCm != null) {
+                    dist = ultrasonic.measuredDistanceCm;
+                } else if (ultrasonic.inRange === false) {
+                    dist = 400;
+                } else {
+                    dist = ultrasonic.distanceCm != null ? ultrasonic.distanceCm : 25;
+                }
+                await new Promise(r => setTimeout(r, 4));
+                return Math.round(dist * 58.2);
+            },
+            __analogWrite: (pin, val) => {
+                const p = String(pin).trim();
+                const duty = Math.max(0, Math.min(255, Number(val) || 0));
+                this.pinStates[p] = duty;
+                const comps = this.callbacks.getComponents ? this.callbacks.getComponents() : [];
+                const servos = comps.filter(c => c.type === "servo-sg90");
+                if (servos.length > 0) {
+                    const angle = Math.round((duty / 255) * 180);
+                    servos.forEach(srv => {
+                        const prevAngle = srv.angle != null ? srv.angle : 90;
+                        const delta = Math.abs(prevAngle - angle);
+                        if (this.callbacks.onUpdateComponent) {
+                            this.callbacks.onUpdateComponent(srv.id, { angle });
+                        }
+                        if (delta > 2) {
+                            try { soundManager.playServoMovement(srv.id, delta); } catch (_) {}
+                        }
+                    });
+                }
+                if (this.callbacks.onPinStateChange) {
+                    this.callbacks.onPinStateChange(
+                        this.boardId, 
+                        { ...this.pinStates }, 
+                        this.pinStates["13"] === 1, 
+                        this.pinStates["2"] === 1,
+                        this.pinStates["25"] === 1
+                    );
+                }
+            },
+            __Servo: class {
+                constructor() {
+                    this.pin = null;
+                    this.currentAngle = 90;
+                }
+                attach(p) {
+                    this.pin = String(p).trim();
+                }
+                write(angle) {
+                    const a = Math.max(0, Math.min(180, Math.round(Number(angle) || 0)));
+                    this.currentAngle = a;
+                    const comps = context.__getComponents ? context.__getComponents() : [];
+                    const servos = comps.filter(c => c.type === "servo-sg90");
+                    servos.forEach(srv => {
+                        const prevAngle = srv.angle != null ? srv.angle : 90;
+                        const delta = Math.abs(prevAngle - a);
+                        if (context.__onUpdateComponent) {
+                            context.__onUpdateComponent(srv.id, { angle: a });
+                        }
+                        if (delta > 2) {
+                            try { soundManager.playServoMovement(srv.id, delta); } catch (_) {}
+                        }
+                    });
+                }
+                read() {
+                    return this.currentAngle;
+                }
+            },
+            __LiquidCrystal: class {
+                constructor(...args) {
+                    if (args.length >= 4) {
+                        this.address = 0x27;
+                        this.cols = 16;
+                        this.rows = 2;
+                    } else {
+                        const [addrOrRs = 0x27, colsOrEn = 16, rowsOrD4 = 2] = args;
+                        this.address = typeof addrOrRs === "number" ? addrOrRs : 0x27;
+                        this.cols = Number(colsOrEn) || 16;
+                        this.rows = Number(rowsOrD4) || 2;
+                    }
+                    this.cursorCol = 0;
+                    this.cursorRow = 0;
+                    this.showCursor = false;
+                    this.blinkCursor = false;
+                    this.backlightOn = true;
+                    this.displayOn = true;
+                    this.contrast = 85;
+                    this.lines = Array(this.rows).fill("").map(() => "".padEnd(this.cols, " "));
+                    this.customChars = {};
+                }
+
+                _notify() {
+                    const comps = context.__getComponents ? context.__getComponents() : [];
+                    const lcds = comps.filter(c => c.type === "lcd-1602" || c.type === "lcd-2004" || c.type?.startsWith("lcd"));
+                    lcds.forEach(lcd => {
+                        if (context.__onUpdateComponent) {
+                            context.__onUpdateComponent(lcd.id, {
+                                textLines: [...this.lines],
+                                lines: [...this.lines],
+                                backlightOn: this.backlightOn,
+                                displayOn: this.displayOn,
+                                cursorCol: this.cursorCol,
+                                cursorRow: this.cursorRow,
+                                showCursor: this.showCursor,
+                                blinkCursor: this.blinkCursor,
+                                contrast: this.contrast
+                            });
+                        }
+                    });
+                }
+
+                init(cols, rows) {
+                    this.begin(cols || this.cols, rows || this.rows);
+                }
+
+                begin(cols = 16, rows = 2) {
+                    this.cols = Number(cols) || 16;
+                    this.rows = Number(rows) || 2;
+                    this.lines = Array(this.rows).fill("").map(() => "".padEnd(this.cols, " "));
+                    this.cursorCol = 0;
+                    this.cursorRow = 0;
+                    this.backlightOn = true;
+                    this.displayOn = true;
+                    this._notify();
+                }
+
+                clear() {
+                    this.lines = Array(this.rows).fill("").map(() => "".padEnd(this.cols, " "));
+                    this.cursorCol = 0;
+                    this.cursorRow = 0;
+                    this._notify();
+                }
+
+                home() {
+                    this.cursorCol = 0;
+                    this.cursorRow = 0;
+                    this._notify();
+                }
+
+                setCursor(col, row) {
+                    this.cursorCol = Math.max(0, Math.min(this.cols - 1, Number(col) || 0));
+                    this.cursorRow = Math.max(0, Math.min(this.rows - 1, Number(row) || 0));
+                }
+
+                print(val, precision) {
+                    let str = "";
+                    if (typeof val === "number" && typeof precision === "number") {
+                        str = val.toFixed(precision);
+                    } else {
+                        str = String(val != null ? val : "");
+                    }
+                    if (!this.lines[this.cursorRow]) {
+                        this.lines[this.cursorRow] = "".padEnd(this.cols, " ");
+                    }
+                    const rowChars = this.lines[this.cursorRow].padEnd(this.cols, " ").split("");
+                    for (let i = 0; i < str.length; i++) {
+                        const targetCol = this.cursorCol + i;
+                        if (targetCol < this.cols) {
+                            rowChars[targetCol] = str[i];
+                        }
+                    }
+                    this.lines[this.cursorRow] = rowChars.join("").slice(0, this.cols);
+                    this.cursorCol = Math.min(this.cols - 1, this.cursorCol + str.length);
+                    this._notify();
+                }
+
+                println(val) {
+                    this.print(val);
+                    this.cursorCol = 0;
+                    this.cursorRow = (this.cursorRow + 1) % this.rows;
+                    this._notify();
+                }
+
+                write(charOrCode) {
+                    let ch = "";
+                    if (typeof charOrCode === "number") {
+                        ch = String.fromCharCode(charOrCode);
+                    } else {
+                        ch = String(charOrCode || "");
+                    }
+                    this.print(ch);
+                }
+
+                cursor() {
+                    this.showCursor = true;
+                    this._notify();
+                }
+
+                noCursor() {
+                    this.showCursor = false;
+                    this._notify();
+                }
+
+                blink() {
+                    this.blinkCursor = true;
+                    this._notify();
+                }
+
+                noBlink() {
+                    this.blinkCursor = false;
+                    this._notify();
+                }
+
+                display() {
+                    this.displayOn = true;
+                    this._notify();
+                }
+
+                noDisplay() {
+                    this.displayOn = false;
+                    this._notify();
+                }
+
+                backlight() {
+                    this.backlightOn = true;
+                    this._notify();
+                }
+
+                noBacklight() {
+                    this.backlightOn = false;
+                    this._notify();
+                }
+
+                scrollDisplayLeft() {
+                    this.lines = this.lines.map(row => {
+                        const r = row.padEnd(this.cols, " ");
+                        return r.slice(1) + r.slice(0, 1);
+                    });
+                    this._notify();
+                }
+
+                scrollDisplayRight() {
+                    this.lines = this.lines.map(row => {
+                        const r = row.padEnd(this.cols, " ");
+                        return r.slice(-1) + r.slice(0, -1);
+                    });
+                    this._notify();
+                }
+
+                autoscroll() {}
+                noAutoscroll() {}
+
+                createChar(num, charmap) {
+                    const idx = Math.max(0, Math.min(7, Number(num) || 0));
+                    this.customChars[idx] = charmap;
+                }
+            },
+            __getComponents: () => (this.callbacks.getComponents ? this.callbacks.getComponents() : []),
+            __onUpdateComponent: (id, updates) => {
+                if (this.callbacks.onUpdateComponent) {
+                    this.callbacks.onUpdateComponent(id, updates);
+                }
+            },
+            __digitalWrite: (pin, val) => {
+                let p = String(pin).trim();
+                if (/^GP/i.test(p)) {
+                    p = p.replace(/^GP/i, "");
+                }
+                const v = val === 1 || val === "1" || val === true ? 1 : 0;
+                this.pinStates[p] = v;
+
+                const isD13 = this.pinStates["13"] === 1;
+                const isD2 = this.pinStates["2"] === 1;
+                const isGP25 = this.pinStates["25"] === 1;
+
+                if (this.callbacks.onPinStateChange) {
+                    this.callbacks.onPinStateChange(this.boardId, { ...this.pinStates }, isD13, isD2, isGP25);
+                }
+            },
+            __digitalRead: (pin) => {
+                let p = String(pin).trim();
+                if (/^GP/i.test(p)) {
+                    p = p.replace(/^GP/i, "");
+                }
+                return this.pinStates[p] != null ? this.pinStates[p] : 0;
+            },
+            __analogRead: (pin) => {
+                let p = String(pin).trim();
+                const comps = this.callbacks.getComponents ? this.callbacks.getComponents() : [];
+                const pot = comps.find(c => c.type === "potentiometer");
+                if (pot && pot.wiperValue != null) {
+                    return Math.round(pot.wiperValue * 1023);
+                }
+                const ldr = comps.find(c => c.type === "photoresistor");
+                if (ldr && ldr.lux != null) {
+                    return Math.round(Math.min(1023, (ldr.lux / 1000) * 1023));
+                }
+                return 512;
+            },
+            __pinMode: (pin, mode) => {
+                // Pin mode registry
+            },
+            __serialBegin: (baud) => {
+                const elapsed = ((Date.now() - this.simStartTime) / 1000).toFixed(2);
+                if (this.callbacks.onSerialLog) {
+                    this.callbacks.onSerialLog({
+                        time: `${elapsed}s`,
+                        type: "serial",
+                        text: `[UART] Serial interface opened at ${baud} baud`
+                    });
+                }
+            },
+            __serialPrint: (msg) => {
+                const elapsed = ((Date.now() - this.simStartTime) / 1000).toFixed(2);
+                if (this.callbacks.onSerialLog) {
+                    this.callbacks.onSerialLog({
+                        time: `${elapsed}s`,
+                        type: "serial",
+                        text: String(msg != null ? msg : "")
+                    });
+                }
+                if (this.callbacks.onTxPulse) this.callbacks.onTxPulse();
+            },
+            __serialPrintln: (msg) => {
+                const elapsed = ((Date.now() - this.simStartTime) / 1000).toFixed(2);
+                if (this.callbacks.onSerialLog) {
+                    this.callbacks.onSerialLog({
+                        time: `${elapsed}s`,
+                        type: "serial",
+                        text: String(msg != null ? msg : "")
+                    });
+                }
+                if (this.callbacks.onTxPulse) this.callbacks.onTxPulse();
+            },
+            __runningRef: this.runningRef,
+            millis: () => Date.now() - this.simStartTime,
+            A0: "A0", A1: "A1", A2: "A2", A3: "A3", A4: "A4", A5: "A5",
+            A6: "A6", A7: "A7", A8: "A8", A9: "A9", A10: "A10",
+            A11: "A11", A12: "A12", A13: "A13", A14: "A14", A15: "A15",
+            GP0: 0, GP1: 1, GP2: 2, GP3: 3, GP4: 4, GP5: 5, GP6: 6, GP7: 7,
+            GP8: 8, GP9: 9, GP10: 10, GP11: 11, GP12: 12, GP13: 13, GP14: 14,
+            GP15: 15, GP16: 16, GP17: 17, GP18: 18, GP19: 19, GP20: 20, GP21: 21,
+            GP22: 22, GP23: 23, GP24: 24, GP25: 25, GP26: 26, GP27: 27, GP28: 28
+        };
+
+        // MicroPython & Python Objects and Classes
+        class PyPin {
+            constructor(pinNum, mode = "OUTPUT", pull = null) {
+                let p = pinNum;
+                if (typeof p === "string" && (p.toLowerCase() === "led" || p.toUpperCase() === "LED")) {
+                    p = builtinPin;
+                }
+                this.pin = String(p).replace(/^GP/i, "").trim();
+                this.mode = mode === "INPUT" || mode === "INPUT_PULLUP" ? mode : "OUTPUT";
+                this.currentVal = 0;
+                context.__pinMode(this.pin, this.mode);
+            }
+            value(v) {
+                if (v === undefined) {
+                    return context.__digitalRead(this.pin);
+                }
+                const val = (v === 1 || v === true || v === "1") ? 1 : 0;
+                this.currentVal = val;
+                context.__digitalWrite(this.pin, val);
+                return val;
+            }
+            on() { return this.value(1); }
+            off() { return this.value(0); }
+            high() { return this.value(1); }
+            low() { return this.value(0); }
+            toggle() { return this.value(this.currentVal === 1 ? 0 : 1); }
+        }
+        PyPin.OUT = "OUTPUT";
+        PyPin.IN = "INPUT";
+        PyPin.PULL_UP = "INPUT_PULLUP";
+        PyPin.PULL_DOWN = "INPUT";
+
+        const pyTime = {
+            sleep: async (s) => await context.__delay(Math.round((Number(s) || 0) * 1000)),
+            sleep_ms: async (ms) => await context.__delay(Math.round(Number(ms) || 0)),
+            sleep_us: async (us) => await context.__delayMicroseconds(Math.round(Number(us) || 0))
+        };
+
+        const pyPulse = async (pinObj, val, timeout = 30000) => {
+            const p = pinObj?.pin != null ? pinObj.pin : pinObj;
+            return await context.__pulseIn(p, val, timeout);
+        };
+
+        class PyI2cLcd {
+            constructor(i2c, addr = 0x27, rows = 2, cols = 16) {
+                this.lcd = new context.__LiquidCrystal(addr, cols, rows);
+                this.lcd.begin(cols, rows);
+            }
+            putstr(str) { this.lcd.print(str); }
+            clear() { this.lcd.clear(); }
+            move_to(col, row) { this.lcd.setCursor(col, row); }
+            backlight_on() { this.lcd.backlight(); }
+            backlight_off() { this.lcd.noBacklight(); }
+        }
+
+        context.Pin = PyPin;
+        context.time = pyTime;
+        context.sleep = pyTime.sleep;
+        context.sleep_ms = pyTime.sleep_ms;
+        context.sleep_us = pyTime.sleep_us;
+        context.time_pulse_us = pyPulse;
+        context.I2cLcd = PyI2cLcd;
+        context.machine = {
+            Pin: PyPin,
+            time_pulse_us: pyPulse,
+            ADC: class { constructor(pin) { this.pin = pin; } read_u16() { return Math.round((context.__analogRead(this.pin) / 1023) * 65535); } },
+            PWM: class { constructor(pin) { this.pin = pin; } duty_u16(val) { context.__analogWrite(this.pin, Math.round((val / 65535) * 255)); } }
+        };
+        context.print = async (...args) => {
+            const text = args.map(a => typeof a === "object" ? JSON.stringify(a) : String(a)).join(" ");
+            await context.__serialPrintln(text);
+        };
+
+        return context;
+    }
+
     compileAndRun(sketchCode) {
         this.stop();
         this.isRunning = true;
