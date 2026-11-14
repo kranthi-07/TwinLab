@@ -389,12 +389,26 @@ function SmallComponent({
             const coneLimit = Math.max(50, 32 + Math.min(400, coneRangeCm) * 1.15);
             const inRange = dy > 0 && Math.abs(phi) <= maxHalfAngleRad && distPx <= coneLimit;
             const dist = Math.max(2, Math.min(400, Math.round(Math.max(0, distPx - 32) / 1.15)));
+            const activeDist = inRange ? dist : 400;
+
+            if (typeof window !== "undefined") {
+                window.__twinlab_ultrasonic_distance = activeDist;
+                if (!window.__twinlab_sensor_live) window.__twinlab_sensor_live = {};
+                window.__twinlab_sensor_live[id] = {
+                    measuredDistanceCm: activeDist,
+                    distanceCm: activeDist,
+                    inRange,
+                    targetBallX: nextX,
+                    targetBallY: nextY
+                };
+            }
 
             if (onUpdate) {
                 onUpdate({
                     targetBallX: nextX,
                     targetBallY: nextY,
-                    measuredDistanceCm: inRange ? dist : 400,
+                    distanceCm: activeDist,
+                    measuredDistanceCm: activeDist,
                     targetAngle: Math.round(phi * 1000) / 1000,
                     inRange
                 });

@@ -168,6 +168,50 @@
     font-weight: 700;
 }
 
+/* Center Language Switcher on Topbar */
+.topbar-language-section {
+    display: flex;
+    align-items: center;
+}
+
+.lang-pill-group {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.6);
+    padding: 3px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 3px;
+}
+
+.lang-pill-btn {
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}
+
+.lang-pill-btn:hover {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.lang-pill-btn.active {
+    background: #0284c7;
+    color: #ffffff;
+    box-shadow: 0 1px 4px rgba(2, 132, 199, 0.4);
+    font-weight: 700;
+}
+
 /* Actions Section on Topbar */
 .topbar-actions-section {
     display: flex;

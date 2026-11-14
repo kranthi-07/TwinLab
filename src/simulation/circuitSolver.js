@@ -1293,9 +1293,12 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             if (vccNode !== gndNode) {
                 const powerConn = findActivePowerSourceForLoad(vccNode, gndNode);
                 if (powerConn && powerConn.polarity === "forward" && powerConn.voltage >= 3.0) {
-                    const dist = (c.inRange !== false && c.measuredDistanceCm != null)
-                        ? c.measuredDistanceCm
-                        : (c.inRange === false ? 400 : (c.rangeCm || c.distanceCm || 200));
+                    const liveDist = typeof window !== "undefined" && window.__twinlab_sensor_live?.[c.id]?.measuredDistanceCm;
+                    const dist = liveDist != null
+                        ? liveDist
+                        : ((c.inRange !== false && c.measuredDistanceCm != null)
+                            ? c.measuredDistanceCm
+                            : (c.inRange === false ? 400 : (c.rangeCm || c.distanceCm || 200)));
                     sensorStates[c.id] = {
                         isPowered: true,
                         isPinging: true,

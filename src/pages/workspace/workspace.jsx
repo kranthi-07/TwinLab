@@ -341,7 +341,14 @@ function Workspace({ onBackToHome }) {
 
     // Direct helper to update component state without TDZ
     const updateComponentDirect = useCallback((id, updates) => {
-        setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+        setComponents(prev => {
+            const next = prev.map(c => c.id === id ? { ...c, ...updates } : c);
+            componentsRef.current = next;
+            return next;
+        });
+        if (componentsRef.current) {
+            componentsRef.current = componentsRef.current.map(c => c.id === id ? { ...c, ...updates } : c);
+        }
     }, []);
 
     // Available MCU boards on canvas

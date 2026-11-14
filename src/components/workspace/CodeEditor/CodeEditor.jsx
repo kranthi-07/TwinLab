@@ -47,6 +47,40 @@ export function highlightArduinoCpp(code) {
     });
 }
 
+export function highlightPython(code) {
+    if (!code) return "";
+    const escaped = code
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+    const tokenRegex = new RegExp(
+        [
+            "(?<comment>#[^\\n]*)",
+            "(?<string>\"\"\"[\\s\\S]*?\"\"\"|'''[\\s\\S]*?'''|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*')",
+            "(?<number>\\b(?:0x[0-9a-fA-F]+|\\d+(?:\\.\\d+)?)\\b)",
+            "(?<constant>\\b(?:True|False|None)\\b)",
+            "(?<keyword>\\b(?:import|from|as|def|return|if|elif|else|for|while|break|continue|pass|try|except|finally|raise|with|class|in|is|not|and|or|lambda|global)\\b)",
+            "(?<builtin>\\b(?:print|range|len|str|int|float|bool|list|dict|set|tuple|type|sleep|sleep_ms|sleep_us|time_pulse_us|Pin|ADC|PWM|I2C|SPI|UART|machine|time|utime)\\b)",
+            "(?<func>\\b[a-zA-Z_][a-zA-Z0-9_]*(?=\\s*\\())"
+        ].join("|"),
+        "g"
+    );
+
+    return escaped.replace(tokenRegex, (match, ...args) => {
+        const groups = args[args.length - 1];
+        if (!groups) return match;
+        if (groups.comment) return `<span class="syn-comment">${match}</span>`;
+        if (groups.string) return `<span class="syn-string">${match}</span>`;
+        if (groups.number) return `<span class="syn-num">${match}</span>`;
+        if (groups.constant) return `<span class="syn-const">${match}</span>`;
+        if (groups.keyword) return `<span class="syn-keyword">${match}</span>`;
+        if (groups.builtin) return `<span class="syn-builtin">${match}</span>`;
+        if (groups.func) return `<span class="syn-func">${match}</span>`;
+        return match;
+    });
+}
+
 const DEFAULT_BLANK_TEMPLATE = `// TwinLab MCU Firmware
 void setup() {
   pinMode(13, OUTPUT);
@@ -101,6 +135,50 @@ function CodeEditor({
             return "sketch.ino";
         }
     });
+
+    const [language, setLanguage] = useState(() => {
+        try {
+            const saved = localStorage.getItem("twinlab_active_language");
+            if (saved) return saved;
+        } catch (_) {}
+        if (externalCode && (externalCode.includes("from machine import") || externalCode.includes("import machine") || externalCode.startsWith("#"))) {
+            return "micropython";
+        }
+        return "cpp";
+    });
+
+    const handleSwitchLanguage = (newLang) => {
+        setLanguage(newLang);
+        try {
+            localStorage.setItem("twinlab_active_language", newLang);
+        } catch (_) {}
+
+        const isPico = currentBoard?.type?.includes("pico") || currentBoard?.type?.includes("raspberry");
+
+        if (newLang === "micropython" || newLang === "python") {
+            if (!activeFileName.endsWith(".py")) {
+                setActiveFileName("main.py");
+                try { localStorage.setItem("twinlab_active_filename", "main.py"); } catch (_) {}
+            }
+            if (!code || code.trim().length === 0 || code.includes("void setup()") || code.includes("void loop()")) {
+                const pyTemplate = isPico 
+                    ? (DEFAULT_SKETCHES.pico_py_blink || `# Raspberry Pi Pico MicroPython\nfrom machine import Pin\nimport time\n\nled = Pin(25, Pin.OUT)\n\nwhile True:\n    led.value(1)\n    print("GP25 LED ON")\n    time.sleep(0.5)\n    led.value(0)\n    print("GP25 LED OFF")\n    time.sleep(0.5)\n`)
+                    : `# MicroPython Firmware\nfrom machine import Pin\nimport time\n\nled = Pin(2, Pin.OUT)\n\nwhile True:\n    led.value(1)\n    time.sleep(0.5)\n    led.value(0)\n    time.sleep(0.5)\n`;
+                handleCodeTextChange(pyTemplate);
+            }
+        } else {
+            if (!activeFileName.endsWith(".ino") && !activeFileName.endsWith(".cpp")) {
+                setActiveFileName("sketch.ino");
+                try { localStorage.setItem("twinlab_active_filename", "sketch.ino"); } catch (_) {}
+            }
+            if (!code || code.trim().length === 0 || code.includes("from machine import") || code.includes("import machine")) {
+                const cppTemplate = isPico 
+                    ? (DEFAULT_SKETCHES.pico_c_blink || `void setup() {\n  pinMode(25, OUTPUT);\n  Serial.begin(115200);\n}\n\nvoid loop() {\n  digitalWrite(25, HIGH);\n  delay(500);\n  digitalWrite(25, LOW);\n  delay(500);\n}`)
+                    : DEFAULT_BLANK_TEMPLATE;
+                handleCodeTextChange(cppTemplate);
+            }
+        }
+    };
 
     // Baseline code when last saved or opened, used for the '.' dirty indication
     const [savedCodeBaseline, setSavedCodeBaseline] = useState(() => {
@@ -288,7 +366,12 @@ function CodeEditor({
     const lineNumbersRef = useRef(null);
     const serialOutputRef = useRef(null);
 
-    const highlightedCode = useMemo(() => highlightArduinoCpp(code), [code]);
+    const highlightedCode = useMemo(() => {
+        if (language === "micropython" || language === "python" || activeFileName.endsWith(".py")) {
+            return highlightPython(code);
+        }
+        return highlightArduinoCpp(code);
+    }, [code, language, activeFileName]);
     const lineCount = Math.max(1, code.split("\n").length);
     const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
 
@@ -445,6 +528,36 @@ function CodeEditor({
                             <span className="board-com-chip font-mono">USB {currentBoard.port}</span>
                         </div>
                     )}
+                </div>
+
+                {/* Center: Language Switcher (C++ | MicroPython | Python) */}
+                <div className="topbar-language-section">
+                    <div className="lang-pill-group">
+                        <button
+                            type="button"
+                            className={`lang-pill-btn ${language === "cpp" ? "active" : ""}`}
+                            onClick={() => handleSwitchLanguage("cpp")}
+                            title="Arduino C / C++ mode"
+                        >
+                            <span>C++</span>
+                        </button>
+                        <button
+                            type="button"
+                            className={`lang-pill-btn ${language === "micropython" ? "active" : ""}`}
+                            onClick={() => handleSwitchLanguage("micropython")}
+                            title="MicroPython mode (Raspberry Pi Pico & ESP32)"
+                        >
+                            <span>MicroPython</span>
+                        </button>
+                        <button
+                            type="button"
+                            className={`lang-pill-btn ${language === "python" ? "active" : ""}`}
+                            onClick={() => handleSwitchLanguage("python")}
+                            title="Python mode"
+                        >
+                            <span>Python</span>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Center / Right: Upload & Run OR Stop + Re-Upload */}
