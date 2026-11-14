@@ -710,7 +710,7 @@ function LeftSidebar({ onAddComponent, onCloseInspector }) {
                                 title={`Click or drag to add ${component.name}`}
                             >
                                 <div className="component-preview">
-                                    {component.image ? (
+                                    {component.category !== "boards" && component.image ? (
                                         <img 
                                             src={component.image} 
                                             alt={component.name} 

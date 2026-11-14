@@ -104,37 +104,106 @@ export function ComponentArt({ type, color = "#ef4444", className = "", size = "
         );
     }
 
-    // 5. RASPBERRY PI PICO
-    if (t.startsWith("rpi") || t === "pi") {
+    // 5. RASPBERRY PI PICO & PICO 2
+    if (t.startsWith("rpi") || t === "pi" || t.includes("pico") || t.includes("raspberry")) {
+        const isPico2 = t.includes("2");
         return (
             <svg viewBox="0 0 100 68" className={`comp-art-svg ${className}`}>
-                <rect x="18" y="12" width="64" height="44" rx="3.5" fill="#15803d" stroke="#166534" strokeWidth="1.5" />
-                <rect x="15" y="27" width="7" height="14" rx="1.5" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="0.8" />
-                {/* RP2040 chip */}
-                <rect x="42" y="27" width="16" height="14" rx="1" fill="#09090b" stroke="#27272a" strokeWidth="0.8" />
-                <text x="50" y="36" fill="#a1a1aa" fontSize="3.8" fontFamily="monospace" fontWeight="bold" textAnchor="middle">RP2040</text>
+                {/* Raspberry Pi Signature Emerald Green PCB */}
+                <rect x="16" y="10" width="68" height="48" rx="4" fill="#15803d" stroke="#14532d" strokeWidth="1.5" />
+                {/* Micro-USB port on left */}
+                <rect x="12" y="26" width="8" height="16" rx="2" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="0.8" />
+                <rect x="12" y="29" width="4" height="10" rx="0.5" fill="#0f172a" />
+                {/* RP2040 / RP2350 SoC chip */}
+                <rect x="38" y="25" width="20" height="18" rx="1.5" fill="#09090b" stroke="#27272a" strokeWidth="1" />
+                <text x="48" y="35" fill="#f8fafc" fontSize="4.2" fontFamily="monospace" fontWeight="bold" textAnchor="middle">{isPico2 ? "RP2350" : "RP2040"}</text>
+                <text x="48" y="40" fill="#94a3b8" fontSize="2.8" fontFamily="monospace" textAnchor="middle">ARM DUAL-CORE</text>
+                {/* Winbond Flash Memory */}
+                <rect x="62" y="26" width="10" height="7" rx="0.8" fill="#18181b" stroke="#27272a" strokeWidth="0.5" />
                 {/* BOOTSEL Button */}
-                <rect x="64" y="31" width="6" height="6" rx="1" fill="#ffffff" stroke="#94a3b8" strokeWidth="0.6" />
-                <circle cx="67" cy="34" r="1.5" fill="#3b82f6" />
-                {/* Castellated Pin Edges */}
-                <rect x="19" y="13.5" width="62" height="3" rx="0.5" fill="#ca8a04" />
-                <rect x="19" y="51.5" width="62" height="3" rx="0.5" fill="#ca8a04" />
-                <text x="50" y="21" fill="#bbf7d0" fontSize="4.5" fontWeight="900" textAnchor="middle">Raspberry Pi Pico</text>
+                <rect x="64" y="36" width="8" height="7" rx="1.5" fill="#f1f5f9" stroke="#94a3b8" strokeWidth="0.6" />
+                <circle cx="68" cy="39.5" r="1.8" fill="#3b82f6" />
+                {/* User LED GP25 */}
+                <circle cx="30" cy="20" r="1.8" fill="#22c55e" stroke="#16a34a" strokeWidth="0.5" />
+                <text x="30" y="17" fill="#86efac" fontSize="3" fontWeight="bold" textAnchor="middle">LED</text>
+                {/* Castellated Gold Edge Pads */}
+                <rect x="16" y="11" width="68" height="3" rx="0.5" fill="#eab308" />
+                <rect x="16" y="54" width="68" height="3" rx="0.5" fill="#eab308" />
+                {[...Array(12)].map((_, i) => (
+                    <circle key={`pt-${i}`} cx={20 + i * 5} cy={12.5} r="1" fill="#713f12" />
+                ))}
+                {[...Array(12)].map((_, i) => (
+                    <circle key={`pb-${i}`} cx={20 + i * 5} cy={55.5} r="1" fill="#713f12" />
+                ))}
+                {/* Silkscreen text */}
+                <text x="50" y="21" fill="#ffffff" fontSize="4.8" fontWeight="900" textAnchor="middle" letterSpacing="0.04em">{isPico2 ? "Raspberry Pi Pico 2" : "Raspberry Pi Pico"}</text>
             </svg>
         );
     }
 
-    // 6. STM32 BLUE PILL
-    if (t.startsWith("stm32")) {
+    // 5b. ESP8266 NODEMCU
+    if (t.includes("esp8266") || t.includes("nodemcu")) {
         return (
             <svg viewBox="0 0 100 68" className={`comp-art-svg ${className}`}>
-                <rect x="16" y="14" width="68" height="40" rx="3" fill="#1d4ed8" stroke="#1e40af" strokeWidth="1.5" />
-                <rect x="12" y="28" width="7" height="12" rx="1.5" fill="#cbd5e1" />
-                <rect x="40" y="26" width="16" height="16" rx="1" fill="#09090b" transform="rotate(45 48 34)" />
-                <rect x="66" y="26" width="8" height="6" rx="1" fill="#eab308" />
-                <rect x="22" y="15.5" width="56" height="3.5" rx="0.8" fill="#0f172a" />
-                <rect x="22" y="49" width="56" height="3.5" rx="0.8" fill="#0f172a" />
-                <text x="50" y="23" fill="#ffffff" fontSize="4.8" fontWeight="bold" textAnchor="middle">STM32 ARM</text>
+                <rect x="16" y="10" width="68" height="48" rx="4" fill="#0f172a" stroke="#1e293b" strokeWidth="1.5" />
+                {/* Metal RF Shield */}
+                <rect x="28" y="18" width="38" height="26" rx="2" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1" />
+                <text x="47" y="30" fill="#0f172a" fontSize="5" fontWeight="900" textAnchor="middle">ESP8266</text>
+                <text x="47" y="37" fill="#475569" fontSize="3.5" fontFamily="monospace" textAnchor="middle">MOD-12E</text>
+                {/* Gold PCB Meander Antenna */}
+                <path d="M 18 20 L 23 20 L 23 24 L 18 24 L 18 28 L 23 28 L 23 32 L 18 32 L 18 36 L 23 36" fill="none" stroke="#eab308" strokeWidth="1.2" />
+                {/* Micro-USB */}
+                <rect x="80" y="27" width="6" height="14" rx="1.5" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="0.8" />
+                {/* Dual row pins */}
+                <rect x="20" y="11" width="60" height="3" fill="#ca8a04" />
+                <rect x="20" y="54" width="60" height="3" fill="#ca8a04" />
+                <text x="50" y="50" fill="#94a3b8" fontSize="4" fontWeight="bold" textAnchor="middle">NodeMCU</text>
+            </svg>
+        );
+    }
+
+    // 6. STM32 NUCLEO & BLUE/BLACK PILL
+    if (t.startsWith("stm32")) {
+        const isNucleo = t.includes("nucleo");
+        return (
+            <svg viewBox="0 0 100 68" className={`comp-art-svg ${className}`}>
+                <rect x="14" y="10" width="72" height="48" rx="3.5" fill={isNucleo ? "#ffffff" : "#1d4ed8"} stroke={isNucleo ? "#94a3b8" : "#1e40af"} strokeWidth="1.5" />
+                <rect x="10" y="27" width="8" height="14" rx="1.5" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="0.8" />
+                <rect x="42" y="26" width="16" height="16" rx="1" fill="#09090b" transform="rotate(45 50 34)" />
+                <rect x="20" y="11.5" width="60" height="3.5" rx="0.8" fill="#0f172a" />
+                <rect x="20" y="53" width="60" height="3.5" rx="0.8" fill="#0f172a" />
+                <text x="50" y="22" fill={isNucleo ? "#0284c7" : "#ffffff"} fontSize="4.8" fontWeight="bold" textAnchor="middle">{isNucleo ? "NUCLEO-F446RE" : "STM32 ARM"}</text>
+            </svg>
+        );
+    }
+
+    // 6b. TEENSY 4.1
+    if (t.includes("teensy")) {
+        return (
+            <svg viewBox="0 0 100 68" className={`comp-art-svg ${className}`}>
+                <rect x="12" y="16" width="76" height="36" rx="3" fill="#09090b" stroke="#27272a" strokeWidth="1.5" />
+                <rect x="8" y="27" width="7" height="14" rx="1.5" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="0.8" />
+                <rect x="36" y="26" width="16" height="16" rx="1" fill="#18181b" stroke="#3f3f46" strokeWidth="0.8" />
+                <text x="44" y="35" fill="#e2e8f0" fontSize="3.8" fontFamily="monospace" fontWeight="bold" textAnchor="middle">i.MX RT1062</text>
+                <text x="44" y="40" fill="#a1a1aa" fontSize="3" fontFamily="monospace" textAnchor="middle">600 MHz</text>
+                <rect x="18" y="17.5" width="64" height="3.5" rx="0.5" fill="#ca8a04" />
+                <rect x="18" y="47" width="64" height="3.5" rx="0.5" fill="#ca8a04" />
+                <text x="68" y="28" fill="#38bdf8" fontSize="4.5" fontWeight="900">TEENSY 4.1</text>
+            </svg>
+        );
+    }
+
+    // 6c. NXP, TI, PIC, NORDIC DEVELOPMENT BOARDS
+    if (t.includes("lpc") || t.includes("tiva") || t.includes("msp430") || t.includes("pic18") || t.includes("nrf52840") || t.includes("nordic")) {
+        return (
+            <svg viewBox="0 0 100 68" className={`comp-art-svg ${className}`}>
+                <rect x="16" y="12" width="68" height="44" rx="3.5" fill="#1e293b" stroke="#334155" strokeWidth="1.5" />
+                <rect x="12" y="27" width="7" height="14" rx="1.5" fill="#cbd5e1" />
+                <rect x="40" y="26" width="18" height="16" rx="1" fill="#09090b" stroke="#475569" strokeWidth="0.8" />
+                <text x="49" y="36" fill="#f8fafc" fontSize="3.8" fontFamily="monospace" fontWeight="bold" textAnchor="middle">MCU</text>
+                <rect x="22" y="13.5" width="56" height="3.5" rx="0.5" fill="#ca8a04" />
+                <rect x="22" y="51" width="56" height="3.5" rx="0.5" fill="#ca8a04" />
+                <text x="50" y="22" fill="#94a3b8" fontSize="4.2" fontWeight="bold" textAnchor="middle">{type?.toUpperCase() || "DEV BOARD"}</text>
             </svg>
         );
     }

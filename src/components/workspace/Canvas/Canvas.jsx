@@ -1860,68 +1860,85 @@ function Canvas({
                             filter: "drop-shadow(0 0 16px rgba(255, 138, 0, 0.8))"
                         }}
                     >
-                        {!placingComponent.type?.startsWith("breadboard") && 
-                         !placingComponent.type?.startsWith("arduino") && 
-                         !placingComponent.type?.startsWith("esp32") && 
-                         placingComponent.type !== "multimeter" && (
-                            <SmallComponent
-                                id="placing-ghost-preview"
-                                type={placingComponent.type}
-                                name={placingComponent.name}
-                                designator={placingComponent.designator}
-                                color={placingComponent.color}
-                                voltage={placingComponent.voltage}
-                                resistance={placingComponent.resistance}
-                                capacitance={placingComponent.capacitance}
-                                wiperValue={placingComponent.wiperValue}
-                                isOn={placingComponent.isOn}
-                                cells={placingComponent.cells}
-                                lux={placingComponent.lux}
-                                backlightColor={placingComponent.backlightColor}
-                                lcdTextColor={placingComponent.lcdTextColor}
-                                angle={placingComponent.angle}
-                                distanceCm={placingComponent.distanceCm}
-                                is3D={placingComponent.is3D}
-                                viewMode={placingComponent.viewMode}
-                                rot3D={placingComponent.rot3D}
-                                pitch3D={placingComponent.pitch3D}
-                                speed={placingComponent.speed}
-                                x={0}
-                                y={0}
-                                rotation={0}
-                                isSelected={true}
-                            />
-                        )}
-                        {placingComponent.type?.startsWith("breadboard") && (
-                            <Breadboard
-                                id="placing-ghost-preview"
-                                type={placingComponent.type}
-                                name={placingComponent.name}
-                                x={0}
-                                y={0}
-                                rotation={0}
-                                isSelected={true}
-                            />
-                        )}
-                        {placingComponent.type === "multimeter" && (
-                            <Multimeter
-                                id="placing-ghost-preview"
-                                x={0}
-                                y={0}
-                                rotation={0}
-                                isSelected={true}
-                            />
-                        )}
-                        {["arduino-uno", "arduino-mega", "arduino-nano", "esp32", "esp32-devkit", "esp32-s3"].includes(placingComponent.type) && (
-                            <McuBoard
-                                id="placing-ghost-preview"
-                                type={placingComponent.type}
-                                x={0}
-                                y={0}
-                                rotation={0}
-                                isSelected={true}
-                            />
-                        )}
+                        {(() => {
+                            const isBoard = placingComponent.category === "boards" || 
+                                            placingComponent.type?.startsWith("arduino") || 
+                                            placingComponent.type?.startsWith("esp") || 
+                                            placingComponent.type?.startsWith("rpi") || 
+                                            placingComponent.type?.includes("pico") || 
+                                            placingComponent.type?.startsWith("stm32") || 
+                                            ["arduino-uno", "arduino-mega", "arduino-nano", "esp32", "esp32-devkit", "esp32-s3", "rpi-pico", "raspberry-pi"].includes(placingComponent.type);
+
+                            if (isBoard) {
+                                return (
+                                    <McuBoard
+                                        id="placing-ghost-preview"
+                                        type={placingComponent.type}
+                                        name={placingComponent.name}
+                                        x={0}
+                                        y={0}
+                                        rotation={0}
+                                        isSelected={true}
+                                    />
+                                );
+                            }
+
+                            if (placingComponent.type?.startsWith("breadboard")) {
+                                return (
+                                    <Breadboard
+                                        id="placing-ghost-preview"
+                                        type={placingComponent.type}
+                                        name={placingComponent.name}
+                                        x={0}
+                                        y={0}
+                                        rotation={0}
+                                        isSelected={true}
+                                    />
+                                );
+                            }
+
+                            if (placingComponent.type === "multimeter") {
+                                return (
+                                    <Multimeter
+                                        id="placing-ghost-preview"
+                                        x={0}
+                                        y={0}
+                                        rotation={0}
+                                        isSelected={true}
+                                    />
+                                );
+                            }
+
+                            return (
+                                <SmallComponent
+                                    id="placing-ghost-preview"
+                                    type={placingComponent.type}
+                                    name={placingComponent.name}
+                                    designator={placingComponent.designator}
+                                    color={placingComponent.color}
+                                    voltage={placingComponent.voltage}
+                                    resistance={placingComponent.resistance}
+                                    capacitance={placingComponent.capacitance}
+                                    wiperValue={placingComponent.wiperValue}
+                                    isOn={placingComponent.isOn}
+                                    cells={placingComponent.cells}
+                                    lux={placingComponent.lux}
+                                    backlightColor={placingComponent.backlightColor}
+                                    lcdTextColor={placingComponent.lcdTextColor}
+                                    angle={placingComponent.angle}
+                                    distanceCm={placingComponent.distanceCm}
+                                    is3D={placingComponent.is3D}
+                                    viewMode={placingComponent.viewMode}
+                                    rot3D={placingComponent.rot3D}
+                                    pitch3D={placingComponent.pitch3D}
+                                    speed={placingComponent.speed}
+                                    x={0}
+                                    y={0}
+                                    rotation={0}
+                                    isSelected={true}
+                                />
+                            );
+                        })()}
                     </div>
                 )}
             </div>

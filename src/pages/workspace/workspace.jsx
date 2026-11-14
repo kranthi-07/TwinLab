@@ -328,9 +328,29 @@ function Workspace({ onBackToHome }) {
     const mcuSessionsRef = useRef({});
     const boardFlashedCodesRef = useRef({});
 
+    // Live refs to components and wires so MCU execution loops always see current sensor data
+    const componentsRef = useRef(components);
+    useEffect(() => {
+        componentsRef.current = components;
+    }, [components]);
+
+    const wiresRef = useRef(wires);
+    useEffect(() => {
+        wiresRef.current = wires;
+    }, [wires]);
+
+    // Direct helper to update component state without TDZ
+    const updateComponentDirect = useCallback((id, updates) => {
+        setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+    }, []);
+
     // Available MCU boards on canvas
     const availableMcuBoards = useMemo(() => {
-        return components.filter(c => ["arduino-uno", "arduino-mega", "arduino-nano", "esp32-devkit", "esp32", "esp32-s3", "rpi-pico", "raspberry-pi"].includes(c.type));
+        return components.filter(c => 
+            c.type?.includes("pico") || 
+            c.type?.includes("raspberry") || 
+            ["arduino-uno", "arduino-mega", "arduino-nano", "esp32-devkit", "esp32", "esp32-s3"].includes(c.type)
+        );
     }, [components]);
 
     const activeTargetBoard = availableMcuBoards.find(b => b.id === targetMcuId) || availableMcuBoards[0] || null;
@@ -360,12 +380,22 @@ function Workspace({ onBackToHome }) {
         return DEFAULT_SKETCHES?.blank || `// Clean Arduino Sketch\nvoid setup() {\n  // put your setup code here, to run once:\n\n}\n\nvoid loop() {\n  // put your main code here, to run repeatedly:\n\n}`;
     });
 
-    // Synchronize userCode with active board's flashed firmware
+    // Synchronize userCode with active board's flashed firmware or board-specific storage
     useEffect(() => {
         if (activeTargetBoard) {
-            const boardCode = activeTargetBoard.flashedCode || activeTargetBoard.codeDraft || boardFlashedCodesRef.current[activeTargetBoard.id];
+            let boardCode = activeTargetBoard.flashedCode || 
+                            activeTargetBoard.codeDraft || 
+                            boardFlashedCodesRef.current[activeTargetBoard.id];
+            if (!boardCode) {
+                try {
+                    boardCode = localStorage.getItem(`twinlab_mcu_code_${activeTargetBoard.id}`);
+                } catch (_) {}
+            }
             if (boardCode !== undefined && boardCode !== null && boardCode.trim().length > 0) {
                 setUserCode(boardCode);
+            } else if (activeTargetBoard.type?.includes("pico") || activeTargetBoard.type?.includes("raspberry")) {
+                const picoDefault = `// Raspberry Pi Pico Default Sketch\n// Built-in LED on GP25\n\nvoid setup() {\n  pinMode(25, OUTPUT);\n  Serial.begin(115200);\n  Serial.println("Raspberry Pi Pico Ready!");\n}\n\nvoid loop() {\n  digitalWrite(25, HIGH);\n  delay(500);\n  digitalWrite(25, LOW);\n  delay(500);\n}`;
+                setUserCode(picoDefault);
             }
         }
     }, [activeTargetBoard?.id]);
@@ -373,12 +403,23 @@ function Workspace({ onBackToHome }) {
     const handleCodeChange = useCallback((newCode) => {
         setUserCode(newCode);
         setIsUnsaved(true);
+        if (activeTargetBoard?.id) {
+            boardFlashedCodesRef.current[activeTargetBoard.id] = newCode;
+            updateComponentDirect(activeTargetBoard.id, {
+                codeDraft: newCode,
+                flashedCode: newCode,
+                firmwareCode: newCode
+            });
+            try {
+                localStorage.setItem(`twinlab_mcu_code_${activeTargetBoard.id}`, newCode);
+            } catch (_) {}
+        }
         try {
             localStorage.setItem("twinlab_active_code", newCode);
             localStorage.setItem("twinlab_user_code", newCode);
             localStorage.setItem("twinlab_code_is_custom", "true");
         } catch (_) {}
-    }, []);
+    }, [activeTargetBoard?.id, updateComponentDirect]);
 
     // Listen to global toggle code editor event (Ctrl+D from anywhere)
     useEffect(() => {
@@ -415,7 +456,7 @@ function Workspace({ onBackToHome }) {
         availableMcuBoards.forEach(board => {
             if (!mcuSessionsRef.current[board.id]) {
                 const session = new McuExecutionSession(board.id, board.type, {
-                    onPinStateChange: (bId, pins, d13High, d2High) => {
+                    onPinStateChange: (bId, pins, d13High, d2High, gp25High) => {
                         setMcuRuntimeStates(prev => ({
                             ...prev,
                             [bId]: {
@@ -423,6 +464,7 @@ function Workspace({ onBackToHome }) {
                                 pins,
                                 d13High,
                                 d2High,
+                                gp25High: pins?.["25"] === 1 || gp25High,
                                 isPowered: true
                             }
                         }));
@@ -448,17 +490,29 @@ function Workspace({ onBackToHome }) {
                             }));
                         }, 80);
                     },
-                    getComponents: () => components,
-                    getWires: () => wires,
+                    getComponents: () => componentsRef.current,
+                    getWires: () => wiresRef.current,
                     onUpdateComponent: (cId, updates) => {
-                        handleUpdateComponent(cId, updates);
+                        updateComponentDirect(cId, updates);
                     }
                 });
 
                 mcuSessionsRef.current[board.id] = session;
 
-                // Only execute if this board has actual flashed code
-                const flashed = board.flashedCode || boardFlashedCodesRef.current[board.id] || (board.id === targetMcuId ? userCode : null);
+                // Check for flashed or saved code for this board
+                let flashed = board.flashedCode || 
+                              board.codeDraft || 
+                              boardFlashedCodesRef.current[board.id] || 
+                              (board.id === targetMcuId ? userCode : null);
+                if (!flashed) {
+                    try {
+                        flashed = localStorage.getItem(`twinlab_mcu_code_${board.id}`);
+                    } catch (_) {}
+                }
+                if (!flashed && (board.type?.includes("pico") || board.type?.includes("raspberry"))) {
+                    flashed = `// Raspberry Pi Pico Default Sketch\n// Built-in LED on GP25\n\nvoid setup() {\n  pinMode(25, OUTPUT);\n  Serial.begin(115200);\n  Serial.println("Raspberry Pi Pico Ready!");\n}\n\nvoid loop() {\n  digitalWrite(25, HIGH);\n  delay(500);\n  digitalWrite(25, LOW);\n  delay(500);\n}`;
+                }
+
                 const hasExecutableCode = flashed && !isPureBlankTemplate(flashed);
 
                 if (hasExecutableCode) {
@@ -476,6 +530,7 @@ function Workspace({ onBackToHome }) {
             setUserCode(sketchCode);
             try {
                 localStorage.setItem("twinlab_user_code", sketchCode);
+                localStorage.setItem("twinlab_active_code", sketchCode);
             } catch (_) {}
         }
         let boardId = activeTargetBoard?.id || availableMcuBoards[0]?.id;
@@ -499,8 +554,12 @@ function Workspace({ onBackToHome }) {
 
         // Store and flash code to MCU component so closing editor and restarting simulation never loses it
         boardFlashedCodesRef.current[boardId] = sketchCode;
-        handleUpdateComponent(boardId, {
+        try {
+            localStorage.setItem(`twinlab_mcu_code_${boardId}`, sketchCode);
+        } catch (_) {}
+        updateComponentDirect(boardId, {
             flashedCode: sketchCode,
+            codeDraft: sketchCode,
             isFlashed: true,
             firmwareCode: sketchCode
         });
@@ -514,7 +573,7 @@ function Workspace({ onBackToHome }) {
         }
 
         const session = new McuExecutionSession(boardId, boardType, {
-            onPinStateChange: (bId, pins, d13High, d2High) => {
+            onPinStateChange: (bId, pins, d13High, d2High, gp25High) => {
                 setMcuRuntimeStates(prev => ({
                     ...prev,
                     [bId]: {
@@ -522,6 +581,7 @@ function Workspace({ onBackToHome }) {
                         pins,
                         d13High,
                         d2High,
+                        gp25High: pins?.["25"] === 1 || gp25High,
                         isPowered: true
                     }
                 }));
@@ -550,10 +610,10 @@ function Workspace({ onBackToHome }) {
             onCompileError: (err) => {
                 cb && cb(err);
             },
-            getComponents: () => components,
-            getWires: () => wires,
+            getComponents: () => componentsRef.current,
+            getWires: () => wiresRef.current,
             onUpdateComponent: (cId, updates) => {
-                handleUpdateComponent(cId, updates);
+                updateComponentDirect(cId, updates);
             }
         });
 
@@ -562,9 +622,12 @@ function Workspace({ onBackToHome }) {
         setIsFirmwareExecuting(true);
         cb && cb(result.success ? null : result.error);
 
-        setToastMessage(`⚡ Firmware Uploaded to ${boardType === "esp32" || boardType === "esp32-devkit" ? "ESP32 DevKit" : "Arduino Uno"}`);
+        const boardDisplayName = boardType?.includes("pico") || boardType?.includes("raspberry") 
+            ? "Raspberry Pi Pico" 
+            : (boardType === "esp32" || boardType === "esp32-devkit" ? "ESP32 DevKit" : "Arduino Uno");
+        setToastMessage(`⚡ Firmware Uploaded to ${boardDisplayName}`);
         setTimeout(() => setToastMessage(""), 2200);
-    }, [activeTargetBoard, availableMcuBoards, isSimulating]);
+    }, [activeTargetBoard, availableMcuBoards, isSimulating, updateComponentDirect]);
 
     const handleStopFirmware = useCallback(() => {
         const boardId = activeTargetBoard?.id || availableMcuBoards[0]?.id;
@@ -1311,7 +1374,7 @@ function Workspace({ onBackToHome }) {
 
     const handleUpdateComponent = (id, updates, record = false) => {
         if (record) recordSnapshot();
-        setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+        updateComponentDirect(id, updates);
     };
 
     const handleDeleteComponent = (id, record = true) => {
@@ -1640,7 +1703,24 @@ function Workspace({ onBackToHome }) {
                         onCodeChange={handleCodeChange}
                         targetBoard={activeTargetBoard}
                         availableBoards={availableMcuBoards}
-                        onSelectTargetBoard={(id) => setTargetMcuId(id)}
+                        onSelectTargetBoard={(id) => {
+                            setTargetMcuId(id);
+                            const board = availableMcuBoards.find(b => b.id === id);
+                            if (board) {
+                                let boardCode = board.flashedCode || board.codeDraft || boardFlashedCodesRef.current[board.id];
+                                if (!boardCode) {
+                                    try {
+                                        boardCode = localStorage.getItem(`twinlab_mcu_code_${board.id}`);
+                                    } catch (_) {}
+                                }
+                                if (boardCode && boardCode.trim().length > 0) {
+                                    setUserCode(boardCode);
+                                } else if (board.type?.includes("pico") || board.type?.includes("raspberry")) {
+                                    const picoDefault = `// Raspberry Pi Pico Default Sketch\n// Built-in LED on GP25\n\nvoid setup() {\n  pinMode(25, OUTPUT);\n  Serial.begin(115200);\n  Serial.println("Raspberry Pi Pico Ready!");\n}\n\nvoid loop() {\n  digitalWrite(25, HIGH);\n  delay(500);\n  digitalWrite(25, LOW);\n  delay(500);\n}`;
+                                    setUserCode(picoDefault);
+                                }
+                            }
+                        }}
                         onUploadAndRun={handleUploadAndRunSketch}
                         onStopExecution={handleStopFirmware}
                         isExecuting={isFirmwareExecuting}

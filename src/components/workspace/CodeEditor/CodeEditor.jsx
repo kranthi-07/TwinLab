@@ -82,13 +82,15 @@ function CodeEditor({
     // 1. ACTIVE CODE & PERSISTENCE
     // -------------------------------------------------------------
     const [code, setCode] = useState(() => {
+        if (externalCode !== undefined && externalCode !== null && externalCode.trim().length > 0) {
+            return externalCode;
+        }
         try {
             const savedActive = localStorage.getItem("twinlab_active_code");
             if (savedActive) return savedActive;
             const persistent = localStorage.getItem("twinlab_user_code");
             if (persistent) return persistent;
         } catch (_) {}
-        if (externalCode !== undefined && externalCode !== null) return externalCode;
         return DEFAULT_SKETCHES?.blank || DEFAULT_BLANK_TEMPLATE;
     });
 

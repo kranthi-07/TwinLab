@@ -219,6 +219,97 @@ void loop() {
   lcd.print("   ");
   Serial.print("LCD Telemetry Value: ");
   Serial.println(counter);
+}`,
+
+    pico_c_blink: `// Raspberry Pi Pico C++ (Arduino) Blink
+// Built-in LED on GP25
+
+void setup() {
+  pinMode(25, OUTPUT);
+  Serial.begin(115200);
+  Serial.println("Raspberry Pi Pico (C++) Ready!");
+}
+
+void loop() {
+  digitalWrite(25, HIGH);
+  Serial.println("GP25 LED: ON");
+  delay(500);
+
+  digitalWrite(25, LOW);
+  Serial.println("GP25 LED: OFF");
+  delay(500);
+}`,
+
+    pico_py_blink: `# Raspberry Pi Pico MicroPython Blink
+from machine import Pin
+import time
+
+# Built-in LED on GP25
+led = Pin(25, Pin.OUT)
+print("Raspberry Pi Pico MicroPython Ready!")
+
+while True:
+    led.value(1)
+    print("GP25 LED: ON")
+    time.sleep(0.5)
+
+    led.value(0)
+    print("GP25 LED: OFF")
+    time.sleep(0.5)
+`,
+
+    pico_py_ultrasonic: `# Raspberry Pi Pico MicroPython Ultrasonic Sonar
+from machine import Pin, time_pulse_us
+import time
+
+trig = Pin(9, Pin.OUT)
+echo = Pin(10, Pin.IN)
+print("Pico Ultrasonic Sensor Active")
+
+while True:
+    trig.value(0)
+    time.sleep_us(2)
+    trig.value(1)
+    time.sleep_us(10)
+    trig.value(0)
+
+    duration = time_pulse_us(echo, 1, 30000)
+    distance = (duration * 0.034) / 2
+    print("Distance:", distance, "cm")
+    time.sleep(0.2)
+`,
+
+    pico_cpp_ultrasonic_lcd: `// Raspberry Pi Pico + HC-SR04 + 16x2 LCD
+#include <LiquidCrystal.h>
+
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+const int trigPin = 9;
+const int echoPin = 10;
+
+void setup() {
+  lcd.begin(16, 2);
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  lcd.setCursor(0, 0);
+  lcd.print("Distance:");
+  Serial.begin(115200);
+}
+
+void loop() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH);
+  float distanceCm = duration * 0.034 / 2.0;
+
+  lcd.setCursor(0, 1);
+  lcd.print(distanceCm, 1);
+  lcd.print(" cm      ");
+
+  delay(200);
 }`
 };
 
@@ -235,8 +326,8 @@ export class McuExecutionSession {
     }
 
     getBuiltinLedPin() {
-        if (this.boardType === "rpi-pico" || this.boardType === "raspberry-pi") return 25;
-        return (this.boardType === "esp32" || this.boardType === "esp32-devkit") ? 2 : 13;
+        if (this.boardType?.includes("pico") || this.boardType === "raspberry-pi") return 25;
+        return (this.boardType === "esp32" || this.boardType === "esp32-devkit" || this.boardType === "esp32-s3") ? 2 : 13;
     }
 
     stop() {
@@ -246,7 +337,7 @@ export class McuExecutionSession {
         this.activeTimeouts.clear();
         this.pinStates = {};
         if (this.callbacks.onPinStateChange) {
-            this.callbacks.onPinStateChange(this.boardId, this.pinStates, false, false);
+            this.callbacks.onPinStateChange(this.boardId, this.pinStates, false, false, false);
         }
     }
 
@@ -263,9 +354,10 @@ export class McuExecutionSession {
             this.pinStates[builtinPin] = state;
             const isD13 = builtinPin === 13 ? Boolean(state) : false;
             const isD2 = builtinPin === 2 ? Boolean(state) : false;
+            const isGP25 = builtinPin === 25 ? Boolean(state) : false;
 
             if (this.callbacks.onPinStateChange) {
-                this.callbacks.onPinStateChange(this.boardId, { ...this.pinStates }, isD13, isD2);
+                this.callbacks.onPinStateChange(this.boardId, { ...this.pinStates }, isD13, isD2, isGP25);
             }
 
             const t = setTimeout(tick, 1000);
@@ -273,6 +365,152 @@ export class McuExecutionSession {
         };
 
         tick();
+    }
+
+    transpilePython(pyCode, builtinPin) {
+        const rawLines = pyCode.split("\n");
+        const jsLines = [];
+        const indentStack = [0];
+        const declaredVars = new Set([
+            "Pin", "time", "sleep", "sleep_ms", "sleep_us", "time_pulse_us", "I2cLcd", "machine", "print", "true", "false", "null"
+        ]);
+
+        for (let line of rawLines) {
+            let stripped = line;
+            let inQuote = false;
+            let quoteChar = "";
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if ((ch === '"' || ch === "'") && (i === 0 || line[i - 1] !== "\\")) {
+                    if (!inQuote) { inQuote = true; quoteChar = ch; }
+                    else if (quoteChar === ch) { inQuote = false; }
+                } else if (ch === "#" && !inQuote) {
+                    stripped = line.substring(0, i);
+                    break;
+                }
+            }
+
+            const trimmed = stripped.trim();
+            if (!trimmed) continue;
+
+            const indentMatch = line.match(/^(\s*)/);
+            const indent = indentMatch ? indentMatch[1].length : 0;
+
+            while (indentStack.length > 1 && indent < indentStack[indentStack.length - 1]) {
+                indentStack.pop();
+                jsLines.push(" ".repeat(indentStack[indentStack.length - 1]) + "}");
+            }
+
+            let stmt = trimmed;
+            let isBlock = false;
+            if (stmt.endsWith(":")) {
+                isBlock = true;
+                stmt = stmt.slice(0, -1).trim();
+            }
+
+            // Skip pure python imports
+            if (/^(?:from\s+[\w.]+\s+)?import\s+/.test(stmt)) {
+                continue;
+            }
+
+            if (stmt === "while True") {
+                stmt = "while (__runningRef.current)";
+            } else if (stmt.startsWith("while ")) {
+                const cond = stmt.substring(6).trim();
+                stmt = `while (__runningRef.current && (${this.transformPyExpr(cond)}))`;
+            } else if (stmt.startsWith("if ")) {
+                stmt = `if (${this.transformPyExpr(stmt.substring(3).trim())})`;
+            } else if (stmt.startsWith("elif ")) {
+                stmt = `else if (${this.transformPyExpr(stmt.substring(5).trim())})`;
+            } else if (stmt === "else") {
+                stmt = "else";
+            } else if (stmt.startsWith("for ") && stmt.includes(" in range(")) {
+                const m = stmt.match(/for\s+([A-Za-z0-9_]+)\s+in\s+range\(([^)]+)\)/);
+                if (m) {
+                    const varName = m[1];
+                    declaredVars.add(varName);
+                    const parts = m[2].split(",").map(p => this.transformPyExpr(p.trim()));
+                    if (parts.length === 1) {
+                        stmt = `for (let ${varName} = 0; ${varName} < (${parts[0]}); ${varName}++)`;
+                    } else {
+                        stmt = `for (let ${varName} = (${parts[0]}); ${varName} < (${parts[1]}); ${varName} += (${parts[2] || 1}))`;
+                    }
+                }
+            } else if (stmt.startsWith("def ")) {
+                const fnMatch = stmt.match(/def\s+([A-Za-z0-9_]+)\s*\(([^)]*)\)/);
+                if (fnMatch) {
+                    declaredVars.add(fnMatch[1]);
+                    stmt = `async function ${fnMatch[1]}(${fnMatch[2]})`;
+                }
+            } else {
+                const assignMatch = stmt.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/);
+                if (assignMatch) {
+                    const varName = assignMatch[1];
+                    const expr = this.transformPyExpr(assignMatch[2]);
+                    if (!declaredVars.has(varName)) {
+                        declaredVars.add(varName);
+                        stmt = `let ${varName} = ${expr}`;
+                    } else {
+                        stmt = `${varName} = ${expr}`;
+                    }
+                } else {
+                    stmt = this.transformPyExpr(stmt);
+                }
+            }
+
+            if (isBlock) {
+                jsLines.push(" ".repeat(indent) + stmt + " {");
+                indentStack.push(indent + 4);
+                if (stmt.startsWith("while ")) {
+                    jsLines.push(" ".repeat(indent + 4) + "await __delay(5);");
+                }
+            } else {
+                jsLines.push(" ".repeat(indent) + stmt + ";");
+            }
+        }
+
+        while (indentStack.length > 1) {
+            indentStack.pop();
+            jsLines.push(" ".repeat(indentStack[indentStack.length - 1]) + "}");
+        }
+
+        return jsLines.join("\n");
+    }
+
+    transformPyExpr(expr) {
+        let s = expr;
+        s = s.replace(/\bTrue\b/g, "true");
+        s = s.replace(/\bFalse\b/g, "false");
+        s = s.replace(/\bNone\b/g, "null");
+        s = s.replace(/\band\b/g, "&&");
+        s = s.replace(/\bor\b/g, "||");
+        s = s.replace(/\bnot\b/g, "!");
+
+        // Pin instantiation: Pin(...) -> new Pin(...)
+        s = s.replace(/\bPin\s*\(/g, "new Pin(");
+        s = s.replace(/\bI2cLcd\s*\(/g, "new I2cLcd(");
+
+        // Sleep calls
+        s = s.replace(/\btime\.sleep\s*\(\s*([^)]+)\s*\)/g, "await time.sleep($1)");
+        s = s.replace(/\btime\.sleep_ms\s*\(\s*([^)]+)\s*\)/g, "await time.sleep_ms($1)");
+        s = s.replace(/\btime\.sleep_us\s*\(\s*([^)]+)\s*\)/g, "await time.sleep_us($1)");
+        s = s.replace(/\bsleep\s*\(\s*([^)]+)\s*\)/g, "await sleep($1)");
+        s = s.replace(/\bsleep_ms\s*\(\s*([^)]+)\s*\)/g, "await sleep_ms($1)");
+        s = s.replace(/\bsleep_us\s*\(\s*([^)]+)\s*\)/g, "await sleep_us($1)");
+
+        // Ultrasonic pulse
+        s = s.replace(/\btime_pulse_us\s*\(\s*([^)]+)\s*\)/g, "await time_pulse_us($1)");
+
+        // Print
+        s = s.replace(/\bprint\s*\(\s*([^)]*)\s*\)/g, "await print($1)");
+
+        // Python f-strings
+        s = s.replace(/\bf"(.*?)"/g, (m, content) => {
+            const parts = content.replace(/\{([^}]+)\}/g, '" + ($1) + "');
+            return `"${parts}"`.replace(/"" \+ /g, "").replace(/ \+ ""/g, "");
+        });
+
+        return s;
     }
 
     compileAndRun(sketchCode) {
@@ -284,8 +522,73 @@ export class McuExecutionSession {
         try {
             const builtinPin = this.getBuiltinLedPin();
 
-            // 1. Preprocess & Transpile Arduino C++ to safe async JavaScript
             let code = sketchCode != null ? String(sketchCode) : "";
+            code = code.replace(/\r\n/g, "\n");
+
+            // Check if code is MicroPython / Python
+            const isPythonCode = (
+                /^\s*(?:import\s+|from\s+|def\s+|while\s+True\s*:|led\s*=\s*Pin\b|#)/m.test(code) ||
+                code.includes("from machine import") ||
+                code.includes("import machine") ||
+                code.includes("import time") ||
+                code.includes("time_pulse_us") ||
+                code.includes("Pin.OUT") ||
+                code.includes("Pin.IN")
+            ) && !code.includes("void setup") && !code.includes("void loop");
+
+            if (isPythonCode) {
+                const strippedPy = code.replace(/#.*$/gm, "").replace(/\s+/g, "");
+                if (!strippedPy) return;
+
+                const transpiledPyJs = this.transpilePython(code, builtinPin);
+                const pyRunner = new Function(
+                    "__context",
+                    `
+                    return (async function() {
+                        const {
+                            __delay,
+                            __delayMicroseconds,
+                            __pulseIn,
+                            __digitalWrite,
+                            __digitalRead,
+                            __analogWrite,
+                            __analogRead,
+                            __pinMode,
+                            __serialPrint,
+                            __serialPrintln,
+                            __runningRef,
+                            Pin,
+                            time,
+                            sleep,
+                            sleep_ms,
+                            sleep_us,
+                            time_pulse_us,
+                            I2cLcd,
+                            machine,
+                            print
+                        } = __context;
+
+                        ${transpiledPyJs}
+                    })();
+                    `
+                );
+
+                const pyContext = this.createExecutionContext(builtinPin);
+                pyRunner(pyContext).catch((err) => {
+                    if (this.runningRef.current) {
+                        console.warn("Python execution exception:", err.message);
+                        if (this.callbacks.onSerialLog) {
+                            this.callbacks.onSerialLog({
+                                time: "ERR",
+                                type: "warn",
+                                text: `MicroPython error: ${err.message}`
+                            });
+                        }
+                    }
+                });
+
+                return { success: true, message: "MicroPython script running!" };
+            }
 
             // Normalize line endings
             code = code.replace(/\r\n/g, "\n");
@@ -311,12 +614,43 @@ export class McuExecutionSession {
                 defines[defMatch[1]] = defMatch[2].trim();
             }
 
+            // Helper function to extract function bodies matching balanced braces { ... }
+            const extractFunctionBody = (source, fnName) => {
+                const regex = new RegExp(`(?:void|int|bool)\\s+${fnName}\\s*\\([^)]*\\)\\s*\\{`, "i");
+                const match = regex.exec(source);
+                if (!match) return { body: "", full: "" };
+
+                const startIndex = match.index + match[0].length;
+                let braceCount = 1;
+                let i = startIndex;
+
+                while (i < source.length && braceCount > 0) {
+                    if (source[i] === '{') braceCount++;
+                    else if (source[i] === '}') braceCount--;
+                    i++;
+                }
+
+                const body = source.substring(startIndex, i - 1);
+                const full = source.substring(match.index, i);
+                return { body, full };
+            };
+
+            const setupInfo = extractFunctionBody(sanitizedCode, "setup");
+            const loopInfo = extractFunctionBody(sanitizedCode, "loop");
+            const setupBody = setupInfo.body;
+            const loopBody = loopInfo.body;
+
+            // Strip setup() and loop() to parse ONLY global variables outside functions
+            let outsideCode = sanitizedCode;
+            if (setupInfo.full) outsideCode = outsideCode.replace(setupInfo.full, "");
+            if (loopInfo.full) outsideCode = outsideCode.replace(loopInfo.full, "");
+
             // Extract variable declarations outside setup/loop
-            // E.g. int counter = 0; float val = 1.0; Servo myservo;
+            // E.g. int counter = 0; float val = 1.0; const int trigPin = 9;
             const globalVarLines = [];
             const varRegex = /(?:(?:const\s+)?(?:int|float|double|long|unsigned\s+int|byte|bool|boolean|char|String|auto)\s+([A-Za-z0-9_]+)(?:\s*=\s*([^;]+))?;)/g;
             let vMatch;
-            while ((vMatch = varRegex.exec(sanitizedCode)) !== null) {
+            while ((vMatch = varRegex.exec(outsideCode)) !== null) {
                 const varName = vMatch[1];
                 const initVal = vMatch[2] ? vMatch[2].trim() : "0";
                 globalVarLines.push(`let ${varName} = ${initVal};`);
@@ -325,26 +659,18 @@ export class McuExecutionSession {
             // Extract global Servo instances
             const servoRegex = /\bServo\s+([A-Za-z0-9_]+)\s*;/g;
             let srvMatch;
-            while ((srvMatch = servoRegex.exec(sanitizedCode)) !== null) {
+            while ((srvMatch = servoRegex.exec(outsideCode)) !== null) {
                 globalVarLines.push(`let ${srvMatch[1]} = new __Servo();`);
             }
 
             // Extract global LiquidCrystal & LiquidCrystal_I2C instances
             const lcdRegex = /\b(?:LiquidCrystal_I2C|LiquidCrystal)\s+([A-Za-z0-9_]+)\s*\(([^)]*)\)\s*;/g;
             let lcdMatch;
-            while ((lcdMatch = lcdRegex.exec(sanitizedCode)) !== null) {
+            while ((lcdMatch = lcdRegex.exec(outsideCode)) !== null) {
                 const varName = lcdMatch[1];
                 const args = lcdMatch[2] ? lcdMatch[2].trim() : "0x27, 16, 2";
                 globalVarLines.push(`let ${varName} = new __LiquidCrystal(${args});`);
             }
-
-            // Extract setup() body
-            const setupMatch = sanitizedCode.match(/void\s+setup\s*\(\s*\)\s*\{([\s\S]*?)\}(?=\s*(?:void\s+loop|\n\s*void|$))/);
-            const setupBody = setupMatch ? setupMatch[1] : "";
-
-            // Extract loop() body
-            const loopMatch = sanitizedCode.match(/void\s+loop\s*\(\s*\)\s*\{([\s\S]*?)\}(?=\s*$|\n\s*void|$)/);
-            const loopBody = loopMatch ? loopMatch[1] : "";
 
             // Helper to clean statements inside function bodies
             const cleanBody = (bodyStr) => {
@@ -363,6 +689,9 @@ export class McuExecutionSession {
                 s = s.replace(/\bINPUT\b/g, '"INPUT"');
                 s = s.replace(/\bINPUT_PULLUP\b/g, '"INPUT_PULLUP"');
 
+                // Replace GP0..GP28 pins (Raspberry Pi Pico) e.g. GP25 -> 25
+                s = s.replace(/\bGP([0-9]|1[0-9]|2[0-8])\b/gi, "$1");
+
                 // Replace defines
                 for (const [k, v] of Object.entries(defines)) {
                     s = s.replace(new RegExp(`\\b${k}\\b`, "g"), v);
@@ -373,7 +702,9 @@ export class McuExecutionSession {
                 s = s.replace(/\bdelayMicroseconds\s*\(\s*([^)]+)\s*\)/g, "await __delayMicroseconds($1)");
 
                 // Replace pulseIn(...) with await __pulseIn(...)
-                s = s.replace(/\bpulseIn\s*\(\s*([^,]+)\s*,\s*([^,)]+)(?:\s*,\s*([^)]+))?\s*\)/g, "await __pulseIn($1, $2, $3)");
+                s = s.replace(/\bpulseIn\s*\(\s*([^,]+)\s*,\s*([^,)]+)(?:\s*,\s*([^)]+))?\s*\)/g, (match, p1, p2, p3) => {
+                    return p3 && p3.trim() ? `await __pulseIn(${p1}, ${p2}, ${p3})` : `await __pulseIn(${p1}, ${p2})`;
+                });
 
                 // Replace Serial.println(...) with await __serialPrintln(...)
                 s = s.replace(/Serial\.println\s*\(\s*([^)]*)\s*\)/g, "await __serialPrintln($1)");
@@ -426,7 +757,8 @@ export class McuExecutionSession {
                         __serialPrintln,
                         __runningRef,
                         millis,
-                        A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15
+                        A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15,
+                        GP0, GP1, GP2, GP3, GP4, GP5, GP6, GP7, GP8, GP9, GP10, GP11, GP12, GP13, GP14, GP15, GP16, GP17, GP18, GP19, GP20, GP21, GP22, GP23, GP24, GP25, GP26, GP27, GP28
                     } = __context;
 
                     ${globalVarLines.join("\n")}
@@ -477,9 +809,18 @@ export class McuExecutionSession {
                     const comps = this.callbacks.getComponents ? this.callbacks.getComponents() : [];
                     const ultrasonic = comps.find(c => c.type === "sensor-ultrasonic");
                     if (!ultrasonic) return 0;
-                    const dist = (ultrasonic.inRange !== false && ultrasonic.measuredDistanceCm != null)
-                        ? ultrasonic.measuredDistanceCm
-                        : (ultrasonic.inRange === false ? 400 : (ultrasonic.distanceCm != null ? ultrasonic.distanceCm : 25));
+                    let dist = null;
+                    if (typeof window !== "undefined" && window.__twinlab_sensor_live?.[ultrasonic.id]?.measuredDistanceCm != null) {
+                        dist = window.__twinlab_sensor_live[ultrasonic.id].measuredDistanceCm;
+                    } else if (typeof window !== "undefined" && window.__twinlab_ultrasonic_distance != null) {
+                        dist = window.__twinlab_ultrasonic_distance;
+                    } else if (ultrasonic.inRange !== false && ultrasonic.measuredDistanceCm != null) {
+                        dist = ultrasonic.measuredDistanceCm;
+                    } else if (ultrasonic.inRange === false) {
+                        dist = 400;
+                    } else {
+                        dist = ultrasonic.distanceCm != null ? ultrasonic.distanceCm : 25;
+                    }
                     await new Promise(r => setTimeout(r, 4));
                     return Math.round(dist * 58.2);
                 },
@@ -503,7 +844,13 @@ export class McuExecutionSession {
                         });
                     }
                     if (this.callbacks.onPinStateChange) {
-                        this.callbacks.onPinStateChange(this.boardId, { ...this.pinStates }, this.pinStates["13"] === 1, this.pinStates["2"] === 1);
+                        this.callbacks.onPinStateChange(
+                            this.boardId, 
+                            { ...this.pinStates }, 
+                            this.pinStates["13"] === 1, 
+                            this.pinStates["2"] === 1,
+                            this.pinStates["25"] === 1
+                        );
                     }
                 },
                 __Servo: class {
@@ -535,10 +882,18 @@ export class McuExecutionSession {
                     }
                 },
                 __LiquidCrystal: class {
-                    constructor(addrOrRs = 0x27, colsOrEn = 16, rowsOrD4 = 2) {
-                        this.address = typeof addrOrRs === "number" ? addrOrRs : 0x27;
-                        this.cols = Number(colsOrEn) || 16;
-                        this.rows = Number(rowsOrD4) || 2;
+                    constructor(...args) {
+                        if (args.length >= 4) {
+                            // Standard 4-bit / 8-bit parallel LiquidCrystal(rs, en, d4, d5, d6, d7)
+                            this.address = 0x27;
+                            this.cols = 16;
+                            this.rows = 2;
+                        } else {
+                            const [addrOrRs = 0x27, colsOrEn = 16, rowsOrD4 = 2] = args;
+                            this.address = typeof addrOrRs === "number" ? addrOrRs : 0x27;
+                            this.cols = Number(colsOrEn) || 16;
+                            this.rows = Number(rowsOrD4) || 2;
+                        }
                         this.cursorCol = 0;
                         this.cursorRow = 0;
                         this.showCursor = false;
@@ -601,11 +956,15 @@ export class McuExecutionSession {
                     setCursor(col, row) {
                         this.cursorCol = Math.max(0, Math.min(this.cols - 1, Number(col) || 0));
                         this.cursorRow = Math.max(0, Math.min(this.rows - 1, Number(row) || 0));
-                        this._notify();
                     }
 
-                    print(val) {
-                        const str = String(val != null ? val : "");
+                    print(val, precision) {
+                        let str = "";
+                        if (typeof val === "number" && typeof precision === "number") {
+                            str = val.toFixed(precision);
+                        } else {
+                            str = String(val != null ? val : "");
+                        }
                         if (!this.lines[this.cursorRow]) {
                             this.lines[this.cursorRow] = "".padEnd(this.cols, " ");
                         }
@@ -709,19 +1068,26 @@ export class McuExecutionSession {
                     }
                 },
                 __digitalWrite: (pin, val) => {
-                    const p = String(pin).trim();
+                    let p = String(pin).trim();
+                    if (/^GP/i.test(p)) {
+                        p = p.replace(/^GP/i, "");
+                    }
                     const v = val === 1 || val === "1" || val === true ? 1 : 0;
                     this.pinStates[p] = v;
 
                     const isD13 = this.pinStates["13"] === 1;
                     const isD2 = this.pinStates["2"] === 1;
+                    const isGP25 = this.pinStates["25"] === 1;
 
                     if (this.callbacks.onPinStateChange) {
-                        this.callbacks.onPinStateChange(this.boardId, { ...this.pinStates }, isD13, isD2);
+                        this.callbacks.onPinStateChange(this.boardId, { ...this.pinStates }, isD13, isD2, isGP25);
                     }
                 },
                 __digitalRead: (pin) => {
-                    const p = String(pin).trim();
+                    let p = String(pin).trim();
+                    if (/^GP/i.test(p)) {
+                        p = p.replace(/^GP/i, "");
+                    }
                     const comps = this.callbacks.getComponents ? this.callbacks.getComponents() : [];
                     const pir = comps.find(c => c.type === "sensor-pir");
                     if (pir && (pir.motionActive || pir.isMotion)) {
@@ -814,7 +1180,11 @@ export class McuExecutionSession {
                 millis: () => Date.now() - this.simStartTime,
                 A0: "A0", A1: "A1", A2: "A2", A3: "A3", A4: "A4", A5: "A5",
                 A6: "A6", A7: "A7", A8: "A8", A9: "A9", A10: "A10",
-                A11: "A11", A12: "A12", A13: "A13", A14: "A14", A15: "A15"
+                A11: "A11", A12: "A12", A13: "A13", A14: "A14", A15: "A15",
+                GP0: 0, GP1: 1, GP2: 2, GP3: 3, GP4: 4, GP5: 5, GP6: 6, GP7: 7,
+                GP8: 8, GP9: 9, GP10: 10, GP11: 11, GP12: 12, GP13: 13, GP14: 14,
+                GP15: 15, GP16: 16, GP17: 17, GP18: 18, GP19: 19, GP20: 20, GP21: 21,
+                GP22: 22, GP23: 23, GP24: 24, GP25: 25, GP26: 26, GP27: 27, GP28: 28
             };
 
             // Launch execution

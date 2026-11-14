@@ -113,7 +113,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
     const batteries = components.filter(isBattery);
     const arduinoBoards = components.filter(c => ["arduino-uno", "arduino-mega", "arduino-nano"].includes(c.type));
     const esp32Boards = components.filter(c => c.type === "esp32-devkit" || c.type === "esp32" || c.type === "esp32-s3");
-    const rpiPicoBoards = components.filter(c => c.type === "rpi-pico" || c.type === "raspberry-pi");
+    const rpiPicoBoards = components.filter(c => c.type === "rpi-pico" || c.type === "raspberry-pi" || c.type === "rpi-pico-2" || c.type?.includes("pico"));
 
     // Function to get the electrical node for a physical point
     const getElectricalNode = (x, y) => {
@@ -258,7 +258,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             for (const pin of allPicoPins) {
                 const wx = b.x + pin.x * cos - pin.y * sin;
                 const wy = b.y + pin.x * sin + pin.y * cos;
-                if (Math.hypot(x - wx, y - wy) <= 10) {
+                if (Math.hypot(x - wx, y - wy) <= 12) {
                     let pinId;
                     if (pin.isGnd) {
                         pinId = `POWER_SOURCE_GND_pico_${b.id}`;
@@ -268,7 +268,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                         pinId = `POWER_SOURCE_POS_pico3V3_${b.id}`;
                     } else if (pin.isGpio) {
                         const pinNum = String(pin.pinNum);
-                        const isPinHigh = mcuStates?.[b.id]?.pins?.[pinNum] === 1;
+                        const isPinHigh = mcuStates?.[b.id]?.pins?.[pinNum] === 1 || (pinNum === "25" && mcuStates?.[b.id]?.gp25High);
                         pinId = isPinHigh ? `POWER_SOURCE_POS_pico_${b.id}_${pinNum}` : `PICO_PIN_${b.id}_${pinNum}`;
                     } else {
                         pinId = `PICO_PIN_${b.id}_${pin.name}`;
@@ -1994,6 +1994,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         const standbyMcuStates = {};
         arduinoBoards.forEach(b => { standbyMcuStates[b.id] = { isPowered: false, d13High: false, pins: {} }; });
         esp32Boards.forEach(b => { standbyMcuStates[b.id] = { isPowered: false, d2High: false, pins: {} }; });
+        rpiPicoBoards.forEach(b => { standbyMcuStates[b.id] = { isPowered: false, gp25High: false, pins: {} }; });
 
         const standbyWireStates = {};
         wires.forEach(w => {
@@ -2018,7 +2019,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         };
     }
 
-    // 7. Solve MCU Boards (Arduino Uno & ESP32 DevKit)
+    // 7. Solve MCU Boards (Arduino Uno & ESP32 DevKit & Raspberry Pi Pico)
     const resolvedMcuStates = {};
     arduinoBoards.forEach((b) => {
         resolvedMcuStates[b.id] = {
@@ -2034,6 +2035,16 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             d2High: mcuStates?.[b.id]?.d2High ?? true,
             pins: mcuStates?.[b.id]?.pins || { 2: 1 },
             txrxActive: Boolean(mcuStates?.[b.id]?.txrxActive || mcuStates?.[b.id]?.serialActive)
+        };
+    });
+    rpiPicoBoards.forEach((b) => {
+        const raw = mcuStates?.[b.id] || {};
+        const gp25 = raw.pins?.["25"] === 1 || raw.gp25High;
+        resolvedMcuStates[b.id] = {
+            isPowered: true,
+            gp25High: gp25 ?? true,
+            pins: raw.pins || { 25: 1 },
+            txrxActive: Boolean(raw.txrxActive || raw.serialActive)
         };
     });
 
@@ -2099,6 +2110,22 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         conductingNodes.add(dsu.find(`POWER_SOURCE_POS_esp5V_${b.id}`));
         if (resolvedMcuStates[b.id]?.d2High) {
             conductingNodes.add(dsu.find(`POWER_SOURCE_POS_espD2_${b.id}`));
+        }
+    });
+
+    rpiPicoBoards.forEach(b => {
+        conductingNodes.add(dsu.find(`POWER_SOURCE_GND_pico_${b.id}`));
+        conductingNodes.add(dsu.find(`POWER_SOURCE_POS_pico3V3_${b.id}`));
+        conductingNodes.add(dsu.find(`POWER_SOURCE_POS_pico5V_${b.id}`));
+        if (resolvedMcuStates[b.id]?.gp25High) {
+            conductingNodes.add(dsu.find(`POWER_SOURCE_POS_pico_${b.id}_25`));
+        }
+        if (resolvedMcuStates[b.id]?.pins) {
+            for (const pinNum in resolvedMcuStates[b.id].pins) {
+                if (resolvedMcuStates[b.id].pins[pinNum] === 1) {
+                    conductingNodes.add(dsu.find(`POWER_SOURCE_POS_pico_${b.id}_${pinNum}`));
+                }
+            }
         }
     });
 

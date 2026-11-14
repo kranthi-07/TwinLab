@@ -945,6 +945,42 @@
     opacity: 1;
 }
 
+/* Raspberry Pi Pico Top-Mount Micro-USB Plug */
+.tinkercad-usb-cable.pico-usb-cable {
+    top: -26px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.tinkercad-usb-cable.pico-usb-cable.unplugged {
+    transform: translateX(-50%) translateY(-36px);
+    opacity: 0;
+}
+
+.tinkercad-usb-cable.pico-usb-cable.connected {
+    transform: translateX(-50%) translateY(0px);
+    opacity: 1;
+}
+
+.tinkercad-usb-cable.pico-usb-cable .usb-plug-strain-relief {
+    width: 32px;
+    height: 22px;
+    border-radius: 4px 4px 0 0;
+    border-left: none;
+    border-top: 2px solid #475569;
+}
+
+.tinkercad-usb-cable.pico-usb-cable .usb-plug-metal-shell.micro-shell {
+    width: 22px;
+    height: 14px;
+    background: linear-gradient(90deg, #94a3b8 0%, #f8fafc 40%, #cbd5e1 75%, #64748b 100%);
+    border-radius: 0 0 2px 2px;
+    border: 1px solid #94a3b8;
+}
+
 .typec-plug-strain-relief {
     width: 32px;
     height: 20px;

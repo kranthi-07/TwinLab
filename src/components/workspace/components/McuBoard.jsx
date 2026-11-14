@@ -661,7 +661,7 @@ function McuBoard({
     // ==========================================
     if (type === "rpi-pico" || type === "raspberry-pi") {
         const isPowered = Boolean(isSimulating || simState?.isPowered);
-        const isLedLit = Boolean(isPowered && (simState?.pins?.["25"] === 1 || simState?.gp25High || isD13));
+        const isLedLit = Boolean(isPowered && (simState?.pins?.["25"] === 1 || simState?.gp25High));
 
         return (
             <div
