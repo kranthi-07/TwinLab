@@ -488,8 +488,17 @@ function LeftSidebar({ onAddComponent }) {
                 setOpen(false);
             }
         };
+        const handleCloseDrawers = (e) => {
+            if (e.detail?.source !== "sidebar") {
+                setOpen(false);
+            }
+        };
         window.addEventListener("mousedown", handleOutsideClick);
-        return () => window.removeEventListener("mousedown", handleOutsideClick);
+        window.addEventListener("twinlab:close_other_drawers", handleCloseDrawers);
+        return () => {
+            window.removeEventListener("mousedown", handleOutsideClick);
+            window.removeEventListener("twinlab:close_other_drawers", handleCloseDrawers);
+        };
     }, []);
 
     const tabs = [
@@ -534,6 +543,7 @@ function LeftSidebar({ onAddComponent }) {
         }
         setActiveTab(tabId);
         setOpen(true);
+        window.dispatchEvent(new CustomEvent("twinlab:close_other_drawers", { detail: { source: "sidebar" } }));
     };
 
     const setViewModePref = (mode) => {

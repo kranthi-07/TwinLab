@@ -321,7 +321,7 @@
     width: 14px;
     height: 60px;
     pointer-events: auto;
-    cursor: grab;
+    cursor: pointer;
     z-index: 25;
     user-select: none;
     transform: translate(-50%, 0);
@@ -331,7 +331,7 @@
 .dmm-probe-pen:hover,
 .dmm-probe-pen.dragging {
     filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.9));
-    cursor: grabbing;
+    cursor: pointer;
 }
 
 .probe-needle-point {
@@ -355,7 +355,7 @@
     position: absolute;
     top: -3px;
     left: 0;
-    cursor: crosshair;
+    cursor: pointer;
 }
 
 .needle-metal {

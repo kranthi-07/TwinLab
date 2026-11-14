@@ -476,7 +476,9 @@ export class McuExecutionSession {
                     const comps = this.callbacks.getComponents ? this.callbacks.getComponents() : [];
                     const ultrasonic = comps.find(c => c.type === "sensor-ultrasonic");
                     if (!ultrasonic) return 0;
-                    const dist = ultrasonic.distanceCm != null ? ultrasonic.distanceCm : 25;
+                    const dist = (ultrasonic.inRange !== false && ultrasonic.measuredDistanceCm != null)
+                        ? ultrasonic.measuredDistanceCm
+                        : (ultrasonic.inRange === false ? 400 : (ultrasonic.distanceCm != null ? ultrasonic.distanceCm : 25));
                     await new Promise(r => setTimeout(r, 4));
                     return Math.round(dist * 58.2);
                 },
@@ -721,7 +723,7 @@ export class McuExecutionSession {
                     const p = String(pin).trim();
                     const comps = this.callbacks.getComponents ? this.callbacks.getComponents() : [];
                     const pir = comps.find(c => c.type === "sensor-pir");
-                    if (pir && pir.motionActive) {
+                    if (pir && (pir.motionActive || pir.isMotion)) {
                         return 1;
                     }
                     const btn = comps.find(c => c.type === "button" && c.isPressed);
@@ -732,21 +734,43 @@ export class McuExecutionSession {
                 },
                 __analogRead: (pin) => {
                     const comps = this.callbacks.getComponents ? this.callbacks.getComponents() : [];
+                    const pStr = String(pin).toUpperCase().trim();
+
+                    // Check for specific sensors
+                    const tempSen = comps.find(c => c.type === "sensor-temp" || c.type === "sensor-temperature" || c.type === "sensor-tmp36");
+                    const photo = comps.find(c => c.type === "photoresistor");
+                    const soil = comps.find(c => c.type === "sensor-soil" || c.type === "sensor-soil-moisture");
                     const pot = comps.find(c => c.type === "potentiometer");
-                    if (pot) {
-                        const wiper = pot.wiperValue != null ? pot.wiperValue : 0.5;
-                        return Math.round(wiper * 1023);
-                    }
-                    const tempSen = comps.find(c => c.type === "sensor-temp" || c.type === "sensor-temperature");
-                    if (tempSen) {
-                        const temp = tempSen.temperature != null ? tempSen.temperature : 25;
+
+                    // Priority based on requested pin or present sensors
+                    if (tempSen && (pStr === "A0" || pStr === "0" || (!pot && !photo && !soil))) {
+                        const temp = tempSen.temperature != null ? Number(tempSen.temperature) : 25;
                         const vOut = 0.5 + temp * 0.01;
                         return Math.min(1023, Math.max(0, Math.round((vOut / 5.0) * 1023)));
                     }
-                    const photo = comps.find(c => c.type === "photoresistor");
+                    if (photo && (pStr === "A1" || pStr === "1" || (!pot && !soil))) {
+                        const lux = photo.lux != null ? Number(photo.lux) : 50;
+                        return Math.min(1023, Math.max(0, Math.round((lux / 100) * 960 + 25)));
+                    }
+                    if (soil && (pStr === "A2" || pStr === "2" || !pot)) {
+                        const moisture = soil.moisture != null ? Number(soil.moisture) : 45;
+                        return Math.min(1023, Math.max(0, Math.round((moisture / 100) * 1023)));
+                    }
+                    if (pot) {
+                        const wiper = pot.wiperValue != null ? Number(pot.wiperValue) : 0.5;
+                        return Math.round(wiper * 1023);
+                    }
+                    if (tempSen) {
+                        const temp = tempSen.temperature != null ? Number(tempSen.temperature) : 25;
+                        return Math.min(1023, Math.max(0, Math.round(((0.5 + temp * 0.01) / 5.0) * 1023)));
+                    }
                     if (photo) {
-                        const light = photo.lightLevel != null ? photo.lightLevel : 0.5;
-                        return Math.round(light * 1023);
+                        const lux = photo.lux != null ? Number(photo.lux) : 50;
+                        return Math.min(1023, Math.max(0, Math.round((lux / 100) * 960 + 25)));
+                    }
+                    if (soil) {
+                        const moisture = soil.moisture != null ? Number(soil.moisture) : 45;
+                        return Math.min(1023, Math.max(0, Math.round((moisture / 100) * 1023)));
                     }
                     return 512;
                 },

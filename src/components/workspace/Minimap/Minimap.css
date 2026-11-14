@@ -96,7 +96,7 @@
     width: 220px;
     height: 135px;
     margin: 2px;
-    cursor: crosshair;
+    cursor: pointer;
     background: rgba(11, 15, 22, 0.95);
     border-radius: 10px;
     overflow: hidden;

@@ -72,33 +72,61 @@ function getLocalSvgPoint(svgElement, clientX, clientY) {
     if (!svgElement) return null;
     try {
         const ctm = svgElement.getScreenCTM();
-        if (!ctm) return null;
-        let pt;
-        if (typeof svgElement.createSVGPoint === "function") {
-            pt = svgElement.createSVGPoint();
-        } else if (svgElement.ownerSVGElement && typeof svgElement.ownerSVGElement.createSVGPoint === "function") {
-            pt = svgElement.ownerSVGElement.createSVGPoint();
+        if (ctm) {
+            let pt = null;
+            if (typeof svgElement.createSVGPoint === "function") {
+                pt = svgElement.createSVGPoint();
+            } else if (svgElement.ownerSVGElement && typeof svgElement.ownerSVGElement.createSVGPoint === "function") {
+                pt = svgElement.ownerSVGElement.createSVGPoint();
+            } else if (document.documentElement && typeof document.documentElement.createSVGPoint === "function") {
+                pt = document.documentElement.createSVGPoint();
+            }
+            if (pt && typeof pt.matrixTransform === "function") {
+                pt.x = clientX;
+                pt.y = clientY;
+                const result = pt.matrixTransform(ctm.inverse());
+                if (result && !isNaN(result.x) && !isNaN(result.y)) {
+                    return { x: result.x, y: result.y };
+                }
+            }
+            const a = ctm.a, b = ctm.b, c = ctm.c, d = ctm.d, e = ctm.e, f = ctm.f;
+            const det = a * d - b * c;
+            if (Math.abs(det) > 1e-6) {
+                const px = clientX - e;
+                const py = clientY - f;
+                return {
+                    x: (d * px - c * py) / det,
+                    y: (-b * px + a * py) / det
+                };
+            }
         }
-        if (pt && typeof pt.matrixTransform === "function") {
-            pt.x = clientX;
-            pt.y = clientY;
-            return pt.matrixTransform(ctm.inverse());
+    } catch (_) {}
+
+    // Robust Fallback using getBoundingClientRect
+    try {
+        const rect = svgElement.getBoundingClientRect();
+        if (rect && rect.width > 0 && rect.height > 0) {
+            const vb = svgElement.viewBox?.baseVal;
+            const vbX = vb ? vb.x : 0;
+            const vbY = vb ? vb.y : 0;
+            const vbW = vb ? vb.width : rect.width;
+            const vbH = vb ? vb.height : rect.height;
+            const relX = (clientX - rect.left) / rect.width;
+            const relY = (clientY - rect.top) / rect.height;
+            return {
+                x: vbX + relX * vbW,
+                y: vbY + relY * vbH
+            };
         }
-        const a = ctm.a, b = ctm.b, c = ctm.c, d = ctm.d, e = ctm.e, f = ctm.f;
-        const det = a * d - b * c;
-        if (Math.abs(det) < 1e-6) return null;
-        const x = clientX - e;
-        const y = clientY - f;
-        return {
-            x: (d * x - c * y) / det,
-            y: (-b * x + a * y) / det
-        };
-    } catch {
-        return null;
-    }
+    } catch (_) {}
+    return null;
 }
 
 function SmallComponent({
+    component,
+    modelNumber,
+    icCode: propIcCode,
+    motionActive = false,
     id,
     type,
     name,
@@ -141,7 +169,16 @@ function SmallComponent({
     displayOn = true,
     angle = 90,
     distanceCm = 25,
+    rangeCm,
+    maxRangeCm,
+    rangeM,
     targetAngle = 0,
+    targetBallX,
+    targetBallY,
+    pirBallX,
+    pirBallY,
+    moisture = 45,
+    isMotion = false,
     is3D = true,
     viewMode = "3d",
     rot3D = 35,
@@ -155,7 +192,11 @@ function SmallComponent({
     const [hoveredTerminal, setHoveredTerminal] = useState(null);
     const [ballAngle, setBallAngle] = useState(targetAngle || 0);
     const [isDraggingBall, setIsDraggingBall] = useState(false);
+    const [isDraggingPirBall, setIsDraggingPirBall] = useState(false);
+    const [localBallPos, setLocalBallPos] = useState(null);
+    const [localPirBallPos, setLocalPirBallPos] = useState(null);
     const coneSvgRef = useRef(null);
+    const pirConeSvgRef = useRef(null);
     const lastMouseDownRef = useRef({ time: 0, key: "" });
     const rotorRef = useRef(null);
     const tachRpmRef = useRef(null);
@@ -168,6 +209,18 @@ function SmallComponent({
             setBallAngle(targetAngle);
         }
     }, [targetAngle]);
+
+    useEffect(() => {
+        if (targetBallX != null && targetBallY != null) {
+            setLocalBallPos({ x: targetBallX, y: targetBallY });
+        }
+    }, [targetBallX, targetBallY]);
+
+    useEffect(() => {
+        if (pirBallX != null && pirBallY != null) {
+            setLocalPirBallPos({ x: pirBallX, y: pirBallY });
+        }
+    }, [pirBallX, pirBallY]);
 
     // Play/stop electronic chime tone for buzzer
     useEffect(() => {
@@ -307,7 +360,7 @@ function SmallComponent({
         }
     };
 
-    // Interactive mouse drag handler for ultrasonic obstacle target ball & acoustic cone
+    // Interactive mouse/touch drag handler for ultrasonic obstacle target ball (moves freely anywhere, without altering configured range)
     const handleBallDragStart = (e) => {
         if (isWireMode) return;
         e && e.stopPropagation && e.stopPropagation();
@@ -321,29 +374,30 @@ function SmallComponent({
             const localPt = getLocalSvgPoint(svgEl, evt.clientX, evt.clientY);
             if (!localPt) return;
 
+            const nextX = Math.round(localPt.x);
+            const nextY = Math.round(localPt.y);
+            setLocalBallPos({ x: nextX, y: nextY });
+
             // Transducers apex is located at (24, -56)
-            const dx = localPt.x - 24;
-            const dy = -56 - localPt.y; // forward direction points towards negative Y
+            const dx = nextX - 24;
+            const dy = -56 - nextY; // forward direction points towards negative Y
 
-            const maxHalfAngleRad = (18 * Math.PI) / 180; // ±18 degrees beam cone
-            let phi = Math.atan2(dx, dy);
+            const maxHalfAngleRad = (22 * Math.PI) / 180; // ±22 degrees beam cone
+            const phi = Math.atan2(dx, dy);
+            const distPx = Math.hypot(dx, dy);
+            const coneRangeCm = component?.rangeCm || component?.maxRangeCm || 200;
+            const coneLimit = Math.max(50, 32 + Math.min(400, coneRangeCm) * 1.15);
+            const inRange = dy > 0 && Math.abs(phi) <= maxHalfAngleRad && distPx <= coneLimit;
+            const dist = Math.max(2, Math.min(400, Math.round(Math.max(0, distPx - 32) / 1.15)));
 
-            if (dy < 0) {
-                phi = dx >= 0 ? maxHalfAngleRad : -maxHalfAngleRad;
-            } else {
-                phi = Math.max(-maxHalfAngleRad, Math.min(maxHalfAngleRad, phi));
-            }
-
-            const rawDistPx = Math.sqrt(dx * dx + (dy > 0 ? dy * dy : 0));
-            // Clamp radius between 2 cm and 300 cm (R = 32 + distCm * 1.2 px)
-            const minR = 32 + 2 * 1.2;    // 34.4 px
-            const maxR = 32 + 300 * 1.2;  // 392 px
-            const clampedR = Math.max(minR, Math.min(maxR, rawDistPx));
-
-            const newDistCm = Math.max(2, Math.min(300, Math.round((clampedR - 32) / 1.2)));
-            setBallAngle(phi);
             if (onUpdate) {
-                onUpdate({ distanceCm: newDistCm, targetAngle: Math.round(phi * 1000) / 1000 });
+                onUpdate({
+                    targetBallX: nextX,
+                    targetBallY: nextY,
+                    measuredDistanceCm: inRange ? dist : 400,
+                    targetAngle: Math.round(phi * 1000) / 1000,
+                    inRange
+                });
             }
         };
 
@@ -370,6 +424,66 @@ function SmallComponent({
         window.addEventListener("mouseup", handlePointerUp);
     };
 
+    // Interactive mouse/touch drag handler for PIR motion sensor target ball
+    const handlePirBallDragStart = (e) => {
+        if (isWireMode) return;
+        e && e.stopPropagation && e.stopPropagation();
+        e && e.preventDefault && e.preventDefault();
+        setIsDraggingPirBall(true);
+
+        const svgEl = pirConeSvgRef.current;
+        if (!svgEl) return;
+
+        const updatePosition = (evt) => {
+            const localPt = getLocalSvgPoint(svgEl, evt.clientX, evt.clientY);
+            if (!localPt) return;
+
+            const nextX = Math.round(localPt.x);
+            const nextY = Math.round(localPt.y);
+            setLocalPirBallPos({ x: nextX, y: nextY });
+
+            // PIR lens center is located at (16, -70)
+            const dx = nextX - 16;
+            const dy = -70 - nextY;
+            const phi = Math.atan2(dx, dy);
+            const distPx = Math.hypot(dx, dy);
+            const rM = component?.rangeM != null ? component.rangeM : 5;
+            const coneLimit = 60 + rM * 35;
+            const inCone = dy > 0 && Math.abs(phi) <= (35 * Math.PI / 180) && distPx <= coneLimit;
+
+            if (onUpdate) {
+                onUpdate({
+                    pirBallX: nextX,
+                    pirBallY: nextY,
+                    motionActive: inCone,
+                    isMotion: inCone
+                });
+            }
+        };
+
+        updatePosition(e);
+
+        const handlePointerMove = (moveEvt) => {
+            moveEvt.stopPropagation();
+            moveEvt.preventDefault();
+            updatePosition(moveEvt);
+        };
+
+        const handlePointerUp = (upEvt) => {
+            upEvt && upEvt.stopPropagation && upEvt.stopPropagation();
+            setIsDraggingPirBall(false);
+            window.removeEventListener("pointermove", handlePointerMove);
+            window.removeEventListener("pointerup", handlePointerUp);
+            window.removeEventListener("mousemove", handlePointerMove);
+            window.removeEventListener("mouseup", handlePointerUp);
+        };
+
+        window.addEventListener("pointermove", handlePointerMove, { passive: false });
+        window.addEventListener("pointerup", handlePointerUp);
+        window.addEventListener("mousemove", handlePointerMove, { passive: false });
+        window.addEventListener("mouseup", handlePointerUp);
+    };
+
     return (
         <div 
             className={`canvas-small-comp comp-${type} ${isSelected ? "selected" : ""}`}
@@ -380,12 +494,12 @@ function SmallComponent({
             onMouseLeave={() => setHoveredTerminal(null)}
             onMouseDown={(e) => {
                 e.stopPropagation();
-                onSelect && onSelect(id);
+                onSelect && onSelect(id, e);
                 onMouseDown && onMouseDown(e, id);
             }}
             onClick={(e) => {
                 e.stopPropagation();
-                onSelect && onSelect(id);
+                onSelect && onSelect(id, e);
             }}
         >
             {/* RESISTOR: 64px span (4 grid units of 16px). Pins at (0, 0) and (64, 0) */}
@@ -542,7 +656,7 @@ function SmallComponent({
                                 height="14" 
                                 rx="0.6" 
                                 fill={`url(#led-lead-grad-${id})`} 
-                                style={{ pointerEvents: "auto", cursor: "crosshair" }}
+                                style={{ pointerEvents: "auto", cursor: "pointer" }}
                                 onMouseEnter={() => setHoveredTerminal("anode")}
                                 onMouseLeave={() => setHoveredTerminal(null)}
                                 onMouseDown={(e) => handleTerminalMouseDown(e, "anode", 0, 0)}
@@ -557,7 +671,7 @@ function SmallComponent({
                                 height="14" 
                                 rx="0.6" 
                                 fill={`url(#led-lead-grad-${id})`} 
-                                style={{ pointerEvents: "auto", cursor: "crosshair" }}
+                                style={{ pointerEvents: "auto", cursor: "pointer" }}
                                 onMouseEnter={() => setHoveredTerminal("cathode")}
                                 onMouseLeave={() => setHoveredTerminal(null)}
                                 onMouseDown={(e) => handleTerminalMouseDown(e, "cathode", 16, 0)}
@@ -1258,7 +1372,7 @@ function SmallComponent({
                 );
             })()}
 
-            {/* REALISTIC 16x2 & 20x4 CHARACTER LCD (HD44780 / I2C DISPLAY) */}
+            {/* REALISTIC 16x2 & 20x4 CHARACTER LCD (16-PIN HEADER MATCHING TINKERCAD) */}
             {(type === "lcd-1602" || type === "lcd-2004") && (() => {
                 const is2004 = type === "lcd-2004";
                 const numCols = is2004 ? 20 : 16;
@@ -1274,18 +1388,38 @@ function SmallComponent({
                 const charOpacity = isDisplayVisible ? (contrastVal < 25 ? 0.08 : Math.min(1, contrastVal / 75)) : 0;
                 const ghostOpacity = isBacklightActive ? (contrastVal > 85 ? ((contrastVal - 85) / 15) * 0.35 : 0.05) : 0;
 
-                // Extract or default lines
+                // Extract or default lines (Controlled by Arduino Code)
+                const uninitializedBlocks = "■".repeat(numCols);
                 const defaultLines = [
-                    isPowered ? (is2004 ? "TwinLab 2004 I2C" : "TwinLab 1602 LCD") : "",
-                    isPowered ? (is2004 ? "Simulation Online" : "Online 0x27 OK") : "",
-                    ...(is2004 ? [isPowered ? "5.0V Active Bus" : "", isPowered ? "HD44780 Ready" : ""] : [])
+                    isPowered ? uninitializedBlocks : "",
+                    "",
+                    ...(is2004 ? ["", ""] : [])
                 ];
                 const activeLines = (textLines && Array.isArray(textLines) && textLines.length > 0)
                     ? textLines
                     : defaultLines;
 
-                // Trimpot rotation angle for backpack based on contrast
-                const trimpotAngle = Math.round((contrastVal / 100) * 270 - 135);
+                const LCD_PINS_LIST = [
+                    { id: "gnd", name: "GND", desc: "Ground (0V)" },
+                    { id: "vcc", name: "VCC", desc: "Power (+5V)" },
+                    { id: "v0",  name: "V0",  desc: "Contrast Adjustment" },
+                    { id: "rs",  name: "RS",  desc: "Register Select" },
+                    { id: "rw",  name: "RW",  desc: "Read / Write Select" },
+                    { id: "e",   name: "E",   desc: "Enable Trigger" },
+                    { id: "db0", name: "DB0", desc: "Data Bit 0" },
+                    { id: "db1", name: "DB1", desc: "Data Bit 1" },
+                    { id: "db2", name: "DB2", desc: "Data Bit 2" },
+                    { id: "db3", name: "DB3", desc: "Data Bit 3" },
+                    { id: "db4", name: "DB4", desc: "Data Bit 4" },
+                    { id: "db5", name: "DB5", desc: "Data Bit 5" },
+                    { id: "db6", name: "DB6", desc: "Data Bit 6" },
+                    { id: "db7", name: "DB7", desc: "Data Bit 7" },
+                    { id: "led_a", name: "LED", desc: "Backlight Anode (+5V)" },
+                    { id: "led_k", name: "LED", desc: "Backlight Cathode (GND)" }
+                ];
+
+                const pcbWidth = 294;
+                const pcbHeight = 104;
 
                 return (
                     <div 
@@ -1293,50 +1427,97 @@ function SmallComponent({
                         style={{
                             "--lcd-backlight": bgColor,
                             "--lcd-text-color": txtColor,
-                            width: is2004 ? 248 : 204
+                            width: pcbWidth,
+                            position: "relative"
                         }}
                     >
-                        {/* 4-Pin I2C Header at Top (GND, VCC, SDA, SCL) */}
-                        <div className="lcd-i2c-header">
+                        {/* High-Fidelity Green FR-4 PCB with 16 Pins, 4 Corner Mounting Holes, and Silkscreen Labels */}
+                        <svg
+                            className="lcd-pcb-svg"
+                            viewBox={`0 0 ${pcbWidth} ${pcbHeight}`}
+                            width={pcbWidth}
+                            height={pcbHeight}
+                            style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none", zIndex: 1 }}
+                        >
+                            <defs>
+                                <linearGradient id={`lcd-pcb-grad-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stopColor="#348e42" />
+                                    <stop offset="50%" stopColor="#2e7d32" />
+                                    <stop offset="100%" stopColor="#1e5c2a" />
+                                </linearGradient>
+                            </defs>
+
+                            {/* Forest Green FR-4 PCB Body matching Tinkercad */}
+                            <rect
+                                x="0"
+                                y="0"
+                                width={pcbWidth}
+                                height={pcbHeight}
+                                rx="6"
+                                fill={`url(#lcd-pcb-grad-${id})`}
+                                stroke="#14532d"
+                                strokeWidth="2"
+                                filter="drop-shadow(0 10px 24px rgba(0,0,0,0.65))"
+                            />
+
+                            {/* 4 White Corner Mounting Screw Holes */}
                             {[
-                                { name: "GND", x: 16, isGnd: true, desc: "Ground (0V)" },
-                                { name: "VCC", x: 32, is5V: true, desc: "Power (+5V)" },
-                                { name: "SDA", x: 48, isGpio: true, desc: "I2C Data (SDA)" },
-                                { name: "SCL", x: 64, isGpio: true, desc: "I2C Clock (SCL)" }
-                            ].map((pin) => (
-                                <div
-                                    key={pin.name}
-                                    className={`lcd-pin-socket ${hoveredTerminal === `lcd_${pin.name}` ? "targeted" : ""}`}
-                                    style={{ left: pin.x }}
-                                    onMouseEnter={() => setHoveredTerminal(`lcd_${pin.name}`)}
-                                    onMouseLeave={() => setHoveredTerminal(null)}
-                                    onMouseDown={(e) => handleTerminalMouseDown(e, `lcd_${pin.name}`, pin.x, -10)}
-                                    onMouseUp={(e) => handleTerminalMouseUp(e, pin.x, -10)}
-                                    onClick={(e) => handleTerminalPress(e, `lcd_${pin.name}`, pin.x, -10)}
-                                    onDoubleClick={(e) => handleTerminalAction(e, pin.x, -10)}
-                                >
-                                    <div className="socket-inner-metal"></div>
-                                    <span className="lcd-pin-label">{pin.name}</span>
-                                    {hoveredTerminal === `lcd_${pin.name}` && (
-                                        <div className="terminal-hover-tooltip" style={{ left: "50%", top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
-                                            {pin.name}: {pin.desc}
-                                        </div>
-                                    )}
-                                </div>
+                                { cx: 12, cy: 16 },
+                                { cx: pcbWidth - 12, cy: 16 },
+                                { cx: 12, cy: pcbHeight - 16 },
+                                { cx: pcbWidth - 12, cy: pcbHeight - 16 }
+                            ].map((hole, hIdx) => (
+                                <g key={hIdx}>
+                                    <circle cx={hole.cx} cy={hole.cy} r="6.5" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1" />
+                                    <circle cx={hole.cx} cy={hole.cy} r="3.6" fill="#0f172a" />
+                                </g>
                             ))}
-                        </div>
 
-                        {/* Dark Blue PCB with Gold Mounting Holes */}
-                        <div className="lcd-pcb-surface">
-                            <div className="lcd-mount-hole hole-tl"></div>
-                            <div className="lcd-mount-hole hole-tr"></div>
-                            <div className="lcd-mount-hole hole-bl"></div>
-                            <div className="lcd-mount-hole hole-br"></div>
+                            {/* 16 Eyelet Pin Pads and Vertical Silkscreen Labels along Top Edge */}
+                            {LCD_PINS_LIST.map((pin, idx) => {
+                                const px = 24 + idx * 16;
+                                return (
+                                    <g key={pin.id}>
+                                        {/* Annular Copper Pad with Drill Hole */}
+                                        <circle cx={px} cy="8" r="3.8" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
+                                        <circle cx={px} cy="8" r="1.8" fill="#0f172a" />
 
-                            {/* Metallic Screen Bezel */}
-                            <div className="lcd-bezel-frame">
+                                        {/* Vertical Silkscreen Text Rotated 90° Reading Downward */}
+                                        <text
+                                            x={px - 2.8}
+                                            y="17"
+                                            fill="#ffffff"
+                                            fontSize="5"
+                                            fontWeight="900"
+                                            fontFamily="monospace"
+                                            textAnchor="start"
+                                            transform={`rotate(90, ${px - 2.8}, 17)`}
+                                            letterSpacing="0.04em"
+                                        >
+                                            {pin.name}
+                                        </text>
+                                    </g>
+                                );
+                            })}
+                        </svg>
+
+                        {/* Metallic Screen Bezel Frame Housing the Dot-Matrix Screen */}
+                        <div
+                            className="lcd-pcb-surface"
+                            style={{
+                                width: pcbWidth,
+                                height: pcbHeight,
+                                background: "transparent",
+                                border: "none",
+                                boxShadow: "none",
+                                padding: "34px 18px 8px 18px",
+                                position: "relative",
+                                zIndex: 2
+                            }}
+                        >
+                            <div className="lcd-bezel-frame" style={{ width: "100%", height: "100%", padding: "4px 8px" }}>
                                 {/* Dot-Matrix LCD Screen Area */}
-                                <div className={`lcd-matrix-screen ${isBacklightActive ? "backlight-active" : "backlight-dark"}`} style={{ opacity: isPowered ? 1 : 0.65 }}>
+                                <div className={`lcd-matrix-screen ${isBacklightActive ? "backlight-active" : "backlight-dark"}`} style={{ opacity: isPowered ? 1 : 0.65, height: "100%" }}>
                                     {Array.from({ length: numRows }).map((_, rIdx) => {
                                         const rawLine = activeLines[rIdx] || "";
                                         const chars = rawLine.padEnd(numCols, " ").slice(0, numCols).split("");
@@ -1372,18 +1553,40 @@ function SmallComponent({
                                     })}
                                 </div>
                             </div>
-
-                            {/* PCB Bottom Details: Brand Stamp + I2C Backpack Preview */}
-                            <div className="lcd-pcb-footer-details">
-                                <span className="lcd-brand-stamp">{is2004 ? "2004A HD44780 • I2C 0x27" : "1602A HD44780 • I2C 0x27"}</span>
-                                <div className="lcd-backpack-indicator" title={`PCF8574 Backpack • Contrast: ${contrastVal}%`}>
-                                    <span className={`lcd-smd-pwr-led ${isPowered ? "active" : ""}`}></span>
-                                    <div className="lcd-contrast-trimpot" style={{ transform: `rotate(${trimpotAngle}deg)` }}>
-                                        <div className="trimpot-slot-cross"></div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
+
+                        {/* Interactive Wire Terminal Pins for all 16 Pins along Top Edge */}
+                        {LCD_PINS_LIST.map((pin, idx) => {
+                            const pinX = 24 + idx * 16;
+                            const pinY = 0;
+                            return (
+                                <React.Fragment key={pin.id}>
+                                    <span
+                                        className={`terminal-pin pin-lcd-${pin.id} ${hoveredTerminal === `lcd_${pin.id}` ? "targeted" : ""}`}
+                                        style={{ left: pinX, top: pinY, transform: "translate(-50%, -50%)", zIndex: 50 }}
+                                        onMouseEnter={() => setHoveredTerminal(`lcd_${pin.id}`)}
+                                        onMouseLeave={() => setHoveredTerminal(null)}
+                                        onMouseDown={(e) => handleTerminalMouseDown(e, `lcd_${pin.id}`, pinX, pinY)}
+                                        onMouseUp={(e) => handleTerminalMouseUp(e, pinX, pinY)}
+                                        onClick={(e) => handleTerminalPress(e, `lcd_${pin.id}`, pinX, pinY)}
+                                        onDoubleClick={(e) => handleTerminalAction(e, pinX, pinY)}
+                                    />
+                                    {hoveredTerminal === `lcd_${pin.id}` && (
+                                        <div
+                                            className="terminal-hover-tooltip"
+                                            style={{
+                                                left: pinX,
+                                                top: pinY,
+                                                transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)`,
+                                                zIndex: 60
+                                            }}
+                                        >
+                                            Pin {idx + 1}: {pin.name} ({pin.desc})
+                                        </div>
+                                    )}
+                                </React.Fragment>
+                            );
+                        })}
                     </div>
                 );
             })()}
@@ -1723,9 +1926,7 @@ function SmallComponent({
                         onMouseUp={(e) => handleTerminalMouseUp(e, 16, 32)}
                         onClick={(e) => handleTerminalPress(e, "coinNeg", 16, 32)}
                         onDoubleClick={(e) => handleTerminalAction(e, 16, 32)}
-                    >
-                        <span className="coin-pin-badge badge-neg">−</span>
-                    </span>
+                    />
                     {hoveredTerminal === "coinNeg" && (
                         <div className="terminal-hover-tooltip" style={{ left: 16, top: 32, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
                             Negative (−) GND
@@ -1742,9 +1943,7 @@ function SmallComponent({
                         onMouseUp={(e) => handleTerminalMouseUp(e, 48, 32)}
                         onClick={(e) => handleTerminalPress(e, "coinPos", 48, 32)}
                         onDoubleClick={(e) => handleTerminalAction(e, 48, 32)}
-                    >
-                        <span className="coin-pin-badge badge-pos">+</span>
-                    </span>
+                    />
                     {hoveredTerminal === "coinPos" && (
                         <div className="terminal-hover-tooltip" style={{ left: 48, top: 32, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
                             Positive (+) 3V DC
@@ -2522,8 +2721,8 @@ function SmallComponent({
             })()}
 
             {/* TINKERCAD DIP-14 LOGIC GATES (74HC08 AND, 74HC00 NAND, 74HC32 OR, 74HC04 NOT, 74HC02 NOR, 74HC86 XOR, 74HC132) */}
-            {type?.startsWith("ic-74hc") && (() => {
-                const icCode = type.replace("ic-", "").toUpperCase();
+            {type?.startsWith("ic-") && (() => {
+                const icCode = (modelNumber || propIcCode || component?.modelNumber || component?.icCode || type?.replace("ic-", "") || "74HC08").toUpperCase();
                 const icTitles = {
                     "74HC08": "Quad 2-Input AND Gate",
                     "74HC00": "Quad 2-Input NAND Gate",
@@ -2633,321 +2832,42 @@ function SmallComponent({
 
             {/* HC-SR04 ULTRASONIC DISTANCE SENSOR (HUGE REALISTIC FULL-SCALE SVG): Pins VCC (0, 0), Trig (16, 0), Echo (32, 0), GND (48, 0) */}
             {type === "sensor-ultrasonic" && (() => {
-                const distCm = distanceCm != null ? distanceCm : 25;
+                const coneRangeCm = component?.rangeCm || component?.maxRangeCm || (distanceCm && distanceCm >= 10 ? distanceCm : 200);
                 const isPowered = Boolean(isSimulating && simState?.isPowered);
-                const isPinging = Boolean(isPowered && simState?.isPinging);
+                const isPinging = Boolean(isPowered && (simState?.isPinging ?? true));
 
-                const maxHalfAngleRad = (18 * Math.PI) / 180; // ±18 degrees beam cone
-                const effectiveR = 32 + Math.max(2, Math.min(300, distCm)) * 1.2;
-                const currentAngle = Math.max(-maxHalfAngleRad, Math.min(maxHalfAngleRad, ballAngle || 0));
+                const maxHalfAngleRad = (22 * Math.PI) / 180; // ±22 degrees beam cone
+                // Distance provided in component bar decides the cone length/range ONLY:
+                const maxRangeR = Math.max(50, 32 + Math.min(400, coneRangeCm) * 1.15);
 
-                // Transducers apex is located at (24, -56)
-                const xL = 24 + effectiveR * Math.sin(-maxHalfAngleRad);
-                const yL = -56 - effectiveR * Math.cos(-maxHalfAngleRad);
-                const xR = 24 + effectiveR * Math.sin(maxHalfAngleRad);
-                const yR = -56 - effectiveR * Math.cos(maxHalfAngleRad);
+                // Fixed cone boundaries extending outward from apex (24, -56)
+                const innerR = 30;
+                const inXL = 24 + innerR * Math.sin(-maxHalfAngleRad);
+                const inYL = -56 - innerR * Math.cos(-maxHalfAngleRad);
+                const inXR = 24 + innerR * Math.sin(maxHalfAngleRad);
+                const inYR = -56 - innerR * Math.cos(maxHalfAngleRad);
 
-                const ballX = 24 + effectiveR * Math.sin(currentAngle);
-                const ballY = -56 - effectiveR * Math.cos(currentAngle);
+                const outXL = 24 + maxRangeR * Math.sin(-maxHalfAngleRad);
+                const outYL = -56 - maxRangeR * Math.cos(-maxHalfAngleRad);
+                const outXR = 24 + maxRangeR * Math.sin(maxHalfAngleRad);
+                const outYR = -56 - maxRangeR * Math.cos(maxHalfAngleRad);
 
-                // Intermediate radar range rings
-                const guideDistances = [50, 100, 150, 200, 250].filter(d => (32 + d * 1.2) < (effectiveR - 16));
+                // Ball position can be anywhere (freely draggable inside or outside the cone, does not alter range)
+                const ballX = localBallPos?.x ?? (targetBallX != null ? targetBallX : (component?.targetBallX != null ? component.targetBallX : 24));
+                const ballY = localBallPos?.y ?? (targetBallY != null ? targetBallY : (component?.targetBallY != null ? component.targetBallY : (-56 - Math.min(maxRangeR - 20, 120))));
+
+                const ballDx = ballX - 24;
+                const ballDy = -56 - ballY;
+                const ballDistPx = Math.hypot(ballDx, ballDy);
+                const ballPhi = Math.atan2(ballDx, ballDy);
+                const isBallInRange = ballDy > 0 && Math.abs(ballPhi) <= maxHalfAngleRad && ballDistPx <= maxRangeR;
+                const ballMeasuredDist = Math.max(2, Math.min(400, Math.round(Math.max(0, ballDistPx - 32) / 1.15)));
 
                 return (
                     <div className={`ultrasonic-container ${isPinging ? "is-pinging" : ""} ${isPowered ? "is-powered" : "is-unpowered"}`}>
-                        {/* 1. PREMIUM DYNAMIC ACOUSTIC CONE & DRAGGABLE TARGET OBSTACLE BALL */}
-                        <svg
-                            ref={coneSvgRef}
-                            className="ultrasonic-cone-svg"
-                            viewBox="-200 -480 448 485"
-                            width="448"
-                            height="485"
-                            style={{
-                                position: "absolute",
-                                left: -200,
-                                top: -480,
-                                pointerEvents: "none",
-                                overflow: "visible",
-                                zIndex: 12
-                            }}
-                        >
-                            <defs>
-                                <radialGradient id={`sonar-beam-fill-${id}`} cx="24" cy="-56" r={effectiveR} gradientUnits="userSpaceOnUse">
-                                    <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.32" />
-                                    <stop offset="35%" stopColor="#0ea5e9" stopOpacity="0.20" />
-                                    <stop offset="70%" stopColor="#0284c7" stopOpacity="0.10" />
-                                    <stop offset="92%" stopColor="#0369a1" stopOpacity="0.04" />
-                                    <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.22" />
-                                </radialGradient>
-
-                                <linearGradient id={`sonar-ray-grad-${id}`} x1="0%" y1="100%" x2="0%" y2="0%">
-                                    <stop offset="0%" stopColor="#0284c7" stopOpacity="0.25" />
-                                    <stop offset="60%" stopColor="#38bdf8" stopOpacity="0.85" />
-                                    <stop offset="100%" stopColor="#7dd3fc" stopOpacity="1" />
-                                </linearGradient>
-
-                                <radialGradient id={`sonar-ball-grad-${id}`} cx="32%" cy="28%" r="68%">
-                                    <stop offset="0%" stopColor="#ffffff" />
-                                    <stop offset="22%" stopColor="#7dd3fc" />
-                                    <stop offset="55%" stopColor="#0284c7" />
-                                    <stop offset="85%" stopColor="#0f172a" />
-                                    <stop offset="100%" stopColor="#020617" />
-                                </radialGradient>
-
-                                <radialGradient id={`sonar-ball-halo-${id}`} cx="50%" cy="50%" r="50%">
-                                    <stop offset="0%" stopColor="#38bdf8" stopOpacity={isDraggingBall ? "0.95" : "0.75"} />
-                                    <stop offset="45%" stopColor="#0ea5e9" stopOpacity={isDraggingBall ? "0.45" : "0.25"} />
-                                    <stop offset="100%" stopColor="#0284c7" stopOpacity="0" />
-                                </radialGradient>
-
-                                <filter id={`sonar-glow-${id}`} x="-30%" y="-30%" width="160%" height="160%">
-                                    <feGaussianBlur stdDeviation="3" result="blur" />
-                                    <feMerge>
-                                        <feMergeNode in="blur" />
-                                        <feMergeNode in="SourceGraphic" />
-                                    </feMerge>
-                                </filter>
-                            </defs>
-
-                            {/* Main Acoustic Cone Sector with Interactive Click/Drag Hit Area */}
-                            <path
-                                d={`M 24 -56 L ${xL.toFixed(1)} ${yL.toFixed(1)} A ${effectiveR.toFixed(1)} ${effectiveR.toFixed(1)} 0 0 1 ${xR.toFixed(1)} ${yR.toFixed(1)} Z`}
-                                fill={`url(#sonar-beam-fill-${id})`}
-                                stroke="none"
-                                style={{ pointerEvents: "all", cursor: isDraggingBall ? "grabbing" : "crosshair" }}
-                                onMouseDown={handleBallDragStart}
-                            />
-
-                            {/* Intermediate Concentric Radar Distance Guide Arcs & Markings */}
-                            {guideDistances.map(d => {
-                                const rGuide = 32 + d * 1.2;
-                                const gxL = 24 + rGuide * Math.sin(-maxHalfAngleRad);
-                                const gyL = -56 - rGuide * Math.cos(-maxHalfAngleRad);
-                                const gxR = 24 + rGuide * Math.sin(maxHalfAngleRad);
-                                const gyR = -56 - rGuide * Math.cos(maxHalfAngleRad);
-                                return (
-                                    <g key={d} style={{ pointerEvents: "none" }}>
-                                        <path
-                                            d={`M ${gxL.toFixed(1)} ${gyL.toFixed(1)} A ${rGuide.toFixed(1)} ${rGuide.toFixed(1)} 0 0 1 ${gxR.toFixed(1)} ${gyR.toFixed(1)}`}
-                                            fill="none"
-                                            stroke="rgba(56, 189, 248, 0.28)"
-                                            strokeWidth="1"
-                                            strokeDasharray="3 4"
-                                        />
-                                        <text
-                                            x={gxR + 5}
-                                            y={gyR + 3}
-                                            fill="rgba(125, 211, 252, 0.75)"
-                                            fontSize="7"
-                                            fontWeight="600"
-                                            fontFamily="monospace"
-                                        >
-                                            {d}cm
-                                        </text>
-                                    </g>
-                                );
-                            })}
-
-                            {/* Central Boresight Axis Line */}
-                            <line
-                                x1="24"
-                                y1="-56"
-                                x2="24"
-                                y2={-56 - effectiveR}
-                                stroke="rgba(56, 189, 248, 0.25)"
-                                strokeWidth="1"
-                                strokeDasharray="2 4"
-                                style={{ pointerEvents: "none" }}
-                            />
-
-                            {/* Left & Right Boundary Rays with Subtle Glowing Edge */}
-                            <line
-                                x1="24"
-                                y1="-56"
-                                x2={xL.toFixed(1)}
-                                y2={yL.toFixed(1)}
-                                stroke={`url(#sonar-ray-grad-${id})`}
-                                strokeWidth="1.8"
-                                strokeDasharray="5 3"
-                                style={{ pointerEvents: "none" }}
-                            />
-                            <line
-                                x1="24"
-                                y1="-56"
-                                x2={xR.toFixed(1)}
-                                y2={yR.toFixed(1)}
-                                stroke={`url(#sonar-ray-grad-${id})`}
-                                strokeWidth="1.8"
-                                strokeDasharray="5 3"
-                                style={{ pointerEvents: "none" }}
-                            />
-
-                            {/* Dynamic Outer Wavefront Detection Arc (Extends / Contracts Exactly with Distance) */}
-                            <path
-                                d={`M ${xL.toFixed(1)} ${yL.toFixed(1)} A ${effectiveR.toFixed(1)} ${effectiveR.toFixed(1)} 0 0 1 ${xR.toFixed(1)} ${yR.toFixed(1)}`}
-                                fill="none"
-                                stroke="rgba(56, 189, 248, 0.4)"
-                                strokeWidth="5"
-                                strokeLinecap="round"
-                                style={{ pointerEvents: "none" }}
-                            />
-                            <path
-                                d={`M ${xL.toFixed(1)} ${yL.toFixed(1)} A ${effectiveR.toFixed(1)} ${effectiveR.toFixed(1)} 0 0 1 ${xR.toFixed(1)} ${yR.toFixed(1)}`}
-                                fill="none"
-                                stroke="#38bdf8"
-                                strokeWidth="2.2"
-                                strokeLinecap="round"
-                                filter={`url(#sonar-glow-${id})`}
-                                style={{ pointerEvents: "none" }}
-                            />
-
-                            {/* Acoustic Echo Return Line from Obstacle Ball to Receiver Transducer (R at 84, -56) */}
-                            <line
-                                x1={ballX.toFixed(1)}
-                                y1={ballY.toFixed(1)}
-                                x2="84"
-                                y2="-56"
-                                stroke="#2dd4bf"
-                                strokeWidth="1.4"
-                                strokeDasharray="4 3"
-                                opacity={isPinging ? 0.95 : 0.45}
-                                className={isPinging ? "ultrasonic-echo-pulse" : ""}
-                                style={{ pointerEvents: "none" }}
-                            />
-
-                            {/* 2. DRAGGABLE TARGET OBSTACLE BALL WITH 3D METALLIC SHADING & HUD TELEMETRY BADGE */}
-                            <g
-                                className="ultrasonic-ball-interactive-group"
-                                style={{ pointerEvents: "all", cursor: isDraggingBall ? "grabbing" : "grab" }}
-                                onMouseDown={handleBallDragStart}
-                            >
-                                {/* Generous Invisible Hitbox for Ultra-Reliable Dragging */}
-                                <circle cx={ballX.toFixed(1)} cy={ballY.toFixed(1)} r="22" fill="transparent" />
-
-                                {/* Depth Cast Shadow on Ground */}
-                                <ellipse
-                                    cx={ballX.toFixed(1)}
-                                    cy={(ballY + 8).toFixed(1)}
-                                    rx="13"
-                                    ry="4.5"
-                                    fill="rgba(0,0,0,0.5)"
-                                    filter="blur(2px)"
-                                />
-
-                                {/* Outer Target Glowing Halo */}
-                                <circle
-                                    cx={ballX.toFixed(1)}
-                                    cy={ballY.toFixed(1)}
-                                    r={isDraggingBall ? "22" : "18"}
-                                    fill={`url(#sonar-ball-halo-${id})`}
-                                    className={isDraggingBall ? "dragging-halo" : "idle-halo"}
-                                />
-
-                                {/* 3D Realistic Metallic Sphere */}
-                                <circle
-                                    cx={ballX.toFixed(1)}
-                                    cy={ballY.toFixed(1)}
-                                    r="12"
-                                    fill={`url(#sonar-ball-grad-${id})`}
-                                    stroke={isDraggingBall ? "#ffffff" : "#38bdf8"}
-                                    strokeWidth="1.6"
-                                    filter="drop-shadow(0 2px 4px rgba(0,0,0,0.5))"
-                                />
-
-                                {/* Spherical Specular Glint */}
-                                <ellipse
-                                    cx={(ballX - 4).toFixed(1)}
-                                    cy={(ballY - 4).toFixed(1)}
-                                    rx="4"
-                                    ry="2.4"
-                                    fill="#ffffff"
-                                    opacity="0.88"
-                                    transform={`rotate(-35 ${(ballX - 4).toFixed(1)} ${(ballY - 4).toFixed(1)})`}
-                                />
-
-                                {/* High-Tech Tactical Target Reticle */}
-                                <circle
-                                    cx={ballX.toFixed(1)}
-                                    cy={ballY.toFixed(1)}
-                                    r="6.5"
-                                    fill="none"
-                                    stroke="rgba(255,255,255,0.75)"
-                                    strokeWidth="0.8"
-                                    strokeDasharray="2 2"
-                                />
-                                <line
-                                    x1={(ballX - 8).toFixed(1)}
-                                    y1={ballY.toFixed(1)}
-                                    x2={(ballX + 8).toFixed(1)}
-                                    y2={ballY.toFixed(1)}
-                                    stroke="rgba(255,255,255,0.7)"
-                                    strokeWidth="0.8"
-                                />
-                                <line
-                                    x1={ballX.toFixed(1)}
-                                    y1={(ballY - 8).toFixed(1)}
-                                    x2={ballX.toFixed(1)}
-                                    y2={(ballY + 8).toFixed(1)}
-                                    stroke="rgba(255,255,255,0.7)"
-                                    strokeWidth="0.8"
-                                />
-                                <circle
-                                    cx={ballX.toFixed(1)}
-                                    cy={ballY.toFixed(1)}
-                                    r="1.5"
-                                    fill="#ffffff"
-                                />
-
-                                {/* Floating HUD Telemetry Badge Displaying Exact Clamped Distance */}
-                                <g className="ultrasonic-hud-badge" style={{ pointerEvents: "none" }}>
-                                    {/* Connecting Tick Line */}
-                                    <line
-                                        x1={ballX.toFixed(1)}
-                                        y1={(ballY - 12).toFixed(1)}
-                                        x2={ballX.toFixed(1)}
-                                        y2={(ballY - 17).toFixed(1)}
-                                        stroke="#38bdf8"
-                                        strokeWidth="1.2"
-                                    />
-                                    {/* Glassmorphic Capsule Badge */}
-                                    <rect
-                                        x={(ballX - 30).toFixed(1)}
-                                        y={(ballY - 34).toFixed(1)}
-                                        width="60"
-                                        height="17"
-                                        rx="8.5"
-                                        fill="rgba(10, 15, 30, 0.94)"
-                                        stroke={isDraggingBall ? "#38bdf8" : "rgba(56, 189, 248, 0.65)"}
-                                        strokeWidth="1.2"
-                                        filter="drop-shadow(0 4px 8px rgba(0,0,0,0.7))"
-                                    />
-                                    {/* Sonar Status Indicator Light */}
-                                    <circle
-                                        cx={(ballX - 19).toFixed(1)}
-                                        cy={(ballY - 25.5).toFixed(1)}
-                                        r="2.5"
-                                        fill={isPinging ? "#22c55e" : "#38bdf8"}
-                                        filter="drop-shadow(0 0 3px #38bdf8)"
-                                    />
-                                    {/* Distance Text Readout */}
-                                    <text
-                                        x={(ballX + 2).toFixed(1)}
-                                        y={(ballY - 22.5).toFixed(1)}
-                                        fill="#f0f9ff"
-                                        fontSize="8.5"
-                                        fontWeight="800"
-                                        textAnchor="middle"
-                                        fontFamily="monospace"
-                                    >
-                                        {distCm} cm
-                                    </text>
-                                </g>
-                            </g>
-                        </svg>
-
                         <svg className="ultrasonic-realistic-svg" viewBox="-100 -115 248 120" width="248" height="120" style={{ position: "absolute", left: -100, top: -115, pointerEvents: "auto", cursor: "move" }}>
-                            {/* Full Hit-Box to ensure 100% reliable click-to-select anywhere on ultrasonic sensor */}
-                            <rect x="-100" y="-115" width="248" height="120" fill="transparent" pointerEvents="all" cursor="pointer" />
+                            {/* Hitbox strictly matching PCB dimensions to prevent intercepting clicks on the cone/ball */}
+                            <rect x="-86" y="-104" width="220" height="96" rx="8" fill="transparent" pointerEvents="all" cursor="pointer" />
                             <defs>
                                 <radialGradient id={`sonar-transducer-grad-${id}`} cx="40%" cy="35%" r="65%">
                                     <stop offset="0%" stopColor="#f8fafc" />
@@ -2963,7 +2883,7 @@ function SmallComponent({
                             </defs>
 
                             {/* Blue FR-4 PCB: Width 220px, Height 96px from Y=-104 to Y=-8, X=-86 to X=134 */}
-                            <rect x="-86" y="-104" width="220" height="96" rx="8" fill={isPowered ? "#0284c7" : "#0f3a56"} stroke={isPowered ? "#0369a1" : "#082f49"} strokeWidth="2.5" filter="drop-shadow(0 10px 24px rgba(0,0,0,0.65))" />
+                            <rect x="-86" y="-104" width="220" height="96" rx="8" fill="#0284c7" stroke="#0369a1" strokeWidth="2.5" filter="drop-shadow(0 10px 24px rgba(0,0,0,0.65))" />
 
                             {/* 4 Corner Gold-Plated Mounting Holes with Annular Copper Rings */}
                             <circle cx="-76" cy="-94" r="3.5" fill="#ca8a04" stroke="#713f12" strokeWidth="1" />
@@ -2976,8 +2896,8 @@ function SmallComponent({
                             <circle cx="124" cy="-18" r="1.8" fill="#0f172a" />
 
                             {/* Power Status LED */}
-                            <circle cx="-72" cy="-70" r="3" fill={isPowered ? "#22c55e" : "#1e293b"} filter={isPowered ? "drop-shadow(0 0 4px #22c55e)" : "none"} />
-                            <text x="-72" y="-76" fill={isPowered ? "#bbf7d0" : "#475569"} fontSize="4.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">PWR</text>
+                            <circle cx="-72" cy="-70" r="3" fill={isPowered ? "#22c55e" : "#1e293b"} filter={isPowered ? "drop-shadow(0 0 6px #22c55e)" : "none"} />
+                            <text x="-72" y="-76" fill={isPowered ? "#bbf7d0" : "#cbd5e1"} fontSize="5" fontWeight="900" textAnchor="middle" fontFamily="monospace">PWR</text>
 
                             {/* 16MHz Metal Quartz Crystal in Center */}
                             <rect x="17.5" y="-70" width="13" height="26" rx="3.5" fill="#f1f5f9" stroke="#64748b" strokeWidth="1.2" />
@@ -2985,7 +2905,7 @@ function SmallComponent({
 
                             {/* Dual HUGE Aluminum Ultrasonic Transducers (Diameter 64px, radius 32px each) */}
                             {/* T (Transmitter) on Left: Center (-36, -56) */}
-                            <circle cx="-36" cy="-56" r="32" fill={`url(#sonar-transducer-grad-${id})`} stroke={isPowered ? "#475569" : "#334155"} strokeWidth="2.8" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.45))" />
+                            <circle cx="-36" cy="-56" r="32" fill={`url(#sonar-transducer-grad-${id})`} stroke="#475569" strokeWidth="2.8" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.45))" />
                             <circle cx="-36" cy="-56" r="29" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" />
                             <circle cx="-36" cy="-56" r="23" fill={`url(#sonar-cone-grad-${id})`} />
                             <circle cx="-36" cy="-56" r="14" fill="#334155" opacity="0.4" />
@@ -2995,7 +2915,7 @@ function SmallComponent({
                             <text x="-36" y="-50" fill="#f8fafc" fontSize="18" fontWeight="900" textAnchor="middle" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.8))">T</text>
 
                             {/* R (Receiver) on Right: Center (84, -56) */}
-                            <circle cx="84" cy="-56" r="32" fill={`url(#sonar-transducer-grad-${id})`} stroke={isPowered ? "#475569" : "#334155"} strokeWidth="2.8" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.45))" />
+                            <circle cx="84" cy="-56" r="32" fill={`url(#sonar-transducer-grad-${id})`} stroke="#475569" strokeWidth="2.8" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.45))" />
                             <circle cx="84" cy="-56" r="29" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" />
                             <circle cx="84" cy="-56" r="23" fill={`url(#sonar-cone-grad-${id})`} />
                             <circle cx="84" cy="-56" r="14" fill="#334155" opacity="0.4" />
@@ -3005,20 +2925,20 @@ function SmallComponent({
                             <text x="84" y="-50" fill="#f8fafc" fontSize="18" fontWeight="900" textAnchor="middle" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.8))">R</text>
 
                             {/* Silkscreen Brand & Spec Labels */}
-                            <text x="24" y="-88" fill="#ffffff" fontSize="9" fontWeight="900" textAnchor="middle" letterSpacing="0.05em">HC-SR04</text>
-                            <text x="24" y="-76" fill="rgba(255,255,255,0.75)" fontSize="5" fontWeight="700" textAnchor="middle">TWINLAB X</text>
-                            <text x="24" y="-30" fill={isPowered ? "#a7f3d0" : "#64748b"} fontSize={isPowered ? "7.5" : "6.5"} fontWeight="900" textAnchor="middle">
-                                {isPowered ? `${distCm} cm` : "OFF • 0V"}
+                            <text x="24" y="-88" fill="#ffffff" fontSize="9.5" fontWeight="900" textAnchor="middle" letterSpacing="0.05em">HC-SR04</text>
+                            <text x="24" y="-76" fill="#e0f2fe" fontSize="5.5" fontWeight="800" textAnchor="middle">TWINLAB X • ULTRASONIC</text>
+                            <text x="24" y="-30" fill={isPowered ? (isBallInRange ? "#67e8f9" : "#fbbf24") : "#e2e8f0"} fontSize={isPowered ? "8" : "7"} fontWeight="900" textAnchor="middle">
+                                {isPowered ? (isBallInRange ? `${ballMeasuredDist} cm` : "Out of Range") : `${coneRangeCm} cm Max`}
                             </text>
 
                             {/* Black DuPont Connector Block at Y=-14 to Y=-4 */}
                             <rect x="-6" y="-14" width="60" height="10" rx="2" fill="#18181b" stroke="#3f3f46" strokeWidth="1.2" />
 
                             {/* Pin Labels directly above the 4 pins without colliding with TWINLAB X */}
-                            <text x="0" y="-17" fill={isPowered ? "#86efac" : "#f8fafc"} fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">VCC</text>
-                            <text x="16" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">TRIG</text>
-                            <text x="32" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">ECHO</text>
-                            <text x="48" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">GND</text>
+                            <text x="0" y="-17" fill={isPowered ? "#4ade80" : "#ffffff"} fontSize="6" fontWeight="900" textAnchor="middle" fontFamily="monospace">VCC</text>
+                            <text x="16" y="-17" fill="#ffffff" fontSize="6" fontWeight="900" textAnchor="middle" fontFamily="monospace">TRIG</text>
+                            <text x="32" y="-17" fill="#ffffff" fontSize="6" fontWeight="900" textAnchor="middle" fontFamily="monospace">ECHO</text>
+                            <text x="48" y="-17" fill="#ffffff" fontSize="6" fontWeight="900" textAnchor="middle" fontFamily="monospace">GND</text>
 
                             {/* 4 Gold Header Pins extending from Y=-6 to Y=0 */}
                             <rect x="-2.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
@@ -3026,6 +2946,182 @@ function SmallComponent({
                             <rect x="29.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
                             <rect x="45.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
                         </svg>
+
+                        {/* 2. TINKERCAD-STYLE TRANSLUCENT MINT CONE & FREELY DRAGGABLE TARGET OBSTACLE BALL (Rendered ON TOP with zIndex 90) */}
+                        {isSimulating && isSelected && (
+                            <svg
+                                ref={coneSvgRef}
+                                className="ultrasonic-cone-svg"
+                                viewBox="-220 -500 488 510"
+                                width="488"
+                                height="510"
+                                style={{
+                                    position: "absolute",
+                                    left: -220,
+                                    top: -500,
+                                    pointerEvents: "none",
+                                    overflow: "visible",
+                                    zIndex: 90
+                                }}
+                            >
+                                <defs>
+                                    <filter id={`ball-shadow-${id}`} x="-20%" y="-20%" width="140%" height="140%">
+                                        <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.4" />
+                                    </filter>
+                                </defs>
+
+                                {/* Translucent cone sector - Highlights vibrant glowing cyan when obstacle is in range */}
+                                <path
+                                    d={`M ${inXL.toFixed(1)} ${inYL.toFixed(1)} L ${outXL.toFixed(1)} ${outYL.toFixed(1)} A ${maxRangeR} ${maxRangeR} 0 0 1 ${outXR.toFixed(1)} ${outYR.toFixed(1)} L ${inXR.toFixed(1)} ${inYR.toFixed(1)} A ${innerR} ${innerR} 0 0 0 ${inXL.toFixed(1)} ${inYL.toFixed(1)} Z`}
+                                    fill={isBallInRange ? "rgba(56, 189, 248, 0.32)" : "rgba(224, 245, 233, 0.45)"}
+                                    stroke={isBallInRange ? "#38bdf8" : "rgba(167, 243, 208, 0.5)"}
+                                    strokeWidth={isBallInRange ? "2.5" : "1.2"}
+                                    filter={isBallInRange ? "drop-shadow(0 0 16px rgba(56, 189, 248, 0.8))" : "none"}
+                                    style={{ pointerEvents: "all", cursor: "crosshair", transition: "fill 0.2s ease, stroke 0.2s ease" }}
+                                    onMouseDown={handleBallDragStart}
+                                    onPointerDown={handleBallDragStart}
+                                />
+
+                                {/* Sound Wave Animation radiating from Transmitter along the beam */}
+                                {isPinging && (
+                                    <g className="ultrasonic-sound-waves" style={{ pointerEvents: "none" }}>
+                                        {[45, 80, 115].map((arcR, i) => {
+                                            const startAngle = (-maxHalfAngleRad * 0.9);
+                                            const endAngle = (maxHalfAngleRad * 0.9);
+                                            const x1 = 24 + arcR * Math.sin(startAngle);
+                                            const y1 = -56 - arcR * Math.cos(startAngle);
+                                            const x2 = 24 + arcR * Math.sin(endAngle);
+                                            const y2 = -56 - arcR * Math.cos(endAngle);
+                                            return (
+                                                <path
+                                                    key={i}
+                                                    d={`M ${x1.toFixed(1)} ${y1.toFixed(1)} A ${arcR} ${arcR} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`}
+                                                    fill="none"
+                                                    stroke="#0284c7"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    opacity={0.65 - i * 0.16}
+                                                    className="sonar-cone-arc"
+                                                />
+                                            );
+                                        })}
+                                    </g>
+                                )}
+
+                                {/* Dashed projection guide line from sensor center (24, -56) to target obstacle ball */}
+                                <line
+                                    x1="24"
+                                    y1="-56"
+                                    x2={ballX.toFixed(1)}
+                                    y2={ballY.toFixed(1)}
+                                    stroke={isBallInRange ? "#38bdf8" : "#94a3b8"}
+                                    strokeWidth={isBallInRange ? "2" : "1.6"}
+                                    strokeDasharray={isBallInRange ? "3 3" : "4 4"}
+                                    style={{ pointerEvents: "none" }}
+                                />
+
+                                {/* Acoustic Echo Return Line when active ping */}
+                                {isPinging && isBallInRange && (
+                                    <line
+                                        x1={ballX.toFixed(1)}
+                                        y1={ballY.toFixed(1)}
+                                        x2="84"
+                                        y2="-56"
+                                        stroke="#14b8a6"
+                                        strokeWidth="1.5"
+                                        strokeDasharray="3 3"
+                                        className="ultrasonic-echo-pulse"
+                                        style={{ pointerEvents: "none" }}
+                                    />
+                                )}
+
+                                {/* Premium Glassmorphic HUD Distance Badge positioned cleanly above transducers (clear of T & R) */}
+                                <g style={{ pointerEvents: "none" }}>
+                                    {/* Sleek Dark Capsule Badge with Glow */}
+                                    <rect
+                                        x="-44"
+                                        y="-144"
+                                        width="136"
+                                        height="26"
+                                        rx="6"
+                                        fill="rgba(15, 23, 42, 0.92)"
+                                        stroke={isBallInRange ? "#38bdf8" : "rgba(100, 116, 139, 0.5)"}
+                                        strokeWidth={isBallInRange ? "1.8" : "1"}
+                                        filter={isBallInRange ? "drop-shadow(0 0 12px rgba(56, 189, 248, 0.55)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))" : "drop-shadow(0 4px 8px rgba(0,0,0,0.4))"}
+                                    />
+                                    {/* Status Indicator LED Dot */}
+                                    <circle
+                                        cx="-32"
+                                        cy="-131"
+                                        r="3.5"
+                                        fill={isBallInRange ? "#22c55e" : "#ef4444"}
+                                        filter={isBallInRange ? "drop-shadow(0 0 6px #22c55e)" : "drop-shadow(0 0 4px #ef4444)"}
+                                    />
+                                    {/* Crisp Dual Imperial/Metric Readout */}
+                                    <text
+                                        x="28"
+                                        y="-127"
+                                        textAnchor="middle"
+                                        fontFamily="monospace, sans-serif"
+                                    >
+                                        {isBallInRange ? (
+                                            <>
+                                                <tspan fill="#38bdf8" fontWeight="800" fontSize="10.5">{(ballMeasuredDist / 2.54).toFixed(1)} in</tspan>
+                                                <tspan fill="#64748b" fontSize="9.5"> / </tspan>
+                                                <tspan fill="#ffffff" fontWeight="800" fontSize="10.5">{ballMeasuredDist} cm</tspan>
+                                            </>
+                                        ) : (
+                                            <tspan fill="#fb7185" fontWeight="800" fontSize="9.5" letterSpacing="0.04em">OUT OF RANGE (400 cm)</tspan>
+                                        )}
+                                    </text>
+                                </g>
+
+                                {/* 2. CLEAN SIMPLE TEAL BALL DRAGGABLE ANYWHERE (INSIDE OR OUTSIDE RANGE) */}
+                                <g
+                                    className="ultrasonic-ball-interactive-group"
+                                    style={{ pointerEvents: "all", cursor: "move" }}
+                                    onMouseDown={handleBallDragStart}
+                                    onPointerDown={handleBallDragStart}
+                                >
+                                    {/* Generous Invisible Hitbox for Ultra-Reliable Dragging */}
+                                    <circle cx={ballX.toFixed(1)} cy={ballY.toFixed(1)} r="32" fill="transparent" pointerEvents="all" />
+
+                                    {/* Highlight halo when in range */}
+                                    {isBallInRange && (
+                                        <circle
+                                            cx={ballX.toFixed(1)}
+                                            cy={ballY.toFixed(1)}
+                                            r="19"
+                                            fill="none"
+                                            stroke="#38bdf8"
+                                            strokeWidth="2"
+                                            opacity="0.9"
+                                            filter="drop-shadow(0 0 8px #38bdf8)"
+                                        />
+                                    )}
+
+                                    {/* Simple Teal Ball with White Border */}
+                                    <circle
+                                        cx={ballX.toFixed(1)}
+                                        cy={ballY.toFixed(1)}
+                                        r="13"
+                                        fill="#00838f"
+                                        stroke="#ffffff"
+                                        strokeWidth="2.2"
+                                        filter={`url(#ball-shadow-${id})`}
+                                    />
+
+                                    {/* Specular Highlight Dot */}
+                                    <circle
+                                        cx={(ballX - 4).toFixed(1)}
+                                        cy={(ballY - 4).toFixed(1)}
+                                        r="3.2"
+                                        fill="#ffffff"
+                                        opacity="0.85"
+                                    />
+                                </g>
+                            </svg>
+                        )}
 
                         {/* Dual Ultrasonic Sonar Waves on BOTH T (Transmitter) and R (Receiver) */}
                         {isPinging && (
@@ -3078,15 +3174,27 @@ function SmallComponent({
             {/* PIR MOTION SENSOR (HUGE REALISTIC FULL-SCALE SVG): Pins VCC (0, 0), OUT (16, 0), GND (32, 0) */}
             {type === "sensor-pir" && (() => {
                 const isPowered = Boolean(isSimulating && simState?.isPowered);
-                const isMotion = Boolean(isPowered && (simState?.isMotion || motionActive));
+                const rM = component?.rangeM != null ? component.rangeM : 5;
+                const pirAngleRad = (32 * Math.PI) / 180;
+                const pirRangeR = 60 + rM * 35;
+                const pInR = 40;
+                const pBallX = localPirBallPos?.x ?? (pirBallX != null ? pirBallX : (component?.pirBallX != null ? component.pirBallX : 16));
+                const pBallY = localPirBallPos?.y ?? (pirBallY != null ? pirBallY : (component?.pirBallY != null ? component.pirBallY : -190));
+
+                const pDx = pBallX - 16;
+                const pDy = -70 - pBallY;
+                const pDistPx = Math.hypot(pDx, pDy);
+                const pPhi = Math.atan2(pDx, pDy);
+                const isBallInPirCone = pDy > 0 && Math.abs(pPhi) <= pirAngleRad && pDistPx <= pirRangeR;
+                const isMotion = Boolean(isPowered && (simState?.isMotion || motionActive || component?.motionActive || isBallInPirCone));
                 const isScanning = Boolean(isPowered && simState?.isScanning);
                 return (
                     <div className={`pir-container ${isScanning ? "is-scanning" : ""} ${isPowered ? "is-powered" : "is-unpowered"} ${isMotion ? "motion-active" : ""}`}>
                         <svg className="pir-realistic-svg" viewBox="-95 -145 220 150" width="220" height="150" style={{ position: "absolute", left: -95, top: -145, pointerEvents: "auto", cursor: "move" }}>
-                            {/* Full Hit-Box to ensure 100% reliable click-to-select anywhere on PIR motion sensor */}
-                            <rect x="-95" y="-145" width="220" height="150" fill="transparent" pointerEvents="all" cursor="pointer" />
+                            {/* Hitbox strictly matching PCB dimensions to prevent intercepting clicks on the cone/ball */}
+                            <rect x="-84" y="-132" width="200" height="124" rx="8" fill="transparent" pointerEvents="all" cursor="pointer" />
                             {/* Dark Green FR-4 PCB: Width 200px, Height 124px from Y=-132 to Y=-8, X=-84 to X=116 */}
-                            <rect x="-84" y="-132" width="200" height="124" rx="8" fill={isPowered ? "#15803d" : "#0d4a22"} stroke={isPowered ? "#166534" : "#062b14"} strokeWidth="2.5" filter="drop-shadow(0 10px 24px rgba(0,0,0,0.65))" />
+                            <rect x="-84" y="-132" width="200" height="124" rx="8" fill="#15803d" stroke="#166534" strokeWidth="2.5" filter="drop-shadow(0 10px 24px rgba(0,0,0,0.65))" />
 
                             {/* 4 Corner Gold Mounting Holes with Annular Copper Rings */}
                             <circle cx="-74" cy="-122" r="3.5" fill="#ca8a04" stroke="#713f12" strokeWidth="1" />
@@ -3099,12 +3207,12 @@ function SmallComponent({
                             <circle cx="106" cy="-18" r="1.8" fill="#0f172a" />
 
                             {/* Power LED (PWR) */}
-                            <circle cx="-74" cy="-30" r="3" fill={isPowered ? "#22c55e" : "#1e293b"} filter={isPowered ? "drop-shadow(0 0 4px #22c55e)" : "none"} />
-                            <text x="-74" y="-36" fill={isPowered ? "#86efac" : "#475569"} fontSize="4.5" fontWeight="bold" textAnchor="middle" fontFamily="monospace">PWR</text>
+                            <circle cx="-74" cy="-30" r="3" fill={isPowered ? "#22c55e" : "#1e293b"} filter={isPowered ? "drop-shadow(0 0 6px #22c55e)" : "none"} />
+                            <text x="-74" y="-36" fill={isPowered ? "#86efac" : "#cbd5e1"} fontSize="5" fontWeight="bold" textAnchor="middle" fontFamily="monospace">PWR</text>
 
                             {/* Detection LED (OUT) */}
-                            <circle cx="104" cy="-30" r="3" fill={isMotion ? "#f59e0b" : "#451a03"} filter={isMotion ? "drop-shadow(0 0 6px #f59e0b)" : "none"} />
-                            <text x="104" y="-36" fill={isMotion ? "#fde68a" : "#64748b"} fontSize="4.5" fontWeight="bold" textAnchor="middle" fontFamily="monospace">OUT</text>
+                            <circle cx="104" cy="-30" r="3" fill={isMotion ? "#ef4444" : "#450a0a"} filter={isMotion ? "drop-shadow(0 0 10px #ef4444) drop-shadow(0 0 18px #dc2626)" : "none"} />
+                            <text x="104" y="-36" fill={isMotion ? "#fde68a" : "#cbd5e1"} fontSize="5" fontWeight="bold" textAnchor="middle" fontFamily="monospace">OUT</text>
 
                             {/* Dual Large SMD Trimmer Potentiometers (Sensitivity & Time Delay) */}
                             {/* Left Trimmer (Sx - Sensitivity) */}
@@ -3112,17 +3220,52 @@ function SmallComponent({
                             <circle cx="-60" cy="-66" r="6" fill="#ca8a04" stroke="#78350f" strokeWidth="1" />
                             <line x1="-64" y1="-66" x2="-56" y2="-66" stroke="#451a03" strokeWidth="1.8" />
                             <line x1="-60" y1="-70" x2="-60" y2="-62" stroke="#451a03" strokeWidth="1.8" />
-                            <text x="-60" y="-82" fill="#fde68a" fontSize="5" fontWeight="bold" textAnchor="middle">SENS</text>
+                            <text x="-60" y="-82" fill="#ffffff" fontSize="5.5" fontWeight="900" textAnchor="middle">SENS</text>
+
+                            {/* Left Red Detection Indication Light near SENS */}
+                            <circle cx="-60" cy="-48" r="4.5" fill="#18181b" stroke="#3f3f46" strokeWidth="0.8" />
+                            <circle
+                                cx="-60"
+                                cy="-48"
+                                r="3"
+                                fill={isMotion ? "#ef4444" : "#450a0a"}
+                                filter={isMotion ? "drop-shadow(0 0 8px #ef4444) drop-shadow(0 0 16px rgba(239, 68, 68, 0.95))" : "none"}
+                            />
+                            <text x="-60" y="-39" fill={isMotion ? "#fca5a5" : "#94a3b8"} fontSize="4.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">DET-1</text>
 
                             {/* Right Trimmer (Tx - Time Delay) */}
                             <rect x="84" y="-78" width="16" height="24" rx="2.5" fill="#f59e0b" stroke="#b45309" strokeWidth="1.2" />
                             <circle cx="92" cy="-66" r="6" fill="#ca8a04" stroke="#78350f" strokeWidth="1" />
                             <line x1="88" y1="-66" x2="96" y2="-66" stroke="#451a03" strokeWidth="1.8" />
                             <line x1="92" y1="-70" x2="92" y2="-62" stroke="#451a03" strokeWidth="1.8" />
-                            <text x="92" y="-82" fill="#fde68a" fontSize="5" fontWeight="bold" textAnchor="middle">TIME</text>
+                            <text x="92" y="-82" fill="#ffffff" fontSize="5.5" fontWeight="900" textAnchor="middle">TIME</text>
+
+                            {/* Right Red Detection Indication Light near TIME */}
+                            <circle cx="92" cy="-48" r="4.5" fill="#18181b" stroke="#3f3f46" strokeWidth="0.8" />
+                            <circle
+                                cx="92"
+                                cy="-48"
+                                r="3"
+                                fill={isMotion ? "#ef4444" : "#450a0a"}
+                                filter={isMotion ? "drop-shadow(0 0 8px #ef4444) drop-shadow(0 0 16px rgba(239, 68, 68, 0.95))" : "none"}
+                            />
+                            <text x="92" y="-39" fill={isMotion ? "#fca5a5" : "#94a3b8"} fontSize="4.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">DET-2</text>
 
                             {/* Center: HUGE Hemispherical White Fresnel Dome (Diameter 80px, Radius 40px at (16, -70)) */}
-                            <circle cx="16" cy="-70" r="40" fill={isPowered ? "#f8fafc" : "#e2e8f0"} stroke={isPowered ? (isMotion ? "#f59e0b" : "#cbd5e1") : "#94a3b8"} strokeWidth={isMotion ? "3.5" : "2.5"} filter={isMotion ? "drop-shadow(0 0 16px rgba(245,158,11,0.5))" : "drop-shadow(0 6px 14px rgba(0,0,0,0.35))"} />
+                            <circle cx="16" cy="-70" r="40" fill={isMotion ? "#fee2e2" : "#f8fafc"} stroke={isMotion ? "#ef4444" : "#cbd5e1"} strokeWidth={isMotion ? "3.5" : "2.5"} filter={isMotion ? "drop-shadow(0 0 20px rgba(239,68,68,0.75))" : "drop-shadow(0 6px 14px rgba(0,0,0,0.35))"} />
+                            {isMotion && <circle cx="16" cy="-70" r="36" fill="rgba(239, 68, 68, 0.18)" />}
+                            {/* Motion Alert Aura Ring around Fresnel Dome */}
+                            {isMotion && (
+                                <circle
+                                    cx="16"
+                                    cy="-70"
+                                    r="43"
+                                    fill="none"
+                                    stroke="#ef4444"
+                                    strokeWidth="2.5"
+                                    filter="drop-shadow(0 0 14px rgba(239, 68, 68, 0.9))"
+                                />
+                            )}
                             <circle cx="16" cy="-70" r="33" fill="none" stroke="#cbd5e1" strokeWidth="1.2" />
                             <circle cx="16" cy="-70" r="26" fill="none" stroke="#cbd5e1" strokeWidth="1.2" />
                             <circle cx="16" cy="-70" r="19" fill="none" stroke="#cbd5e1" strokeWidth="1.2" />
@@ -3135,26 +3278,128 @@ function SmallComponent({
                             <line x1="-24" y1="-70" x2="56" y2="-70" stroke="#94a3b8" strokeWidth="1.2" />
 
                             {/* Silkscreen text (Properly spaced without collision) */}
-                            <text x="16" y="-118" fill={isPowered ? (isMotion ? "#fde047" : "#bbf7d0") : "#64748b"} fontSize="8.5" fontWeight="900" textAnchor="middle" letterSpacing="0.05em">
-                                {isPowered ? (isMotion ? "🚨 MOTION DETECTED (HIGH)" : "PIR MOTION SENSOR") : "HC-SR501 (STANDBY / OFF)"}
+                            <text x="16" y="-118" fill={isMotion ? "#fde047" : "#ffffff"} fontSize="9" fontWeight="900" textAnchor="middle" letterSpacing="0.05em">
+                                {isPowered ? (isMotion ? "🚨 MOTION DETECTED (HIGH)" : "PIR MOTION SENSOR") : "HC-SR501 SENSOR"}
                             </text>
-                            <text x="16" y="-106" fill={isPowered ? "rgba(255,255,255,0.75)" : "#64748b"} fontSize="5.5" fontWeight="700" textAnchor="middle">
-                                {isPowered ? "HC-SR501 • TWINLAB X" : "CONNECT VCC & GND TO ARM"}
+                            <text x="16" y="-106" fill="#bbf7d0" fontSize="5.5" fontWeight="800" textAnchor="middle">
+                                {isPowered ? "HC-SR501 • TWINLAB X" : "TWINLAB X • INFRARED DETECTOR"}
                             </text>
 
                             {/* Black DuPont Connector Block at Y=-14 to Y=-4 */}
                             <rect x="-6" y="-14" width="44" height="10" rx="2" fill="#18181b" stroke="#3f3f46" strokeWidth="1.2" />
 
                             {/* Pin labels (Clean and separated from silkscreen brand) */}
-                            <text x="0" y="-17" fill={isPowered ? "#86efac" : "#f8fafc"} fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">VCC</text>
-                            <text x="16" y="-17" fill={isMotion ? "#fde047" : "#f8fafc"} fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">OUT</text>
-                            <text x="32" y="-17" fill="#f8fafc" fontSize="5.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">GND</text>
+                            <text x="0" y="-17" fill={isPowered ? "#4ade80" : "#ffffff"} fontSize="6" fontWeight="900" textAnchor="middle" fontFamily="monospace">VCC</text>
+                            <text x="16" y="-17" fill={isMotion ? "#fde047" : "#ffffff"} fontSize="6" fontWeight="900" textAnchor="middle" fontFamily="monospace">OUT</text>
+                            <text x="32" y="-17" fill="#ffffff" fontSize="6" fontWeight="900" textAnchor="middle" fontFamily="monospace">GND</text>
 
                             {/* 3 Gold Header Pins at Y=0 */}
                             <rect x="-2.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
                             <rect x="13.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
                             <rect x="29.5" y="-6" width="5" height="7" rx="1" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
                         </svg>
+
+                        {/* 2. PIR RANGE CONE & DRAGGABLE TARGET BALL (Rendered ON TOP with zIndex 90) */}
+                        {isSimulating && isSelected && (() => {
+                            const pInXL = 16 + pInR * Math.sin(-pirAngleRad);
+                            const pInYL = -70 - pInR * Math.cos(-pirAngleRad);
+                            const pInXR = 16 + pInR * Math.sin(pirAngleRad);
+                            const pInYR = -70 - pInR * Math.cos(pirAngleRad);
+
+                            const pOutXL = 16 + pirRangeR * Math.sin(-pirAngleRad);
+                            const pOutYL = -70 - pirRangeR * Math.cos(-pirAngleRad);
+                            const pOutXR = 16 + pirRangeR * Math.sin(pirAngleRad);
+                            const pOutYR = -70 - pirRangeR * Math.cos(pirAngleRad);
+
+                            return (
+                                <svg
+                                    ref={pirConeSvgRef}
+                                    className="pir-cone-svg"
+                                    viewBox="-200 -380 432 400"
+                                    width="432"
+                                    height="400"
+                                    style={{
+                                        position: "absolute",
+                                        left: -200,
+                                        top: -380,
+                                        pointerEvents: "none",
+                                        overflow: "visible",
+                                        zIndex: 90
+                                    }}
+                                >
+                                    <defs>
+                                        <filter id={`pir-shadow-${id}`} x="-20%" y="-20%" width="140%" height="140%">
+                                            <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.4" />
+                                        </filter>
+                                    </defs>
+
+                                    {/* Soft mint PIR detection sector matching Tinkercad - Highlights glowing red when object enters */}
+                                    <path
+                                        d={`M ${pInXL.toFixed(1)} ${pInYL.toFixed(1)} L ${pOutXL.toFixed(1)} ${pOutYL.toFixed(1)} A ${pirRangeR} ${pirRangeR} 0 0 1 ${pOutXR.toFixed(1)} ${pOutYR.toFixed(1)} L ${pInXR.toFixed(1)} ${pInYR.toFixed(1)} A ${pInR} ${pInR} 0 0 0 ${pInXL.toFixed(1)} ${pInYL.toFixed(1)} Z`}
+                                        fill={isBallInPirCone ? "rgba(239, 68, 68, 0.32)" : "rgba(224, 245, 233, 0.45)"}
+                                        stroke={isBallInPirCone ? "#ef4444" : "rgba(167, 243, 208, 0.5)"}
+                                        strokeWidth={isBallInPirCone ? "2.5" : "1.2"}
+                                        filter={isBallInPirCone ? "drop-shadow(0 0 16px rgba(239, 68, 68, 0.85))" : "none"}
+                                        style={{ pointerEvents: "all", cursor: "crosshair", transition: "fill 0.2s ease, stroke 0.2s ease" }}
+                                        onMouseDown={handlePirBallDragStart}
+                                        onPointerDown={handlePirBallDragStart}
+                                    />
+
+                                    {/* Dashed line to ball - turns coral red when in range */}
+                                    <line
+                                        x1="16"
+                                        y1="-70"
+                                        x2={pBallX.toFixed(1)}
+                                        y2={pBallY.toFixed(1)}
+                                        stroke={isBallInPirCone ? "#ef4444" : "#94a3b8"}
+                                        strokeWidth={isBallInPirCone ? "2" : "1.6"}
+                                        strokeDasharray={isBallInPirCone ? "3 3" : "4 4"}
+                                        style={{ pointerEvents: "none" }}
+                                    />
+
+                                    {/* Draggable Ball */}
+                                    <g
+                                        style={{ pointerEvents: "all", cursor: "move" }}
+                                        onMouseDown={handlePirBallDragStart}
+                                        onPointerDown={handlePirBallDragStart}
+                                    >
+                                        {/* Generous touch/drag hitbox */}
+                                        <circle cx={pBallX.toFixed(1)} cy={pBallY.toFixed(1)} r="32" fill="transparent" pointerEvents="all" />
+
+                                        {/* Highlight alert ring on ball when inside detection zone */}
+                                        {isBallInPirCone && (
+                                            <circle
+                                                cx={pBallX.toFixed(1)}
+                                                cy={pBallY.toFixed(1)}
+                                                r="19"
+                                                fill="none"
+                                                stroke="#ef4444"
+                                                strokeWidth="2.2"
+                                                opacity="0.95"
+                                                filter="drop-shadow(0 0 8px #ef4444)"
+                                            />
+                                        )}
+
+                                        <circle
+                                            cx={pBallX.toFixed(1)}
+                                            cy={pBallY.toFixed(1)}
+                                            r="13"
+                                            fill="#00838f"
+                                            stroke="#ffffff"
+                                            strokeWidth="2.2"
+                                            filter={`url(#pir-shadow-${id})`}
+                                        />
+                                        <circle
+                                            cx={(pBallX - 4).toFixed(1)}
+                                            cy={(pBallY - 4).toFixed(1)}
+                                            r="3.2"
+                                            fill="#ffffff"
+                                            opacity="0.85"
+                                        />
+                                    </g>
+                                </svg>
+                            );
+                        })()}
 
                         {/* Interactive Direct Trigger Button on PIR Sensor */}
                         {isPowered && (
@@ -3233,7 +3478,7 @@ function SmallComponent({
             })()}
 
             {/* PRECISION TEMPERATURE SENSOR (TMP36 TO-92): Pins at (0, 0) VCC, (16, 0) VOUT, (32, 0) GND */}
-            {(type === "sensor-temp" || type === "sensor-temperature") && (() => {
+            {(type === "sensor-temp" || type === "sensor-temperature" || type === "sensor-tmp36") && (() => {
                 const isPowered = Boolean(isSimulating && simState?.isPowered);
                 const tempVal = temperature != null ? temperature : 25;
                 const vOut = isPowered ? (simState?.voltageOut != null ? simState.voltageOut : (0.5 + tempVal * 0.01)) : 0;
@@ -3338,6 +3583,160 @@ function SmallComponent({
                     </div>
                 );
             })()}
+            {/* SOIL MOISTURE SENSOR (VCC at (0, 0), GND at (16, 0), SIG at (32, 0)) */}
+            {(type === "sensor-soil" || type === "sensor-soil-moisture") && (() => {
+                const isPowered = Boolean(isSimulating && simState?.isPowered);
+                const currentMoisture = moisture != null ? moisture : 45;
+                const vOut = isPowered ? (simState?.voltageOut != null ? simState.voltageOut : (currentMoisture / 100) * 5.0) : 0;
+
+                return (
+                    <div className={`soil-sensor-container ${isPowered ? "is-powered" : ""}`}>
+                        <svg className="soil-sensor-svg" viewBox="-12 -120 56 128" width="56" height="128" style={{ position: "absolute", top: -120, left: -12, pointerEvents: "auto", cursor: "move" }}>
+                            {/* Hitbox */}
+                            <rect x="-12" y="-120" width="56" height="128" fill="transparent" pointerEvents="all" cursor="move" />
+
+                            <defs>
+                                <linearGradient id={`soil-pcb-grad-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stopColor="#dc2626" />
+                                    <stop offset="100%" stopColor="#991b1b" />
+                                </linearGradient>
+                                <linearGradient id={`soil-gold-prong-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stopColor="#fef08a" />
+                                    <stop offset="50%" stopColor="#ca8a04" />
+                                    <stop offset="100%" stopColor="#854d0e" />
+                                </linearGradient>
+                            </defs>
+
+                            {/* Main Upper Control Board (Width 48, Height 46 from Y=-116 to Y=-70) */}
+                            <rect x="-8" y="-116" width="48" height="46" rx="4" fill={`url(#soil-pcb-grad-${id})`} stroke="#7f1d1d" strokeWidth="1.2" filter="drop-shadow(0 6px 14px rgba(0,0,0,0.5))" />
+
+                            {/* Mounting Hole */}
+                            <circle cx="16" cy="-94" r="3.2" fill="#ca8a04" stroke="#713f12" strokeWidth="0.8" />
+                            <circle cx="16" cy="-94" r="1.6" fill="#0f172a" />
+
+                            {/* Power LED (Green) & Signal LED (Red) */}
+                            <circle cx="-1" cy="-106" r="2.2" fill={isPowered ? "#22c55e" : "#14532d"} filter={isPowered ? "drop-shadow(0 0 5px #22c55e)" : "none"} />
+                            <text x="-1" y="-110" fill="#f87171" fontSize="3.5" fontWeight="bold" textAnchor="middle" fontFamily="monospace">PWR</text>
+
+                            <circle cx="33" cy="-106" r="2.2" fill={isPowered && currentMoisture > 20 ? "#ef4444" : "#450a0a"} filter={isPowered && currentMoisture > 20 ? "drop-shadow(0 0 5px #ef4444)" : "none"} />
+                            <text x="33" y="-110" fill="#f87171" fontSize="3.5" fontWeight="bold" textAnchor="middle" fontFamily="monospace">SIG</text>
+
+                            {/* Silkscreen text */}
+                            <text x="16" y="-76" fill="#ffffff" fontSize="4.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">SOIL SENSOR</text>
+
+                            {/* Dual Immersion Probe Prongs Extending Downwards from Y=-70 to Y=0 */}
+                            {/* Left Prong */}
+                            <path d="M -6 -70 L -6 -6 L -1 0 L -1 -70 Z" fill={`url(#soil-gold-prong-${id})`} stroke="#a16207" strokeWidth="0.6" />
+                            {/* Right Prong */}
+                            <path d="M 33 -70 L 33 0 L 38 -6 L 38 -70 Z" fill={`url(#soil-gold-prong-${id})`} stroke="#a16207" strokeWidth="0.6" />
+
+                            {/* Immersion Gold Traces on Prongs */}
+                            <line x1="-3.5" y1="-64" x2="-3.5" y2="-8" stroke="#fef08a" strokeWidth="1.2" strokeLinecap="round" />
+                            <line x1="35.5" y1="-64" x2="35.5" y2="-8" stroke="#fef08a" strokeWidth="1.2" strokeLinecap="round" />
+
+                            {/* Depth Marker Lines */}
+                            <line x1="-7" y1="-45" x2="-0.5" y2="-45" stroke="#ffffff" strokeWidth="0.8" />
+                            <line x1="32.5" y1="-45" x2="39" y2="-45" stroke="#ffffff" strokeWidth="0.8" />
+                            <line x1="-7" y1="-25" x2="-0.5" y2="-25" stroke="#ffffff" strokeWidth="0.8" />
+                            <line x1="32.5" y1="-25" x2="39" y2="-25" stroke="#ffffff" strokeWidth="0.8" />
+
+                            {/* Black Header Block at Y=-116 to Y=-108 */}
+                            <rect x="-4" y="-118" width="40" height="9" rx="1.5" fill="#18181b" stroke="#3f3f46" strokeWidth="0.8" />
+                            <text x="0" y="-111" fill={isPowered ? "#4ade80" : "#ffffff"} fontSize="4.2" fontWeight="900" textAnchor="middle" fontFamily="monospace">VCC</text>
+                            <text x="16" y="-111" fill="#ffffff" fontSize="4.2" fontWeight="900" textAnchor="middle" fontFamily="monospace">GND</text>
+                            <text x="32" y="-111" fill={isPowered ? "#fde047" : "#ffffff"} fontSize="4.2" fontWeight="900" textAnchor="middle" fontFamily="monospace">SIG</text>
+                        </svg>
+
+                        {/* Interactive Soil Moisture Slider overlay on component */}
+                        <div 
+                            className="soil-moisture-slider-bubble"
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            style={{
+                                position: "absolute",
+                                left: 16,
+                                top: -140,
+                                transform: "translateX(-50%)",
+                                background: "rgba(15, 23, 42, 0.92)",
+                                border: "1px solid rgba(56, 189, 248, 0.4)",
+                                borderRadius: 14,
+                                padding: "3px 8px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                                zIndex: 10,
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.5)"
+                            }}
+                        >
+                            <span style={{ fontSize: 10 }}>💧</span>
+                            <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={currentMoisture}
+                                onChange={(e) => onUpdate && onUpdate({ moisture: Number(e.target.value) })}
+                                style={{ width: 60, height: 4, cursor: "pointer", accentColor: "#0284c7" }}
+                            />
+                            <span style={{ color: "#38bdf8", fontFamily: "monospace", fontSize: 10, fontWeight: 800 }}>
+                                {currentMoisture}%
+                            </span>
+                        </div>
+
+                        {/* 3 Header Pins at Y=0 snapped to breadboard grid */}
+                        {/* Pin 1: VCC at (0, 0) */}
+                        <span
+                            className={`terminal-pin pin-soil-vcc ${hoveredTerminal === "soil_vcc" ? "targeted" : ""}`}
+                            style={{ left: 0, top: 0, transform: "translate(-50%, -50%)" }}
+                            onMouseEnter={() => setHoveredTerminal("soil_vcc")}
+                            onMouseLeave={() => setHoveredTerminal(null)}
+                            onMouseDown={(e) => handleTerminalMouseDown(e, "soil_vcc", 0, 0)}
+                            onMouseUp={(e) => handleTerminalMouseUp(e, 0, 0)}
+                            onClick={(e) => handleTerminalPress(e, "soil_vcc", 0, 0)}
+                            onDoubleClick={(e) => handleTerminalAction(e, 0, 0)}
+                        />
+                        {hoveredTerminal === "soil_vcc" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 0, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                VCC (+3.3V - 5V)
+                            </div>
+                        )}
+
+                        {/* Pin 2: GND at (16, 0) */}
+                        <span
+                            className={`terminal-pin pin-soil-gnd ${hoveredTerminal === "soil_gnd" ? "targeted" : ""}`}
+                            style={{ left: 16, top: 0, transform: "translate(-50%, -50%)" }}
+                            onMouseEnter={() => setHoveredTerminal("soil_gnd")}
+                            onMouseLeave={() => setHoveredTerminal(null)}
+                            onMouseDown={(e) => handleTerminalMouseDown(e, "soil_gnd", 16, 0)}
+                            onMouseUp={(e) => handleTerminalMouseUp(e, 16, 0)}
+                            onClick={(e) => handleTerminalPress(e, "soil_gnd", 16, 0)}
+                            onDoubleClick={(e) => handleTerminalAction(e, 16, 0)}
+                        />
+                        {hoveredTerminal === "soil_gnd" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 16, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                GND (Ground 0V)
+                            </div>
+                        )}
+
+                        {/* Pin 3: SIG at (32, 0) */}
+                        <span
+                            className={`terminal-pin pin-soil-sig ${hoveredTerminal === "soil_sig" ? "targeted" : ""}`}
+                            style={{ left: 32, top: 0, transform: "translate(-50%, -50%)" }}
+                            onMouseEnter={() => setHoveredTerminal("soil_sig")}
+                            onMouseLeave={() => setHoveredTerminal(null)}
+                            onMouseDown={(e) => handleTerminalMouseDown(e, "soil_sig", 32, 0)}
+                            onMouseUp={(e) => handleTerminalMouseUp(e, 32, 0)}
+                            onClick={(e) => handleTerminalPress(e, "soil_sig", 32, 0)}
+                            onDoubleClick={(e) => handleTerminalAction(e, 32, 0)}
+                        />
+                        {hoveredTerminal === "soil_sig" && (
+                            <div className="terminal-hover-tooltip" style={{ left: 32, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                SIG (Analog Moisture Output: {(vOut * 1000).toFixed(0)}mV)
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
+
         </div>
     );
 }

@@ -107,8 +107,11 @@ export function getComponentTerminalPoints(c) {
     else if (c.type === "sensor-pir") {
         pts.push(toWorld(0, 0), toWorld(16, 0), toWorld(32, 0));
     }
-    // 16x2 / 20x4 Character LCD (I2C: GND 16,-10, VCC 32,-10, SDA 48,-10, SCL 64,-10)
+    // 16x2 / 20x4 Character LCD (16 Pins along top edge: 24 + i*16 at y=0, plus legacy 16,-10 .. 64,-10)
     else if (c.type === "lcd-1602" || c.type === "lcd-2004") {
+        for (let i = 0; i < 16; i++) {
+            pts.push(toWorld(24 + i * 16, 0));
+        }
         pts.push(toWorld(16, -10), toWorld(32, -10), toWorld(48, -10), toWorld(64, -10));
     }
     // DIP Logic ICs (Dual-in-line 14/16 pins: top row 0..96 at Y=0, bot row 0..96 at Y=32)
@@ -468,9 +471,14 @@ function Canvas({
                     if (d < minD) { minD = d; bestTarget = pt; }
                 });
             }
-            // 16x2 Character LCD (I2C: GND 16,-10, VCC 32,-10, SDA 48,-10, SCL 64,-10)
-            else if (c.type === "lcd-1602") {
-                [toWorld(16, -10), toWorld(32, -10), toWorld(48, -10), toWorld(64, -10)].forEach(pt => {
+            // 16x2 / 20x4 Character LCD (16 Pins along top edge: 24 + i*16 at y=0, plus legacy 16,-10 .. 64,-10)
+            else if (c.type === "lcd-1602" || c.type === "lcd-2004") {
+                const lcdPinPts = [];
+                for (let i = 0; i < 16; i++) {
+                    lcdPinPts.push(toWorld(24 + i * 16, 0));
+                }
+                lcdPinPts.push(toWorld(16, -10), toWorld(32, -10), toWorld(48, -10), toWorld(64, -10));
+                lcdPinPts.forEach(pt => {
                     const d = Math.hypot(wx - pt.x, wy - pt.y);
                     if (d < minD) { minD = d; bestTarget = pt; }
                 });
@@ -974,11 +982,11 @@ function Canvas({
             dragData.lastSnappedX = snappedX;
             dragData.lastSnappedY = snappedY;
 
-            if (dragData.mode === "breadboard") {
-                // 1. Move breadboard across infinite space
+            if (dragData.mode === "breadboard" || dragData.mode === "multiple") {
+                // 1. Move breadboard or primary multi-selected component across infinite space
                 onUpdateComponent(dragData.id, { x: snappedX, y: snappedY });
 
-                // 2. Move all components mounted on this breadboard
+                // 2. Move all other components
                 dragData.mountedComponents?.forEach(m => {
                     onUpdateComponent(m.id, { 
                         x: m.initialX + deltaX, 
@@ -1108,7 +1116,10 @@ function Canvas({
             }
 
             if (e.key === "Delete" || e.key === "Backspace") {
-                if (selectedWireId) {
+                if (selectedId === "all" || selectedWireId === "all") {
+                    onDeleteComponent && onDeleteComponent("all");
+                    onNotifyChange && onNotifyChange();
+                } else if (selectedWireId) {
                     onDeleteWire(selectedWireId);
                     onNotifyChange && onNotifyChange();
                 } else if (selectedId) {
@@ -1360,8 +1371,20 @@ function Canvas({
     const handleStartDragPlaced = (e, id) => {
         if (activeWireRef.current) return;
 
-        // Automatically select the clicked component and deselect wire & wire mode
-        onSelectComponent && onSelectComponent(id);
+        // If Ctrl or Meta is held, handle multi-selection click
+        if (e && (e.ctrlKey || e.metaKey)) {
+            onSelectComponent && onSelectComponent(id, e);
+            onSelectWire && onSelectWire(null);
+            if (isWireModeRef.current) {
+                onDeactivateWireMode && onDeactivateWireMode();
+            }
+            return;
+        }
+
+        // If clicked component is not already part of an active multi-selection, select it alone
+        if (!Array.isArray(selectedId) || !selectedId.includes(id)) {
+            onSelectComponent && onSelectComponent(id);
+        }
         onSelectWire && onSelectWire(null);
         if (isWireModeRef.current) {
             onDeactivateWireMode && onDeactivateWireMode();
@@ -1372,6 +1395,26 @@ function Canvas({
 
         const comp = currentComps.find(c => c.id === id);
         if (!comp) return;
+
+        // If multiple components are selected and user drags one of them, move all selected together
+        if (Array.isArray(selectedId) && selectedId.includes(id) && selectedId.length > 1) {
+            const otherSelected = currentComps.filter(c => selectedId.includes(c.id) && c.id !== id).map(c => ({
+                id: c.id,
+                initialX: c.x,
+                initialY: c.y
+            }));
+            draggingRef.current = {
+                mode: "multiple",
+                id,
+                initialMouseX: e.clientX,
+                initialMouseY: e.clientY,
+                initialCompX: comp.x,
+                initialCompY: comp.y,
+                mountedComponents: otherSelected,
+                attachedWirePoints: []
+            };
+            return;
+        }
 
         const isBreadboard = comp.type?.startsWith("breadboard");
 
@@ -1504,14 +1547,6 @@ function Canvas({
             onClick={handleCanvasClick}
             onDoubleClick={handleCanvasDoubleClick}
         >
-            {/* Move All Circuit Active HUD Indicator */}
-            {isMoveAllActive && (
-                <div className="move-all-hud-badge">
-                    <i className="ri-drag-move-2-line"></i>
-                    <span>Move Entire Circuit Active — Drag mouse to reposition all parts & wires</span>
-                </div>
-            )}
-
             {/* TRULY INFINITE ENGINEERING GRID BACKGROUND (Zero edge / zero stopping space across all directions) */}
             <div 
                 ref={infiniteDotGridRef}
@@ -1570,7 +1605,7 @@ function Canvas({
                 {activeWire && (
                     <div className="wire-mode-guide active">
                         <i className="ri-pin-distance-line"></i>
-                        <span>Click to add waypoint • Double-tap terminal or breadboard hole to connect • Esc to cancel</span>
+                        <span>Click to add waypoint • Click terminal or hole to connect • Esc to cancel</span>
                     </div>
                 )}
 
@@ -1603,58 +1638,196 @@ function Canvas({
                 )}
 
                 {/* Render Placed Components: Breadboards always at z-index 5/8 (beneath small components) */}
-                {components.map((comp) => {
-                    const isBreadboard = comp.type?.startsWith("breadboard");
+                {(() => {
+                    const isCompSelected = (id) => {
+                        if (!selectedId) return false;
+                        if (selectedId === "all") return true;
+                        if (Array.isArray(selectedId)) return selectedId.includes(id);
+                        return selectedId === id;
+                    };
 
-                    if (isBreadboard) {
-                        return (
-                            <Breadboard
-                                key={comp.id}
-                                id={comp.id}
-                                type={comp.type}
-                                color={comp.color}
-                                x={comp.x}
-                                y={comp.y}
-                                rotation={comp.rotation || 0}
-                                isSelected={selectedId === comp.id || selectedId === "all"}
-                                isWireMode={isWireMode}
-                                activeWire={activeWire}
-                                onStartWireAtPoint={handleConnectOrStartWire}
-                                onSelect={(id) => {
-                                    onSelectComponent(id);
-                                    onSelectWire(null);
-                                    onDeactivateWireMode && onDeactivateWireMode();
-                                }}
-                                onDelete={onDeleteComponent}
-                                onRotate={(id) => {
-                                    onUpdateComponent(id, { 
-                                        rotation: ((comp.rotation || 0) + 90) % 360 
-                                    });
-                                    onNotifyChange && onNotifyChange();
-                                }}
-                                onMouseDown={handleStartDragPlaced}
-                            />
-                        );
-                    }
+                    return components.map((comp) => {
+                        const isBreadboard = comp.type?.startsWith("breadboard");
 
-                    if ([
-                        "arduino-uno", "arduino-mega", "arduino-nano", "esp32", "esp32-devkit", "esp32-s3", 
-                        "rpi-pico", "raspberry-pi", "rpi-pico-2", "stm32-nucleo", "stm32-blue-pill", "stm32-bluepill", 
-                        "stm32-black-pill", "nxp-lpc1768", "ti-tiva-c", "ti-msp430", "pic18f4550", "nordic-nrf52840", 
-                        "attiny85", "teensy-41", "esp8266-nodemcu"
-                    ].includes(comp.type)) {
+                        if (isBreadboard) {
+                            return (
+                                <Breadboard
+                                    key={comp.id}
+                                    id={comp.id}
+                                    type={comp.type}
+                                    color={comp.color}
+                                    x={comp.x}
+                                    y={comp.y}
+                                    rotation={comp.rotation || 0}
+                                    isSelected={isCompSelected(comp.id)}
+                                    isWireMode={isWireMode}
+                                    activeWire={activeWire}
+                                    onStartWireAtPoint={handleConnectOrStartWire}
+                                    onSelect={(id, evt) => {
+                                        onSelectComponent(id, evt);
+                                        onSelectWire(null);
+                                        onDeactivateWireMode && onDeactivateWireMode();
+                                    }}
+                                    onDelete={onDeleteComponent}
+                                    onRotate={(id) => {
+                                        onUpdateComponent(id, { 
+                                            rotation: ((comp.rotation || 0) + 90) % 360 
+                                        });
+                                        onNotifyChange && onNotifyChange();
+                                    }}
+                                    onMouseDown={handleStartDragPlaced}
+                                />
+                            );
+                        }
+
+                        if ([
+                            "arduino-uno", "arduino-mega", "arduino-nano", "esp32", "esp32-devkit", "esp32-s3", 
+                            "rpi-pico", "raspberry-pi", "rpi-pico-2", "stm32-nucleo", "stm32-blue-pill", "stm32-bluepill", 
+                            "stm32-black-pill", "nxp-lpc1768", "ti-tiva-c", "ti-msp430", "pic18f4550", "nordic-nrf52840", 
+                            "attiny85", "teensy-41", "esp8266-nodemcu"
+                        ].includes(comp.type)) {
+                            return (
+                                <McuBoard
+                                    key={comp.id}
+                                    id={comp.id}
+                                    type={comp.type}
+                                    name={comp.name}
+                                    x={comp.x}
+                                    y={comp.y}
+                                    rotation={comp.rotation || 0}
+                                    isSelected={isCompSelected(comp.id)}
+                                    onSelect={(id, evt) => {
+                                        onSelectComponent(id, evt);
+                                        onSelectWire(null);
+                                        onDeactivateWireMode && onDeactivateWireMode();
+                                    }}
+                                    onDelete={onDeleteComponent}
+                                    onRotate={(id) => {
+                                        onUpdateComponent(id, { 
+                                            rotation: ((comp.rotation || 0) + 90) % 360 
+                                        });
+                                        onNotifyChange && onNotifyChange();
+                                    }}
+                                    onMouseDown={handleStartDragPlaced}
+                                    isWireMode={isWireMode}
+                                    activeWire={activeWire}
+                                    onStartWireAtPoint={handleConnectOrStartWire}
+                                    simState={simulationResult?.mcuStates?.[comp.id]}
+                                    isSimulating={isSimulating}
+                                />
+                            );
+                        }
+
+                        if (comp.type === "multimeter") {
+                            return (
+                                <Multimeter
+                                    key={comp.id}
+                                    id={comp.id}
+                                    x={comp.x}
+                                    y={comp.y}
+                                    rotation={comp.rotation || 0}
+                                    mode={comp.mode || "voltage"}
+                                    probeRed={comp.probeRed}
+                                    probeBlack={comp.probeBlack}
+                                    zoom={zoom}
+                                    findSnapTarget={findNearestConnectionTarget}
+                                    onUpdate={(updates) => {
+                                        onUpdateComponent(comp.id, updates);
+                                        onNotifyChange && onNotifyChange();
+                                    }}
+                                    simState={simulationResult?.dmmStates?.[comp.id]}
+                                    isSelected={isCompSelected(comp.id)}
+                                    onSelect={(id, evt) => {
+                                        onSelectComponent(id, evt);
+                                        onSelectWire(null);
+                                        onDeactivateWireMode && onDeactivateWireMode();
+                                    }}
+                                    onDelete={onDeleteComponent}
+                                    onMouseDown={handleStartDragPlaced}
+                                    isWireMode={isWireMode}
+                                    activeWire={activeWire}
+                                    onStartWireAtPoint={handleConnectOrStartWire}
+                                />
+                            );
+                        }
+
+                        // Render Small Components (Resistor, LED, Capacitor, Pushbutton, Potentiometer, Battery, Buzzer)
                         return (
-                            <McuBoard
+                            <SmallComponent
                                 key={comp.id}
                                 id={comp.id}
                                 type={comp.type}
                                 name={comp.name}
+                                designator={comp.designator}
+                                color={comp.color}
+                                voltage={comp.voltage != null ? comp.voltage : 9}
                                 x={comp.x}
                                 y={comp.y}
                                 rotation={comp.rotation || 0}
-                                isSelected={selectedId === comp.id || selectedId === "all"}
-                                onSelect={(id) => {
-                                    onSelectComponent(id);
+                                isPressed={comp.isPressed}
+                                resistance={comp.resistance}
+                                capacitance={comp.capacitance}
+                                wiperValue={comp.wiperValue}
+                                switchState={comp.switchState}
+                                isOn={comp.isOn}
+                                cells={comp.cells}
+                                lux={comp.lux}
+                                backlightColor={comp.backlightColor}
+                                lcdTextColor={comp.lcdTextColor}
+                                textLines={comp.textLines || comp.lines}
+                                contrast={comp.contrast}
+                                backlightOn={comp.backlightOn}
+                                i2cAddress={comp.i2cAddress}
+                                cursorCol={comp.cursorCol}
+                                cursorRow={comp.cursorRow}
+                                showCursor={comp.showCursor}
+                                blinkCursor={comp.blinkCursor}
+                                displayOn={comp.displayOn}
+                                angle={comp.angle}
+                                distanceCm={comp.distanceCm}
+                                rangeCm={comp.rangeCm}
+                                maxRangeCm={comp.maxRangeCm}
+                                rangeM={comp.rangeM}
+                                targetAngle={comp.targetAngle}
+                                targetBallX={comp.targetBallX}
+                                targetBallY={comp.targetBallY}
+                                pirBallX={comp.pirBallX}
+                                pirBallY={comp.pirBallY}
+                                measuredDistanceCm={comp.measuredDistanceCm}
+                                inRange={comp.inRange}
+                                is3D={comp.is3D}
+                                viewMode={comp.viewMode}
+                                rot3D={comp.rot3D}
+                                pitch3D={comp.pitch3D}
+                                speed={comp.speed}
+                                accessory={comp.accessory}
+                                gearRatio={comp.gearRatio}
+                                direction={comp.direction}
+                                modelNumber={comp.modelNumber}
+                                icCode={comp.icCode}
+                                motionActive={comp.motionActive}
+                                component={comp}
+                                onUpdate={(updates) => {
+                                    onUpdateComponent(comp.id, updates);
+                                    onNotifyChange && onNotifyChange();
+                                }}
+                                simState={
+                                    comp.type?.startsWith("battery") ? simulationResult?.batteryStates?.[comp.id] :
+                                    comp.type === "buzzer" ? simulationResult?.buzzerStates?.[comp.id] :
+                                    (comp.type === "motor-dc" || comp.type === "motor-geared" || comp.type === "motor-bo") ? simulationResult?.motorStates?.[comp.id] :
+                                    comp.type?.startsWith("lcd") ? simulationResult?.lcdStates?.[comp.id] :
+                                    (comp.type === "sensor-pir" || comp.type === "sensor-ultrasonic") ? simulationResult?.sensorStates?.[comp.id] :
+                                    comp.type?.startsWith("ic-") ? simulationResult?.icStates?.[comp.id] :
+                                    comp.type === "servo-sg90" ? simulationResult?.servoStates?.[comp.id] :
+                                    simulationResult?.ledStates?.[comp.id]
+                                }
+                                isSimulating={isSimulating}
+                                isSelected={isCompSelected(comp.id)}
+                                isWireMode={isWireMode}
+                                activeWire={activeWire}
+                                onStartWireAtPoint={handleConnectOrStartWire}
+                                onSelect={(id, evt) => {
+                                    onSelectComponent(id, evt);
                                     onSelectWire(null);
                                     onDeactivateWireMode && onDeactivateWireMode();
                                 }}
@@ -1666,126 +1839,10 @@ function Canvas({
                                     onNotifyChange && onNotifyChange();
                                 }}
                                 onMouseDown={handleStartDragPlaced}
-                                isWireMode={isWireMode}
-                                activeWire={activeWire}
-                                onStartWireAtPoint={handleConnectOrStartWire}
-                                simState={simulationResult?.mcuStates?.[comp.id]}
-                                isSimulating={isSimulating}
                             />
                         );
-                    }
-
-                    if (comp.type === "multimeter") {
-                        return (
-                            <Multimeter
-                                key={comp.id}
-                                id={comp.id}
-                                x={comp.x}
-                                y={comp.y}
-                                rotation={comp.rotation || 0}
-                                mode={comp.mode || "voltage"}
-                                probeRed={comp.probeRed}
-                                probeBlack={comp.probeBlack}
-                                zoom={zoom}
-                                findSnapTarget={findNearestConnectionTarget}
-                                onUpdate={(updates) => {
-                                    onUpdateComponent(comp.id, updates);
-                                    onNotifyChange && onNotifyChange();
-                                }}
-                                simState={simulationResult?.dmmStates?.[comp.id]}
-                                isSelected={selectedId === comp.id || selectedId === "all"}
-                                onSelect={(id) => {
-                                    onSelectComponent(id);
-                                    onSelectWire(null);
-                                    onDeactivateWireMode && onDeactivateWireMode();
-                                }}
-                                onDelete={onDeleteComponent}
-                                onMouseDown={handleStartDragPlaced}
-                                isWireMode={isWireMode}
-                                activeWire={activeWire}
-                                onStartWireAtPoint={handleConnectOrStartWire}
-                            />
-                        );
-                    }
-
-                    // Render Small Components (Resistor, LED, Capacitor, Pushbutton, Potentiometer, Battery, Buzzer)
-                    return (
-                        <SmallComponent
-                            key={comp.id}
-                            id={comp.id}
-                            type={comp.type}
-                            name={comp.name}
-                            designator={comp.designator}
-                            color={comp.color}
-                            voltage={comp.voltage != null ? comp.voltage : 9}
-                            x={comp.x}
-                            y={comp.y}
-                            rotation={comp.rotation || 0}
-                            isPressed={comp.isPressed}
-                            resistance={comp.resistance}
-                            capacitance={comp.capacitance}
-                            wiperValue={comp.wiperValue}
-                            switchState={comp.switchState}
-                            isOn={comp.isOn}
-                            cells={comp.cells}
-                            lux={comp.lux}
-                            backlightColor={comp.backlightColor}
-                            lcdTextColor={comp.lcdTextColor}
-                            textLines={comp.textLines || comp.lines}
-                            contrast={comp.contrast}
-                            backlightOn={comp.backlightOn}
-                            i2cAddress={comp.i2cAddress}
-                            cursorCol={comp.cursorCol}
-                            cursorRow={comp.cursorRow}
-                            showCursor={comp.showCursor}
-                            blinkCursor={comp.blinkCursor}
-                            displayOn={comp.displayOn}
-                            angle={comp.angle}
-                            distanceCm={comp.distanceCm}
-                            targetAngle={comp.targetAngle}
-                            is3D={comp.is3D}
-                            viewMode={comp.viewMode}
-                            rot3D={comp.rot3D}
-                            pitch3D={comp.pitch3D}
-                            speed={comp.speed}
-                            accessory={comp.accessory}
-                            gearRatio={comp.gearRatio}
-                            direction={comp.direction}
-                            onUpdate={(updates) => {
-                                onUpdateComponent(comp.id, updates);
-                                onNotifyChange && onNotifyChange();
-                            }}
-                            simState={
-                                comp.type?.startsWith("battery") ? simulationResult?.batteryStates?.[comp.id] :
-                                comp.type === "buzzer" ? simulationResult?.buzzerStates?.[comp.id] :
-                                (comp.type === "motor-dc" || comp.type === "motor-geared" || comp.type === "motor-bo") ? simulationResult?.motorStates?.[comp.id] :
-                                comp.type?.startsWith("lcd") ? simulationResult?.lcdStates?.[comp.id] :
-                                (comp.type === "sensor-pir" || comp.type === "sensor-ultrasonic") ? simulationResult?.sensorStates?.[comp.id] :
-                                comp.type?.startsWith("ic-") ? simulationResult?.icStates?.[comp.id] :
-                                comp.type === "servo-sg90" ? simulationResult?.servoStates?.[comp.id] :
-                                simulationResult?.ledStates?.[comp.id]
-                            }
-                            isSimulating={isSimulating}
-                            isSelected={selectedId === comp.id || selectedId === "all"}
-                            isWireMode={isWireMode}
-                            activeWire={activeWire}
-                            onStartWireAtPoint={handleConnectOrStartWire}
-                            onSelect={(id) => {
-                                onSelectComponent(id);
-                                onSelectWire(null);
-                                onDeactivateWireMode && onDeactivateWireMode();
-                            }}
-                            onDelete={onDeleteComponent}
-                            onRotate={(id) => {
-                                onUpdateComponent(id, { 
-                                    rotation: ((comp.rotation || 0) + 90) % 360 
-                                });
-                                onNotifyChange && onNotifyChange();
-                            }}
-                            onMouseDown={handleStartDragPlaced}
-                        />
-                    );
-                })}
+                    });
+                })()}
 
                 {/* 5. Ghost Component Preview Accurately Following Cursor in Placement Mode */}
                 {placingComponent && placingPos && (

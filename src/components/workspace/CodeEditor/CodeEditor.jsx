@@ -473,25 +473,9 @@ function CodeEditor({
                         className="preset-custom-dropdown"
                     />
 
-                    <div className="tab-board-info font-mono">
-                        <i className="ri-cpu-line"></i>
-                        <span>{currentBoard.arch}</span>
-                    </div>
                 </div>
 
                 <div className="toolbar-right">
-                    {/* Toggle Inbuilt Serial Monitor Pane */}
-                    <button
-                        type="button"
-                        className={`action-btn serial-toggle-btn ${isInbuiltSerialOpen ? "active" : ""}`}
-                        onClick={() => setIsInbuiltSerialOpen(prev => !prev)}
-                        title={isInbuiltSerialOpen ? "Hide Serial Monitor" : "Open Serial Monitor"}
-                    >
-                        <i className="ri-terminal-box-line"></i>
-                        <span>Serial</span>
-                        <span className={`serial-status-dot ${isExecuting ? "online" : "idle"}`}></span>
-                    </button>
-
                     {/* Premium Stop / Halt Button */}
                     {isExecuting && (
                         <button 

@@ -150,7 +150,7 @@ function Multimeter({
                     transformOrigin: "0 0"
                 }}
                 onMouseDown={(e) => {
-                    onSelect && onSelect(id);
+                    onSelect && onSelect(id, e);
                     onMouseDown && onMouseDown(e, id);
                 }}
             >

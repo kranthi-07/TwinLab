@@ -543,51 +543,6 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         }
     });
 
-    // 2c. Add Powered PIR Sensors with Active Motion as 3.3V Logic Output Sources
-    components.forEach((c) => {
-        if (c.type === "sensor-pir" && c.motionActive) {
-            const rot = ((c.rotation || 0) * Math.PI) / 180;
-            const cos = Math.cos(rot);
-            const sin = Math.sin(rot);
-            const pVcc = { x: c.x, y: c.y };
-            const pGnd = { x: Math.round(c.x + 32 * cos), y: Math.round(c.y + 32 * sin) };
-            const pOut = { x: Math.round(c.x + 16 * cos), y: Math.round(c.y + 16 * sin) };
-
-            const vccNode = getElectricalNode(pVcc.x, pVcc.y);
-            const gndNode = getElectricalNode(pGnd.x, pGnd.y);
-
-            wires.forEach(w => {
-                if (!w.points || w.points.length < 2) return;
-                [w.points[0], w.points[w.points.length - 1]].forEach(p => {
-                    const dV = Math.hypot(p.x - pVcc.x, p.y - pVcc.y);
-                    const dG = Math.hypot(p.x - pGnd.x, p.y - pGnd.y);
-                    if (dV <= 20 && dV < dG) dsu.union(getElectricalNode(p.x, p.y), vccNode);
-                    else if (dG <= 20 && dG < dV) dsu.union(getElectricalNode(p.x, p.y), gndNode);
-                });
-            });
-
-            const vccRoot = dsu.find(vccNode);
-            const gndRoot = dsu.find(gndNode);
-
-            if (vccRoot !== gndRoot) {
-                const powerConn = findActivePowerSourceForLoad(vccRoot, gndRoot);
-                if (powerConn && powerConn.polarity === "forward" && powerConn.voltage >= 3.0) {
-                    const outNode = dsu.find(getElectricalNode(pOut.x, pOut.y));
-                    posNodes.push(outNode);
-                    powerSources.push({
-                        id: `pir_out_${c.id}`,
-                        sourceType: "sensor-pir",
-                        sourceId: c.id,
-                        name: `${c.name || "PIR Sensor"} OUT (3.3V)`,
-                        posNode: outNode,
-                        gndNode: gndRoot,
-                        voltage: 3.3
-                    });
-                }
-            }
-        }
-    });
-
     // 3. Map Resistors
     const resistors = [];
     components.forEach((c) => {
@@ -620,8 +575,8 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const rotRad = ((c.rotation || 0) * Math.PI) / 180;
             const cos = Math.cos(rotRad);
             const sin = Math.sin(rotRad);
-            const p1 = { x: Math.round(c.x), y: Math.round(c.y + 16 * cos) };
-            const p2 = { x: Math.round(c.x + 32 * cos), y: Math.round(c.y + 32 * sin + 16 * cos) };
+            const p1 = { x: Math.round(c.x - 16 * sin), y: Math.round(c.y + 16 * cos) };
+            const p2 = { x: Math.round(c.x + 32 * cos - 16 * sin), y: Math.round(c.y + 32 * sin + 16 * cos) };
             const n1 = getElectricalNode(p1.x, p1.y);
             const n2 = getElectricalNode(p2.x, p2.y);
             const lux = c.lux != null ? c.lux : 50;
@@ -638,8 +593,8 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const rotRad = ((c.rotation || 0) * Math.PI) / 180;
             const cos = Math.cos(rotRad);
             const sin = Math.sin(rotRad);
-            const p1 = { x: Math.round(c.x), y: Math.round(c.y + 16 * cos) };
-            const p2 = { x: Math.round(c.x + 32 * cos), y: Math.round(c.y + 32 * sin + 16 * cos) };
+            const p1 = { x: Math.round(c.x - 16 * sin), y: Math.round(c.y + 16 * cos) };
+            const p2 = { x: Math.round(c.x + 32 * cos - 16 * sin), y: Math.round(c.y + 32 * sin + 16 * cos) };
             const n1 = getElectricalNode(p1.x, p1.y);
             const n2 = getElectricalNode(p2.x, p2.y);
             const isClosed = Boolean(c.isOn != null ? c.isOn : c.switchState === "closed");
@@ -771,7 +726,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
     });
 
     // Helper to find electrical paths through the resistor network
-    const findPathToNode = (startNode, targetNode) => {
+    function findPathToNode(startNode, targetNode) {
         const s = dsu.find(startNode);
         const t = dsu.find(targetNode);
         if (s === t) return { connected: true, totalR: 0 };
@@ -801,10 +756,10 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         }
 
         return { connected: false, totalR: 0 };
-    };
+    }
 
     // Helper to find any active power source forming a closed circuit across nodeA and nodeB
-    const findActivePowerSourceForLoad = (nodeA, nodeB) => {
+    function findActivePowerSourceForLoad(nodeA, nodeB) {
         const rootA = dsu.find(nodeA);
         const rootB = dsu.find(nodeB);
         if (rootA === rootB) return null;
@@ -840,7 +795,52 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             }
         }
         return null;
-    };
+    }
+
+    // 3e. Add Powered PIR Sensors with Active Motion as 3.3V Logic Output Sources
+    components.forEach((c) => {
+        if (c.type === "sensor-pir" && c.motionActive) {
+            const rot = ((c.rotation || 0) * Math.PI) / 180;
+            const cos = Math.cos(rot);
+            const sin = Math.sin(rot);
+            const pVcc = { x: c.x, y: c.y };
+            const pGnd = { x: Math.round(c.x + 32 * cos), y: Math.round(c.y + 32 * sin) };
+            const pOut = { x: Math.round(c.x + 16 * cos), y: Math.round(c.y + 16 * sin) };
+
+            const vccNode = getElectricalNode(pVcc.x, pVcc.y);
+            const gndNode = getElectricalNode(pGnd.x, pGnd.y);
+
+            wires.forEach(w => {
+                if (!w.points || w.points.length < 2) return;
+                [w.points[0], w.points[w.points.length - 1]].forEach(p => {
+                    const dV = Math.hypot(p.x - pVcc.x, p.y - pVcc.y);
+                    const dG = Math.hypot(p.x - pGnd.x, p.y - pGnd.y);
+                    if (dV <= 20 && dV < dG) dsu.union(getElectricalNode(p.x, p.y), vccNode);
+                    else if (dG <= 20 && dG < dV) dsu.union(getElectricalNode(p.x, p.y), gndNode);
+                });
+            });
+
+            const vccRoot = dsu.find(vccNode);
+            const gndRoot = dsu.find(gndNode);
+
+            if (vccRoot !== gndRoot) {
+                const powerConn = findActivePowerSourceForLoad(vccRoot, gndRoot);
+                if (powerConn && powerConn.polarity === "forward" && powerConn.voltage >= 3.0) {
+                    const outNode = dsu.find(getElectricalNode(pOut.x, pOut.y));
+                    posNodes.push(outNode);
+                    powerSources.push({
+                        id: `pir_out_${c.id}`,
+                        sourceType: "sensor-pir",
+                        sourceId: c.id,
+                        name: `${c.name || "PIR Sensor"} OUT (3.3V)`,
+                        posNode: outNode,
+                        gndNode: gndRoot,
+                        voltage: 3.3
+                    });
+                }
+            }
+        }
+    });
 
     // 4. Solve LEDs
     const leds = [];
@@ -1267,7 +1267,9 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             if (vccNode !== gndNode) {
                 const powerConn = findActivePowerSourceForLoad(vccNode, gndNode);
                 if (powerConn && powerConn.polarity === "forward" && powerConn.voltage >= 3.0) {
-                    const dist = c.distanceCm != null ? c.distanceCm : 25;
+                    const dist = (c.inRange !== false && c.measuredDistanceCm != null)
+                        ? c.measuredDistanceCm
+                        : (c.inRange === false ? 400 : (c.rangeCm || c.distanceCm || 200));
                     sensorStates[c.id] = {
                         isPowered: true,
                         isPinging: true,
@@ -1290,7 +1292,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         }
 
         // Precision Temperature Sensor (TMP36): Pin 1 VCC (0,0), Pin 2 VOUT (16,0), Pin 3 GND (32,0)
-        if (c.type === "sensor-temp") {
+        if (c.type === "sensor-temp" || c.type === "sensor-tmp36" || c.type === "sensor-temperature") {
             const pVcc = { x: c.x, y: c.y };
             const pVout = { x: Math.round(c.x + 16 * cos), y: Math.round(c.y + 16 * sin) };
             const pGnd = { x: Math.round(c.x + 32 * cos), y: Math.round(c.y + 32 * sin) };
@@ -1327,6 +1329,16 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                         currentMa: 0.05,
                         powerSourceId: powerConn.powerSource.id
                     };
+                    posNodes.push(voutNode);
+                    powerSources.push({
+                        id: `temp_vout_${c.id}`,
+                        sourceType: "sensor-temp",
+                        sourceId: c.id,
+                        name: `${c.name || "TMP36"} VOUT`,
+                        posNode: voutNode,
+                        gndNode,
+                        voltage: voutVal
+                    });
                     simLogs.push({
                         time: "0.02s",
                         type: "info",
@@ -1337,6 +1349,67 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                 }
             } else {
                 sensorStates[c.id] = { isPowered: false, temperature: c.temperature || 25, voltageOut: 0, currentMa: 0 };
+            }
+        }
+
+        // Soil Moisture Sensor: Pin 1 VCC (0, 0), Pin 2 GND (16, 0), Pin 3 SIG (32, 0)
+        if (c.type === "sensor-soil" || c.type === "sensor-soil-moisture") {
+            const pVcc = { x: c.x, y: c.y };
+            const pGnd = { x: Math.round(c.x + 16 * cos), y: Math.round(c.y + 16 * sin) };
+            const pSig = { x: Math.round(c.x + 32 * cos), y: Math.round(c.y + 32 * sin) };
+            let vccNode = getElectricalNode(pVcc.x, pVcc.y);
+            let gndNode = getElectricalNode(pGnd.x, pGnd.y);
+            let sigNode = getElectricalNode(pSig.x, pSig.y);
+
+            wires.forEach(w => {
+                if (!w.points || w.points.length < 2) return;
+                [w.points[0], w.points[w.points.length - 1]].forEach(p => {
+                    const dV = Math.hypot(p.x - pVcc.x, p.y - pVcc.y);
+                    const dG = Math.hypot(p.x - pGnd.x, p.y - pGnd.y);
+                    const dS = Math.hypot(p.x - pSig.x, p.y - pSig.y);
+                    if (dV <= 12 && dV < dG && dV < dS) dsu.union(getElectricalNode(p.x, p.y), vccNode);
+                    else if (dG <= 12 && dG < dV && dG < dS) dsu.union(getElectricalNode(p.x, p.y), gndNode);
+                    else if (dS <= 12 && dS < dV && dS < dG) dsu.union(getElectricalNode(p.x, p.y), sigNode);
+                });
+            });
+
+            vccNode = dsu.find(vccNode);
+            gndNode = dsu.find(gndNode);
+            sigNode = dsu.find(sigNode);
+
+            if (vccNode !== gndNode) {
+                const powerConn = findActivePowerSourceForLoad(vccNode, gndNode);
+                if (powerConn && powerConn.polarity === "forward" && powerConn.voltage >= 2.5) {
+                    const moisture = c.moisture != null ? Number(c.moisture) : 45;
+                    const voutVal = Math.min(powerConn.voltage, (moisture / 100) * powerConn.voltage);
+                    sensorStates[c.id] = {
+                        isPowered: true,
+                        moisture,
+                        voltageOut: voutVal,
+                        supplyVoltage: powerConn.voltage,
+                        currentMa: 8,
+                        powerSourceId: powerConn.powerSource.id
+                    };
+                    posNodes.push(sigNode);
+                    powerSources.push({
+                        id: `soil_sig_${c.id}`,
+                        sourceType: "sensor-soil",
+                        sourceId: c.id,
+                        name: `${c.name || "Soil Moisture Sensor"} SIG`,
+                        posNode: sigNode,
+                        gndNode,
+                        voltage: voutVal
+                    });
+                    simLogs.push({
+                        time: "0.02s",
+                        type: "info",
+                        text: `🌱 [SOIL MOISTURE ACTIVE] Sensor immersed at ${moisture}%. Analog VOUT = ${(voutVal * 1000).toFixed(0)}mV.`
+                    });
+                } else {
+                    sensorStates[c.id] = { isPowered: false, moisture: c.moisture || 45, voltageOut: 0, currentMa: 0 };
+                }
+            } else {
+                sensorStates[c.id] = { isPowered: false, moisture: c.moisture || 45, voltageOut: 0, currentMa: 0 };
             }
         }
 
@@ -1377,50 +1450,73 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             }
         }
 
-        // Character LCD Modules (1602 / 2004): GND (16, -10), VCC (32, -10), SDA (48, -10), SCL (64, -10)
+        // Character LCD Modules (1602 / 2004): 16 Pins along top edge:
+        // Pin 0 (GND): x=24, y=0. Pin 1 (VCC): x=40, y=0.
+        // Pin 14 (LED Anode): x=248, y=0. Pin 15 (LED Cathode): x=264, y=0.
+        // Also supports legacy I2C header pins (16,-10 and 32,-10).
         if (c.type?.startsWith("lcd")) {
-            const pGnd = { x: Math.round(c.x + 16 * cos - (-10) * sin), y: Math.round(c.y + 16 * sin + (-10) * cos) };
-            const pVcc = { x: Math.round(c.x + 32 * cos - (-10) * sin), y: Math.round(c.y + 32 * sin + (-10) * cos) };
+            // New 16-pin locations:
+            const pGnd16 = { x: Math.round(c.x + 24 * cos), y: Math.round(c.y + 24 * sin) };
+            const pVcc16 = { x: Math.round(c.x + 40 * cos), y: Math.round(c.y + 40 * sin) };
+            const pLedA16 = { x: Math.round(c.x + 248 * cos), y: Math.round(c.y + 248 * sin) };
+            const pLedK16 = { x: Math.round(c.x + 264 * cos), y: Math.round(c.y + 264 * sin) };
+
+            // Legacy locations:
+            const pGndLeg = { x: Math.round(c.x + 16 * cos - (-10) * sin), y: Math.round(c.y + 16 * sin + (-10) * cos) };
+            const pVccLeg = { x: Math.round(c.x + 32 * cos - (-10) * sin), y: Math.round(c.y + 32 * sin + (-10) * cos) };
             const pSda = { x: Math.round(c.x + 48 * cos - (-10) * sin), y: Math.round(c.y + 48 * sin + (-10) * cos) };
             const pScl = { x: Math.round(c.x + 64 * cos - (-10) * sin), y: Math.round(c.y + 64 * sin + (-10) * cos) };
 
-            let gndNode = getElectricalNode(pGnd.x, pGnd.y);
-            let vccNode = getElectricalNode(pVcc.x, pVcc.y);
-            let sdaNode = getElectricalNode(pSda.x, pSda.y);
-            let sclNode = getElectricalNode(pScl.x, pScl.y);
+            let gndNode = getElectricalNode(pGnd16.x, pGnd16.y);
+            let vccNode = getElectricalNode(pVcc16.x, pVcc16.y);
+            let ledANode = getElectricalNode(pLedA16.x, pLedA16.y);
+            let ledKNode = getElectricalNode(pLedK16.x, pLedK16.y);
+
+            // Connect legacy nodes to main nodes
+            dsu.union(getElectricalNode(pGndLeg.x, pGndLeg.y), gndNode);
+            dsu.union(getElectricalNode(pVccLeg.x, pVccLeg.y), vccNode);
 
             wires.forEach(w => {
                 if (!w.points || w.points.length < 2) return;
                 [w.points[0], w.points[w.points.length - 1]].forEach(p => {
-                    const dV = Math.hypot(p.x - pVcc.x, p.y - pVcc.y);
-                    const dG = Math.hypot(p.x - pGnd.x, p.y - pGnd.y);
+                    const dV = Math.min(Math.hypot(p.x - pVcc16.x, p.y - pVcc16.y), Math.hypot(p.x - pVccLeg.x, p.y - pVccLeg.y));
+                    const dG = Math.min(Math.hypot(p.x - pGnd16.x, p.y - pGnd16.y), Math.hypot(p.x - pGndLeg.x, p.y - pGndLeg.y));
+                    const dLedA = Math.hypot(p.x - pLedA16.x, p.y - pLedA16.y);
+                    const dLedK = Math.hypot(p.x - pLedK16.x, p.y - pLedK16.y);
                     const dSda = Math.hypot(p.x - pSda.x, p.y - pSda.y);
                     const dScl = Math.hypot(p.x - pScl.x, p.y - pScl.y);
 
-                    if (dV <= 18 && dV < dG && dV < dSda && dV < dScl) dsu.union(getElectricalNode(p.x, p.y), vccNode);
-                    else if (dG <= 18 && dG < dV && dG < dSda && dG < dScl) dsu.union(getElectricalNode(p.x, p.y), gndNode);
-                    else if (dSda <= 18) dsu.union(getElectricalNode(p.x, p.y), sdaNode);
-                    else if (dScl <= 18) dsu.union(getElectricalNode(p.x, p.y), sclNode);
+                    if (dV <= 16) dsu.union(getElectricalNode(p.x, p.y), vccNode);
+                    else if (dG <= 16) dsu.union(getElectricalNode(p.x, p.y), gndNode);
+                    else if (dLedA <= 16) dsu.union(getElectricalNode(p.x, p.y), ledANode);
+                    else if (dLedK <= 16) dsu.union(getElectricalNode(p.x, p.y), ledKNode);
+                    else if (dSda <= 16) dsu.union(getElectricalNode(p.x, p.y), getElectricalNode(pSda.x, pSda.y));
+                    else if (dScl <= 16) dsu.union(getElectricalNode(p.x, p.y), getElectricalNode(pScl.x, pScl.y));
                 });
             });
 
             vccNode = dsu.find(vccNode);
             gndNode = dsu.find(gndNode);
+            ledANode = dsu.find(ledANode);
+            ledKNode = dsu.find(ledKNode);
 
+            let powerConn = null;
             if (vccNode !== gndNode) {
-                const powerConn = findActivePowerSourceForLoad(vccNode, gndNode);
-                if (powerConn && powerConn.polarity === "forward" && powerConn.voltage >= 3.0) {
-                    const isBacklightOn = c.backlightOn !== false;
-                    lcdStates[c.id] = {
-                        isPowered: true,
-                        voltage: powerConn.voltage,
-                        currentMa: isBacklightOn ? 25 : 4,
-                        powerSourceId: powerConn.powerSource.id,
-                        i2cAddress: c.i2cAddress || "0x27"
-                    };
-                } else {
-                    lcdStates[c.id] = { isPowered: false, voltage: 0, currentMa: 0 };
-                }
+                powerConn = findActivePowerSourceForLoad(vccNode, gndNode);
+            }
+            if (!powerConn && ledANode !== ledKNode) {
+                powerConn = findActivePowerSourceForLoad(ledANode, ledKNode);
+            }
+
+            if (powerConn && powerConn.polarity === "forward" && powerConn.voltage >= 3.0) {
+                const isBacklightOn = c.backlightOn !== false;
+                lcdStates[c.id] = {
+                    isPowered: true,
+                    voltage: powerConn.voltage,
+                    currentMa: isBacklightOn ? 25 : 4,
+                    powerSourceId: powerConn.powerSource.id,
+                    i2cAddress: c.i2cAddress || "0x27"
+                };
             } else {
                 lcdStates[c.id] = { isPowered: false, voltage: 0, currentMa: 0 };
             }
@@ -2102,6 +2198,78 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         if (!changed) break;
     }
 
+    // Calculate electron flow direction (strictly from Negative / 0V GND to Positive / VCC / GPIO HIGH)
+    const gndPoints = [];
+    const posPoints = [];
+
+    // 1. Batteries
+    batteries.forEach(b => {
+        const rot = ((b.rotation || 0) * Math.PI) / 180;
+        const cos = Math.cos(rot);
+        const sin = Math.sin(rot);
+        let posLocalX = 72, posLocalY = -14;
+        let negLocalX = 24, negLocalY = -14;
+        if (b.type === "battery-aa" || b.type === "battery-aaa") {
+            const cellCount = b.cells || (b.voltage === 1.5 ? 1 : b.voltage === 6 ? 4 : b.voltage === 4.5 ? 3 : 2);
+            const totalWidth = cellCount === 1 ? 64 : cellCount === 4 ? 176 : cellCount === 3 ? 140 : 96;
+            posLocalX = totalWidth - 20;
+            negLocalX = 20;
+        } else if (b.type === "battery-coin") {
+            posLocalX = 48; posLocalY = 32;
+            negLocalX = 16; negLocalY = 32;
+        }
+        posPoints.push({ x: b.x + posLocalX * cos - posLocalY * sin, y: b.y + posLocalX * sin + posLocalY * cos });
+        gndPoints.push({ x: b.x + negLocalX * cos - negLocalY * sin, y: b.y + negLocalX * sin + negLocalY * cos });
+    });
+
+    // 2. Arduino Boards
+    arduinoBoards.forEach(b => {
+        const rot = ((b.rotation || 0) * Math.PI) / 180;
+        const cos = Math.cos(rot);
+        const sin = Math.sin(rot);
+        const allArdPins = b.type === "arduino-mega" ? [
+            ...ARDUINO_MEGA_PINS.digitalHigh, ...ARDUINO_MEGA_PINS.digitalLow, ...ARDUINO_MEGA_PINS.power
+        ] : b.type === "arduino-nano" ? [
+            ...ARDUINO_NANO_PINS.topRow, ...ARDUINO_NANO_PINS.botRow
+        ] : [
+            ...ARDUINO_PINS.digitalHigh, ...ARDUINO_PINS.digitalLow, ...ARDUINO_PINS.power
+        ];
+        allArdPins.forEach(pin => {
+            const pt = { x: b.x + pin.x * cos - pin.y * sin, y: b.y + pin.x * sin + pin.y * cos };
+            if (pin.isGnd) gndPoints.push(pt);
+            else if (pin.is5V || pin.is3V3 || pin.name === "5V" || pin.name === "3.3V") posPoints.push(pt);
+            else if (pin.isD13 && resolvedMcuStates[b.id]?.d13High) posPoints.push(pt);
+            else if (pin.isGpio && resolvedMcuStates[b.id]?.pins?.[String(pin.pinNum)] === 1) posPoints.push(pt);
+        });
+    });
+
+    // 3. ESP32 Boards
+    esp32Boards.forEach(b => {
+        const rot = ((b.rotation || 0) * Math.PI) / 180;
+        const cos = Math.cos(rot);
+        const sin = Math.sin(rot);
+        [...ESP32_PINS.leftCol, ...ESP32_PINS.rightCol].forEach(pin => {
+            const pt = { x: b.x + pin.x * cos - pin.y * sin, y: b.y + pin.x * sin + pin.y * cos };
+            if (pin.isGnd) gndPoints.push(pt);
+            else if (pin.is5V || pin.is3V3 || pin.name === "VIN" || pin.name === "3V3") posPoints.push(pt);
+            else if (pin.isD2 && resolvedMcuStates[b.id]?.d2High) posPoints.push(pt);
+            else if (pin.isGpio && resolvedMcuStates[b.id]?.pins?.[String(pin.pinNum)] === 1) posPoints.push(pt);
+        });
+    });
+
+    // 4. RPi Pico Boards
+    rpiPicoBoards.forEach(b => {
+        const rot = ((b.rotation || 0) * Math.PI) / 180;
+        const cos = Math.cos(rot);
+        const sin = Math.sin(rot);
+        [...RPI_PICO_PINS.leftCol, ...RPI_PICO_PINS.rightCol].forEach(pin => {
+            const pt = { x: b.x + pin.x * cos - pin.y * sin, y: b.y + pin.x * sin + pin.y * cos };
+            if (pin.isGnd) gndPoints.push(pt);
+            else if (pin.name === "VBUS" || pin.name === "VSYS" || pin.is3V3 || pin.name === "3V3") posPoints.push(pt);
+            else if (pin.isGpio && mcuStates?.[b.id]?.pins?.[String(pin.pinNum)] === 1) posPoints.push(pt);
+        });
+    });
+
     const wireStates = {};
     wires.forEach(w => {
         if (!w.points || w.points.length < 2) return;
@@ -2116,8 +2284,27 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             (conductingNodes.has(startRoot) || conductingNodes.has(endRoot) ||
              conductingNodes.has(pStartRoot) || conductingNodes.has(pEndRoot));
 
+        // Determine electron flow direction: negative to positive
+        // Negative charge flows from Negative Power Source -> into Circuit -> back into Positive Power Source
+        const isStartGnd = gndPoints.some(gp => Math.hypot(pStart.x - gp.x, pStart.y - gp.y) <= 22);
+        const isEndGnd = gndPoints.some(gp => Math.hypot(pEnd.x - gp.x, pEnd.y - gp.y) <= 22);
+        const isStartPos = posPoints.some(pp => Math.hypot(pStart.x - pp.x, pStart.y - pp.y) <= 22);
+        const isEndPos = posPoints.some(pp => Math.hypot(pEnd.x - pp.x, pEnd.y - pp.y) <= 22);
+
+        let direction = "forward";
+        if (isStartGnd) {
+            direction = "forward"; // flows away from GND start into load
+        } else if (isEndGnd) {
+            direction = "reverse"; // flows away from GND end into load
+        } else if (isStartPos) {
+            direction = "reverse"; // flows back into positive start
+        } else if (isEndPos) {
+            direction = "forward"; // flows back into positive end
+        }
+
         wireStates[w.id] = {
-            hasCurrent: Boolean(isConducting)
+            hasCurrent: Boolean(isConducting),
+            direction
         };
     });
 

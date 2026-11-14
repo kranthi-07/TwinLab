@@ -468,129 +468,115 @@ function AaBatteryValueControl({ component, onUpdate }) {
     const userHasSwitch = Boolean(component.hasSwitch);
     const isSwitchOn = userHasSwitch ? (component.switchState !== false && component.isOn !== false) : true;
     const caseColor = component.color || "#18181b";
+    const totalVolts = (cellCount * 1.5).toFixed(1);
 
     return (
-        <div className="inspector-aa-controls" style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <div className="inspector-aa-controls-premium" style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
+            {/* Row 1: Cell Count Picker + Voltage Pill Badge */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div className="inspector-field-group" style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span className="studio-control-label" style={{ fontWeight: 700, letterSpacing: "0.05em" }}>BATTERY CELLS & VOLTAGE</span>
+                        <span className="specs-subtext" style={{ fontSize: "11px", fontWeight: 800, color: "var(--project-accent, #FF8A00)", background: "rgba(255, 138, 0, 0.12)", padding: "2px 8px", borderRadius: "999px", border: "1px solid rgba(255, 138, 0, 0.25)" }}>
+                            ⚡ {totalVolts}V DC Nominal
+                        </span>
+                    </div>
+                    <div className="cells-segmented-picker" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, width: "100%" }}>
+                        {[1, 2, 3, 4].map((count) => {
+                            const v = (count * 1.5).toFixed(1);
+                            return (
+                                <button
+                                    key={count}
+                                    type="button"
+                                    className={`cell-seg-btn ${cellCount === count ? "active" : ""}`}
+                                    onClick={() => {
+                                        const volts = count * 1.5;
+                                        onUpdate && onUpdate(component.id, {
+                                            cells: count,
+                                            voltage: volts,
+                                            name: `${count}× ${isAAA ? "AAA" : "AA"} Pack (${volts}V)`
+                                        });
+                                    }}
+                                    style={{ padding: "6px 8px", textAlign: "center" }}
+                                >
+                                    <div style={{ fontWeight: 800, fontSize: "12px" }}>{count} {count === 1 ? "Cell" : "Cells"}</div>
+                                    <div style={{ fontSize: "10px", opacity: 0.85 }}>{v}V</div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+
+            {/* Row 2: Symmetric Enclosure & Switch Options */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, alignItems: "center", background: "rgba(15, 23, 42, 0.4)", padding: "8px 12px", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                {/* Left: Case Enclosure Finish */}
                 <div className="inspector-field-group">
-                    <span className="studio-control-label">Cells</span>
-                    <div className="cells-segmented-picker">
-                        {[1, 2, 3, 4].map((count) => (
+                    <span className="studio-control-label" style={{ fontSize: "10px", marginBottom: 4, display: "block" }}>ENCLOSURE FINISH</span>
+                    <div className="wire-color-swatches compact-swatches" style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        {[
+                            { name: "Matte Black", color: "#18181b" },
+                            { name: "Duracell Gold", color: "#b45309" },
+                            { name: "Industrial Slate", color: "#334155" },
+                            { name: "Energy Cyan", color: "#0284c7" },
+                            { name: "Safety Orange", color: "#ea580c" }
+                        ].map((c) => (
                             <button
-                                key={count}
+                                key={c.name}
                                 type="button"
-                                className={`cell-seg-btn ${cellCount === count ? "active" : ""}`}
-                                onClick={() => {
-                                    const volts = count * 1.5;
-                                    onUpdate && onUpdate(component.id, {
-                                        cells: count,
-                                        voltage: volts,
-                                        name: `${count}× ${isAAA ? "AAA" : "AA"} Pack (${volts}V)`
-                                    });
-                                }}
-                            >
-                                {count} {count === 1 ? "Cell" : "Cells"} ({count * 1.5}V)
-                            </button>
+                                className={`color-swatch-btn ${caseColor === c.color ? "active" : ""}`}
+                                style={{ "--swatch-color": c.color, width: 20, height: 20 }}
+                                onClick={() => onUpdate && onUpdate(component.id, { color: c.color })}
+                                title={c.name}
+                            />
                         ))}
                     </div>
                 </div>
 
-                <div className="inspector-field-group">
-                    <span className="studio-control-label">Switch Option</span>
-                    <button
-                        type="button"
-                        className={`battery-switch-toggle-btn ${userHasSwitch ? "is-on" : "is-off"}`}
-                        onClick={() => {
-                            onUpdate && onUpdate(component.id, { hasSwitch: !userHasSwitch });
-                        }}
-                        title={userHasSwitch ? "Integrated switch included on holder" : "No switch (direct wire output)"}
-                    >
-                        <span>{userHasSwitch ? "🔘 Switch: Added" : "⚪ Switch: None"}</span>
-                    </button>
-                </div>
-            </div>
-
-            {userHasSwitch && (
-                <div className="inspector-field-group" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span className="studio-control-label">Switch State</span>
-                    <button
-                        type="button"
-                        className={`battery-switch-toggle-btn ${isSwitchOn ? "is-on" : "is-off"}`}
-                        onClick={() => {
-                            const nextState = !isSwitchOn;
-                            onUpdate && onUpdate(component.id, {
-                                switchState: nextState,
-                                isOn: nextState
-                            });
-                        }}
-                    >
-                        <span className="switch-status-dot"></span>
-                        <span>{isSwitchOn ? "ON (Supplying Power)" : "OFF (Disconnected)"}</span>
-                    </button>
-                </div>
-            )}
-
-            <div className="inspector-field-group">
-                <span className="studio-control-label">Case Color</span>
-                <div className="wire-color-swatches compact-swatches">
-                    {[
-                        { name: "Matte Black", color: "#18181b" },
-                        { name: "Duracell Gold", color: "#b45309" },
-                        { name: "Industrial Slate", color: "#334155" },
-                        { name: "Energy Cyan", color: "#0284c7" },
-                        { name: "Safety Orange", color: "#ea580c" }
-                    ].map((c) => (
+                {/* Right: Integrated Switch Control */}
+                <div className="inspector-field-group" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <span className="studio-control-label" style={{ fontSize: "10px", display: "block" }}>POWER SWITCH</span>
+                    <div style={{ display: "flex", gap: 6 }}>
                         <button
-                            key={c.name}
                             type="button"
-                            className={`color-swatch-btn ${caseColor === c.color ? "active" : ""}`}
-                            style={{ "--swatch-color": c.color }}
-                            onClick={() => onUpdate && onUpdate(component.id, { color: c.color })}
-                            title={c.name}
-                        />
-                    ))}
+                            className={`battery-switch-toggle-btn ${userHasSwitch ? "is-on" : "is-off"}`}
+                            onClick={() => {
+                                onUpdate && onUpdate(component.id, { hasSwitch: !userHasSwitch });
+                            }}
+                            title={userHasSwitch ? "Switch Installed on Holder" : "Direct Wire Output (No Switch)"}
+                            style={{ flex: 1, padding: "4px 8px", fontSize: "11px" }}
+                        >
+                            <span>{userHasSwitch ? "🔘 Switch ON" : "⚪ Direct Wire"}</span>
+                        </button>
+                        {userHasSwitch && (
+                            <button
+                                type="button"
+                                className={`battery-switch-toggle-btn ${isSwitchOn ? "is-on" : "is-off"}`}
+                                onClick={() => {
+                                    const nextState = !isSwitchOn;
+                                    onUpdate && onUpdate(component.id, {
+                                        switchState: nextState,
+                                        isOn: nextState
+                                    });
+                                }}
+                                style={{ flex: 1, padding: "4px 8px", fontSize: "11px" }}
+                            >
+                                <span className="switch-status-dot"></span>
+                                <span>{isSwitchOn ? "PWR ON" : "PWR OFF"}</span>
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
-            <span className="specs-subtext" style={{ fontSize: "10px", color: "#94a3b8" }}>{(cellCount * 1.5).toFixed(1)}V DC Nominal</span>
         </div>
     );
 }
 
 function LcdValueControl({ component, onUpdate }) {
     const is2004 = component.type === "lcd-2004" || Boolean(component.is2004) || component.size === "20x4";
-    const maxCols = is2004 ? 20 : 16;
-    const maxRows = is2004 ? 4 : 2;
-    const backlightColor = component.backlightColor || "#0284c7";
     const contrast = component.contrast != null ? component.contrast : 85;
     const backlightOn = component.backlightOn !== false;
-    const i2cAddress = component.i2cAddress || "0x27";
-    const showCursor = Boolean(component.showCursor);
-    const blinkCursor = Boolean(component.blinkCursor);
-    const textLines = component.textLines || [
-        component.line1 || (is2004 ? "TwinLab 2004 I2C" : "TwinLab 1602 LCD"),
-        component.line2 || (is2004 ? "Simulation Online" : "Online 0x27 OK"),
-        ...(is2004 ? [component.line3 || "5.0V Active Bus", component.line4 || "HD44780 Ready"] : [])
-    ];
-
-    const handleTextChange = (rowIdx, newText) => {
-        const updated = [...textLines];
-        updated[rowIdx] = newText.slice(0, maxCols);
-        onUpdate && onUpdate(component.id, {
-            textLines: updated,
-            [`line${rowIdx + 1}`]: updated[rowIdx]
-        });
-    };
-
-    const handleClearText = () => {
-        const cleared = Array(maxRows).fill("");
-        onUpdate && onUpdate(component.id, {
-            textLines: cleared,
-            line1: "",
-            line2: "",
-            line3: "",
-            line4: ""
-        });
-    };
+    const backlightColor = component.backlightColor || "#0284c7";
 
     const LCD_BACKLIGHTS = [
         { name: "Classic Blue", color: "#0284c7", textColor: "#ffffff" },
@@ -602,7 +588,7 @@ function LcdValueControl({ component, onUpdate }) {
     ];
 
     return (
-        <div className="inspector-lcd-controls" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+        <div className="inspector-lcd-controls" style={{ display: "flex", alignItems: "center", gap: 14 }}>
             {/* Display Size Toggle */}
             <div className="inspector-field-group">
                 <span className="studio-control-label">Size</span>
@@ -624,66 +610,6 @@ function LcdValueControl({ component, onUpdate }) {
                 </div>
             </div>
 
-            {/* Live Text Editing */}
-            <div className="inspector-field-group" style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                <span className="studio-control-label">Text Lines ({maxCols} chars)</span>
-                <div style={{ display: "flex", gap: 4 }}>
-                    <input
-                        type="text"
-                        maxLength={maxCols}
-                        className="studio-input-box"
-                        style={{ width: 110, fontSize: 11, padding: "3px 6px" }}
-                        placeholder="Row 1 text..."
-                        value={textLines[0] || ""}
-                        onChange={(e) => handleTextChange(0, e.target.value)}
-                        title="Row 1 Text"
-                    />
-                    <input
-                        type="text"
-                        maxLength={maxCols}
-                        className="studio-input-box"
-                        style={{ width: 110, fontSize: 11, padding: "3px 6px" }}
-                        placeholder="Row 2 text..."
-                        value={textLines[1] || ""}
-                        onChange={(e) => handleTextChange(1, e.target.value)}
-                        title="Row 2 Text"
-                    />
-                    {is2004 && (
-                        <>
-                            <input
-                                type="text"
-                                maxLength={maxCols}
-                                className="studio-input-box"
-                                style={{ width: 90, fontSize: 11, padding: "3px 6px" }}
-                                placeholder="Row 3..."
-                                value={textLines[2] || ""}
-                                onChange={(e) => handleTextChange(2, e.target.value)}
-                                title="Row 3 Text"
-                            />
-                            <input
-                                type="text"
-                                maxLength={maxCols}
-                                className="studio-input-box"
-                                style={{ width: 90, fontSize: 11, padding: "3px 6px" }}
-                                placeholder="Row 4..."
-                                value={textLines[3] || ""}
-                                onChange={(e) => handleTextChange(3, e.target.value)}
-                                title="Row 4 Text"
-                            />
-                        </>
-                    )}
-                    <button
-                        type="button"
-                        className="cell-seg-btn"
-                        style={{ padding: "2px 6px", fontSize: 10 }}
-                        onClick={handleClearText}
-                        title="Clear Display Lines"
-                    >
-                        <i className="ri-delete-bin-line"></i>
-                    </button>
-                </div>
-            </div>
-
             {/* Contrast Slider */}
             <div className="inspector-field-group">
                 <span className="studio-control-label">Contrast: {contrast}%</span>
@@ -696,7 +622,7 @@ function LcdValueControl({ component, onUpdate }) {
                         className="studio-range-slider"
                         style={{ width: 68 }}
                         onChange={(e) => onUpdate && onUpdate(component.id, { contrast: Number(e.target.value) })}
-                        title="Trimmer Potentiometer Contrast"
+                        title="V0 Contrast Trimmer"
                     />
                 </div>
             </div>
@@ -731,116 +657,182 @@ function LcdValueControl({ component, onUpdate }) {
                     ))}
                 </div>
             </div>
+        </div>
+    );
+}
 
-            {/* I2C Address */}
+function SoilValueControl({ component, onUpdate }) {
+    const moisture = component.moisture != null ? component.moisture : 45;
+    return (
+        <div className="inspector-soil-controls" style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div className="inspector-field-group">
-                <span className="studio-control-label">I2C Addr</span>
-                <div className="cells-segmented-picker">
-                    <button
-                        type="button"
-                        className={`cell-seg-btn ${i2cAddress === "0x27" ? "active" : ""}`}
-                        onClick={() => onUpdate && onUpdate(component.id, { i2cAddress: "0x27" })}
-                    >
-                        0x27
-                    </button>
-                    <button
-                        type="button"
-                        className={`cell-seg-btn ${i2cAddress === "0x3F" ? "active" : ""}`}
-                        onClick={() => onUpdate && onUpdate(component.id, { i2cAddress: "0x3F" })}
-                    >
-                        0x3F
-                    </button>
+                <span className="studio-control-label" style={{ fontWeight: 700 }}>SOIL MOISTURE CONTENT</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                    <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={moisture}
+                        onChange={(e) => onUpdate && onUpdate(component.id, { moisture: Number(e.target.value) })}
+                        className="studio-range-slider"
+                        style={{ width: 120 }}
+                    />
+                    <span style={{ fontSize: "12px", fontWeight: 800, color: "#38bdf8", fontFamily: "monospace", minWidth: 40 }}>
+                        {moisture}%
+                    </span>
+                    <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                        ({((moisture / 100) * 5.0).toFixed(2)}V Out)
+                    </span>
                 </div>
             </div>
-
-            {/* Cursor Mode */}
-            <div className="inspector-field-group">
-                <span className="studio-control-label">Cursor</span>
-                <div className="cells-segmented-picker">
+            <div className="cells-segmented-picker">
+                {[
+                    { label: "Dry Soil", val: 15 },
+                    { label: "Moist Soil", val: 55 },
+                    { label: "Water", val: 95 }
+                ].map(p => (
                     <button
+                        key={p.label}
                         type="button"
-                        className={`cell-seg-btn ${!showCursor && !blinkCursor ? "active" : ""}`}
-                        onClick={() => onUpdate && onUpdate(component.id, { showCursor: false, blinkCursor: false })}
-                        title="No Cursor"
+                        className={`cell-seg-btn ${Math.abs(moisture - p.val) < 15 ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { moisture: p.val })}
                     >
-                        Off
+                        {p.label}
                     </button>
-                    <button
-                        type="button"
-                        className={`cell-seg-btn ${showCursor && !blinkCursor ? "active" : ""}`}
-                        onClick={() => onUpdate && onUpdate(component.id, { showCursor: true, blinkCursor: false })}
-                        title="Underline Cursor"
-                    >
-                        Line
-                    </button>
-                    <button
-                        type="button"
-                        className={`cell-seg-btn ${blinkCursor ? "active" : ""}`}
-                        onClick={() => onUpdate && onUpdate(component.id, { showCursor: true, blinkCursor: true })}
-                        title="Blinking Block Cursor"
-                    >
-                        Blink
-                    </button>
-                </div>
+                ))}
             </div>
         </div>
     );
 }
 
 function UltrasonicValueControl({ component, onUpdate }) {
-    const dist = component.distanceCm != null ? component.distanceCm : 25;
+    const range = component.rangeCm || component.maxRangeCm || (component.distanceCm && component.distanceCm >= 10 ? component.distanceCm : 200);
+    const pct = Math.min(100, Math.max(0, ((range - 10) / (400 - 10)) * 100));
+
     return (
-        <div className="inspector-ultrasonic-controls" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div className="inspector-field-group">
-                <span className="studio-control-label">Distance</span>
-                <div className="slider-with-val" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <input 
-                        type="range"
-                        min="2"
+        <div className="inspector-ultrasonic-premium">
+            {/* Top Row: Futuristic Telemetry Header */}
+            <div className="ultrasonic-header-row">
+                <div className="ultrasonic-title-group">
+                    <span className="sonar-radar-pulse"></span>
+                    <span className="studio-control-label" style={{ fontWeight: 700, letterSpacing: "0.05em" }}>CONE RANGE (MAX DISTANCE)</span>
+                </div>
+                <div className="ultrasonic-telemetry-badge">
+                    <span className="telemetry-radar-icon">🎯</span>
+                    <input
+                        type="number"
+                        min="10"
                         max="400"
-                        value={dist}
-                        onChange={(e) => onUpdate && onUpdate(component.id, { distanceCm: Number(e.target.value) })}
-                        className="studio-manual-number-input"
+                        value={range}
+                        onChange={(e) => {
+                            const val = Math.max(10, Math.min(400, Number(e.target.value) || 10));
+                            onUpdate && onUpdate(component.id, { rangeCm: val, maxRangeCm: val });
+                        }}
+                        className="telemetry-number-input font-mono"
                     />
-                    <span className="specs-subtext" style={{ minWidth: 42, fontWeight: 700 }}>{dist} cm</span>
+                    <span className="telemetry-unit">cm</span>
+                    <span className="telemetry-specs-chip">Cone Radius: {range}cm</span>
                 </div>
             </div>
-            <div className="cells-segmented-picker">
-                {[10, 25, 50, 100, 200].map(cm => (
-                    <button
-                        key={cm}
-                        type="button"
-                        className={`cell-seg-btn ${dist === cm ? "active" : ""}`}
-                        onClick={() => onUpdate && onUpdate(component.id, { distanceCm: cm })}
-                    >
-                        {cm}cm
-                    </button>
-                ))}
+
+            {/* Bottom Row: Glowing Track & Preset Pills */}
+            <div className="ultrasonic-slider-presets-row">
+                <div className="ultrasonic-slider-track-wrap">
+                    <input 
+                        type="range"
+                        min="10"
+                        max="400"
+                        value={range}
+                        onChange={(e) => {
+                            const val = Number(e.target.value);
+                            onUpdate && onUpdate(component.id, { rangeCm: val, maxRangeCm: val });
+                        }}
+                        className="ultrasonic-range-slider"
+                        style={{
+                            background: `linear-gradient(to right, #0284c7 0%, #38bdf8 ${pct}%, rgba(255,255,255,0.08) ${pct}%, rgba(255,255,255,0.08) 100%)`
+                        }}
+                    />
+                </div>
+                <div className="ultrasonic-preset-pills">
+                    {[50, 100, 200, 300, 400].map(cm => (
+                        <button
+                            key={cm}
+                            type="button"
+                            className={`preset-pill ${range === cm ? "active" : ""}`}
+                            onClick={() => onUpdate && onUpdate(component.id, { rangeCm: cm, maxRangeCm: cm })}
+                        >
+                            {cm}cm
+                        </button>
+                    ))}
+                </div>
             </div>
-            <span className="specs-subtext">2cm - 400cm • 40kHz Sonar</span>
+        </div>
+    );
+}
+
+function IcLogicGateControl({ component, onUpdate }) {
+    const currentCode = (component.modelNumber || component.icCode || component.type.replace("ic-", "")).toUpperCase();
+    const IC_MODELS = [
+        { code: "74HC08", name: "Quad AND" },
+        { code: "74HC00", name: "Quad NAND" },
+        { code: "74HC32", name: "Quad OR" },
+        { code: "74HC04", name: "Hex NOT" },
+        { code: "74HC02", name: "Quad NOR" },
+        { code: "74HC86", name: "Quad XOR" },
+        { code: "74HC132", name: "Schmitt NAND" }
+    ];
+
+    return (
+        <div className="inspector-ic-controls" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, width: "100%" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="studio-control-label" style={{ fontWeight: 700, fontSize: "11px" }}>IC MODEL</span>
+                <div className="cells-segmented-picker" style={{ display: "flex", gap: 4 }}>
+                    {IC_MODELS.map(m => (
+                        <button
+                            key={m.code}
+                            type="button"
+                            className={`cell-seg-btn ${currentCode === m.code ? "active" : ""}`}
+                            onClick={() => {
+                                onUpdate && onUpdate(component.id, {
+                                    type: `ic-${m.code.toLowerCase()}`,
+                                    modelNumber: m.code,
+                                    name: `${m.code} (${m.name})`
+                                });
+                            }}
+                            title={`${m.code}: ${m.name}`}
+                            style={{ padding: "4px 8px", fontSize: "11px", fontWeight: 700 }}
+                        >
+                            {m.code}
+                        </button>
+                    ))}
+                </div>
+            </div>
+            <span className="specs-subtext" style={{ fontSize: "10px", color: "#94a3b8" }}>DIP-14 • 2.0V-6.0V VCC</span>
         </div>
     );
 }
 
 function PirValueControl({ component, onUpdate }) {
     const isMotion = Boolean(component.motionActive);
+    const rangeM = component.rangeM != null ? component.rangeM : 5;
     return (
-        <div className="inspector-pir-controls" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div className="inspector-pir-controls" style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div className="inspector-field-group">
                 <span className="studio-control-label">Sensor State</span>
                 <button
                     type="button"
                     className={`cell-seg-btn ${isMotion ? "active" : ""}`}
                     style={{
-                        background: isMotion ? "#f59e0b" : "rgba(255,255,255,0.08)",
-                        color: isMotion ? "#000" : "#fff",
+                        background: isMotion ? "#ef4444" : "rgba(255,255,255,0.08)",
+                        color: "#fff",
                         fontWeight: 700,
                         padding: "4px 12px",
-                        borderRadius: 6
+                        borderRadius: 6,
+                        boxShadow: isMotion ? "0 0 10px rgba(239, 68, 68, 0.6)" : "none"
                     }}
                     onClick={() => {
                         const next = !isMotion;
-                        onUpdate && onUpdate(component.id, { motionActive: next });
+                        onUpdate && onUpdate(component.id, { motionActive: next, isMotion: next });
                         if (next) {
                             try { soundManager.playSensorPing("pir"); } catch (_) {}
                         }
@@ -849,6 +841,39 @@ function PirValueControl({ component, onUpdate }) {
                     {isMotion ? "🚨 Motion Detected (HIGH 3.3V)" : "Simulate Motion (LOW 0V)"}
                 </button>
             </div>
+
+            {/* Range distance control that decides cone length */}
+            <div className="inspector-field-group">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+                    <span className="studio-control-label">Range: {rangeM}m</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <input
+                        type="range"
+                        min="2"
+                        max="7"
+                        step="0.5"
+                        value={rangeM}
+                        className="studio-range-slider"
+                        style={{ width: 70 }}
+                        onChange={(e) => onUpdate && onUpdate(component.id, { rangeM: Number(e.target.value) })}
+                    />
+                    <div style={{ display: "flex", gap: 3 }}>
+                        {[3, 5, 7].map(m => (
+                            <button
+                                key={m}
+                                type="button"
+                                className={`preset-pill ${rangeM === m ? "active" : ""}`}
+                                style={{ padding: "1px 5px", fontSize: 10 }}
+                                onClick={() => onUpdate && onUpdate(component.id, { rangeM: m })}
+                            >
+                                {m}m
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
             <span className="specs-subtext">HC-SR501 • 120° Pyroelectric Dome</span>
         </div>
     );
@@ -1295,6 +1320,9 @@ function TopFloatingBar({
     onUpdateComponent,
     onRotate, 
     onDelete,
+    onCopy,
+    onDeleteAll,
+    selectedId,
     onAddComponent,
     isWireMode,
     onToggleWireMode,
@@ -1332,6 +1360,17 @@ function TopFloatingBar({
     const [isZoomOpen, setIsZoomOpen] = useState(false);
     const [internalViewMode, setInternalViewMode] = useState("simulation");
     const effectiveViewMode = viewMode || internalViewMode;
+
+    // Close components palette if another drawer or sidebar opens
+    useEffect(() => {
+        const handleClose = (e) => {
+            if (e.detail?.source !== "components-palette") {
+                setIsComponentsOpen(false);
+            }
+        };
+        window.addEventListener("twinlab:close_other_drawers", handleClose);
+        return () => window.removeEventListener("twinlab:close_other_drawers", handleClose);
+    }, []);
 
     const handleToggleViewMode = () => {
         const nextMode = effectiveViewMode === "simulation" ? "schematic" : "simulation";
@@ -1475,7 +1514,13 @@ function TopFloatingBar({
                     <div className="components-dropdown-wrap">
                         <button 
                             className={`top-tool-btn components-toggle-btn ${isComponentsOpen ? "active" : ""}`}
-                            onClick={() => setIsComponentsOpen(!isComponentsOpen)}
+                            onClick={() => {
+                                const next = !isComponentsOpen;
+                                setIsComponentsOpen(next);
+                                if (next) {
+                                    window.dispatchEvent(new CustomEvent("twinlab:close_other_drawers", { detail: { source: "components-palette" } }));
+                                }
+                            }}
                             title="Open Components Palette"
                         >
                             <i className="ri-layout-grid-line"></i>
@@ -1777,30 +1822,15 @@ function TopFloatingBar({
                                             </div>
                                             <span>Photoresistor (LDR)</span>
                                         </button>
-
-                                        {/* Raspberry Pi Pico */}
-                                        <button
-                                            className="palette-item"
-                                            onClick={() => {
-                                                onAddComponent({ type: "rpi-pico", name: "Raspberry Pi Pico" });
-                                                setIsComponentsOpen(false);
-                                            }}
-                                            title="Add Raspberry Pi Pico (RP2040)"
-                                        >
-                                            <div className="palette-item-miniature" style={{ background: "rgba(16, 185, 129, 0.15)", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                <i className="ri-cpu-line" style={{ color: "#10b981", fontSize: 16 }}></i>
-                                            </div>
-                                            <span>Raspberry Pi Pico</span>
-                                        </button>
                                     </div>
                                 </motion.div>
                             )}
                         </AnimatePresence>
                     </div>
 
-                    {/* Selected Item Quick Action (Component: Rotate + Delete, Wire: Only Delete) */}
+                    {/* Selected Item Quick Action (Component: Rotate + Copy + Delete, Wire: Only Delete, All: Delete All) */}
                     <AnimatePresence>
-                        {(selectedComponent || selectedWire) && (
+                        {(selectedComponent || selectedWire || selectedId === "all") && (
                             <motion.div 
                                 className="selected-actions-group"
                                 initial={{ opacity: 0, width: 0, scale: 0.85 }}
@@ -1809,25 +1839,51 @@ function TopFloatingBar({
                                 transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                             >
                                 <div className="top-divider"></div>
-                                {selectedComponent && (
-                                    <button className="top-icon-btn" onClick={onRotate} title="Rotate 90° (R)">
-                                        <i className="ri-refresh-line"></i>
-                                    </button>
-                                )}
-                                <button 
-                                    className="top-icon-btn delete-btn" 
-                                    onClick={() => {
-                                        if (selectedComponent) {
-                                            onDelete && onDelete();
-                                        } else if (selectedWire) {
-                                            if (onDeleteWire) onDeleteWire(selectedWire.id);
+                                {selectedId === "all" ? (
+                                    <button 
+                                        className="top-icon-btn delete-btn" 
+                                        onClick={() => {
+                                            if (onDeleteAll) onDeleteAll();
                                             else if (onDelete) onDelete();
-                                        }
-                                    }} 
-                                    title={selectedComponent ? "Delete Component (Del)" : "Delete Wire (Del)"}
-                                >
-                                    <i className="ri-delete-bin-line"></i>
-                                </button>
+                                        }} 
+                                        title="Delete All Components & Wires (Del)"
+                                        style={{ color: "#ef4444", background: "rgba(239, 68, 68, 0.15)", borderRadius: "6px", padding: "4px 8px", display: "flex", alignItems: "center", gap: 5, fontSize: "11px", fontWeight: 700 }}
+                                    >
+                                        <i className="ri-delete-bin-line"></i>
+                                        <span>Delete All</span>
+                                    </button>
+                                ) : (
+                                    <>
+                                        {selectedComponent && (
+                                            <button className="top-icon-btn" onClick={onRotate} title="Rotate 90° (R)">
+                                                <i className="ri-refresh-line"></i>
+                                            </button>
+                                        )}
+                                        {selectedComponent && onCopy && (
+                                            <button 
+                                                className="top-icon-btn copy-btn" 
+                                                onClick={() => onCopy(selectedComponent)} 
+                                                title="Duplicate / Copy Component (Ctrl+D)"
+                                            >
+                                                <i className="ri-file-copy-line"></i>
+                                            </button>
+                                        )}
+                                        <button 
+                                            className="top-icon-btn delete-btn" 
+                                            onClick={() => {
+                                                if (selectedComponent) {
+                                                    onDelete && onDelete();
+                                                } else if (selectedWire) {
+                                                    if (onDeleteWire) onDeleteWire(selectedWire.id);
+                                                    else if (onDelete) onDelete();
+                                                }
+                                            }} 
+                                            title={selectedComponent ? "Delete Component (Del)" : "Delete Wire (Del)"}
+                                        >
+                                            <i className="ri-delete-bin-line"></i>
+                                        </button>
+                                    </>
+                                )}
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -2086,6 +2142,19 @@ function TopFloatingBar({
                                                 <i className="ri-anticlockwise-2-line"></i>
                                             </button>
                                         )}
+                                        {onCopy && (
+                                            <button
+                                                type="button"
+                                                className="inspector-action-btn copy-action"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onCopy(selectedComponent);
+                                                }}
+                                                title="Duplicate / Copy (Ctrl+D)"
+                                            >
+                                                <i className="ri-file-copy-line"></i>
+                                            </button>
+                                        )}
                                         {onDelete && (
                                             <button
                                                 type="button"
@@ -2215,8 +2284,16 @@ function TopFloatingBar({
                                     )}
 
                                     {/* TMP36 Temperature Sensor */}
-                                    {(selectedComponent.type === "sensor-temp" || selectedComponent.type === "sensor-temperature") && (
+                                    {(selectedComponent.type === "sensor-temp" || selectedComponent.type === "sensor-temperature" || selectedComponent.type === "sensor-tmp36") && (
                                         <TempSensorValueControl
+                                            component={selectedComponent}
+                                            onUpdate={onUpdateComponent}
+                                        />
+                                    )}
+
+                                    {/* Soil Moisture Sensor */}
+                                    {(selectedComponent.type === "sensor-soil" || selectedComponent.type === "sensor-soil-moisture") && (
+                                        <SoilValueControl
                                             component={selectedComponent}
                                             onUpdate={onUpdateComponent}
                                         />
@@ -2225,11 +2302,11 @@ function TopFloatingBar({
 
 
                                     {/* Logic Gates (DIP-14) */}
-                                    {selectedComponent.type?.startsWith("ic-74hc") && (
-                                        <div className="inspector-simple-badge-row">
-                                            <i className="ri-mind-map"></i>
-                                            <span>74HC High-Speed CMOS Logic • 2V-6V VCC</span>
-                                        </div>
+                                    {selectedComponent.type?.startsWith("ic-") && (
+                                        <IcLogicGateControl
+                                            component={selectedComponent}
+                                            onUpdate={onUpdateComponent}
+                                        />
                                     )}
 
                                     {/* LED */}

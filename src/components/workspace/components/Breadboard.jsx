@@ -42,7 +42,7 @@ function Breadboard({
     const COLUMNS = isMini ? 17 : isFull ? 60 : 30;
     const hasPowerRails = !isMini;
     const BOARD_WIDTH = isMini ? 352 : isFull ? 1040 : 560;
-    const BOARD_HEIGHT = isMini ? 208 : 288;
+    const BOARD_HEIGHT = isMini ? 224 : 288;
 
     const Y_UPPER_ROWS = isMini ? MINI_Y_UPPER_ROWS : STD_Y_UPPER_ROWS;
     const Y_LOWER_ROWS = isMini ? MINI_Y_LOWER_ROWS : STD_Y_LOWER_ROWS;
@@ -250,14 +250,14 @@ function Breadboard({
             onMouseLeave={() => setHoveredPin(null)}
             onPointerLeave={() => setHoveredPin(null)}
             onMouseDown={(e) => {
-                onSelect && onSelect(id);
+                onSelect && onSelect(id, e);
                 onMouseDown && onMouseDown(e, id);
             }}
         >
             {/* Pure Vector Tinkercad Breadboard (1:1 with 16px background dots) */}
             <svg 
                 className="breadboard-svg" 
-                viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`} 
+                viewBox={isMini ? `0 -16 ${BOARD_WIDTH} 224` : `0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`} 
                 width={BOARD_WIDTH} 
                 height={BOARD_HEIGHT}
                 style={{ cursor: "default" }}
@@ -299,16 +299,16 @@ function Breadboard({
                 {/* Main Plastic Body with Interlocking Dovetail Tabs */}
                 <g filter="url(#breadboard-shadow)">
                     {/* Left Interlocking Notch */}
-                    <path d={`M 6 ${isMini ? 80 : 112} L 0 ${isMini ? 80 : 112} L 0 ${isMini ? 128 : 176} L 6 ${isMini ? 128 : 176} Z`} fill="#e8ebef" stroke="#cbd5e1" strokeWidth="1" />
+                    <path d={`M 6 ${isMini ? 88 : 112} L 0 ${isMini ? 88 : 112} L 0 ${isMini ? 120 : 176} L 6 ${isMini ? 120 : 176} Z`} fill="#e8ebef" stroke="#cbd5e1" strokeWidth="1" />
                     {/* Right Interlocking Peg */}
-                    <path d={`M ${BOARD_WIDTH - 6} ${isMini ? 84 : 116} L ${BOARD_WIDTH} ${isMini ? 84 : 116} L ${BOARD_WIDTH} ${isMini ? 124 : 172} L ${BOARD_WIDTH - 6} ${isMini ? 124 : 172} Z`} fill="#e8ebef" stroke="#cbd5e1" strokeWidth="1" />
+                    <path d={`M ${BOARD_WIDTH - 6} ${isMini ? 92 : 116} L ${BOARD_WIDTH} ${isMini ? 92 : 116} L ${BOARD_WIDTH} ${isMini ? 116 : 172} L ${BOARD_WIDTH - 6} ${isMini ? 116 : 172} Z`} fill="#e8ebef" stroke="#cbd5e1" strokeWidth="1" />
 
                     {/* Main Board Base */}
                     <rect 
                         x="6" 
-                        y="4" 
+                        y={isMini ? "-12" : "4"} 
                         width={BOARD_WIDTH - 12} 
-                        height={BOARD_HEIGHT - 8} 
+                        height={isMini ? "216" : BOARD_HEIGHT - 8} 
                         rx="12" 
                         ry="12" 
                         fill={`url(#body-gradient-${id})`} 
@@ -319,9 +319,9 @@ function Breadboard({
                     {/* Inner Bevel Rim */}
                     <rect 
                         x="10" 
-                        y="8" 
+                        y={isMini ? "-8" : "8"} 
                         width={BOARD_WIDTH - 20} 
-                        height={BOARD_HEIGHT - 16} 
+                        height={isMini ? "208" : BOARD_HEIGHT - 16} 
                         rx="8" 
                         ry="8" 
                         fill="none" 
@@ -371,10 +371,10 @@ function Breadboard({
                                 <>
                                     <text 
                                         x={cx} 
-                                        y={isMini ? "8" : "52"} 
-                                        fill="#64748b" 
-                                        fontSize="8.5" 
-                                        fontWeight="600" 
+                                        y={isMini ? "2" : "52"} 
+                                        fill="#0f172a" 
+                                        fontSize={isMini ? "9" : "8.5"} 
+                                        fontWeight="800" 
                                         fontFamily="monospace" 
                                         textAnchor="middle"
                                     >
@@ -382,10 +382,10 @@ function Breadboard({
                                     </text>
                                     <text 
                                         x={cx} 
-                                        y={isMini ? "200" : "238"} 
-                                        fill="#64748b" 
-                                        fontSize="8.5" 
-                                        fontWeight="600" 
+                                        y={isMini ? "191" : "238"} 
+                                        fill="#0f172a" 
+                                        fontSize={isMini ? "9" : "8.5"} 
+                                        fontWeight="800" 
                                         fontFamily="monospace" 
                                         textAnchor="middle"
                                     >
@@ -402,8 +402,8 @@ function Breadboard({
                 ==================================================== */}
                 {ROWS_UPPER.map((r) => (
                     <g key={`row-u-${r}`}>
-                        <text x="30" y={Y_UPPER_ROWS[r] + 3} fill="#64748b" fontSize="9" fontWeight="600" fontFamily="monospace" textAnchor="middle">{r}</text>
-                        <text x={BOARD_WIDTH - 30} y={Y_UPPER_ROWS[r] + 3} fill="#64748b" fontSize="9" fontWeight="600" fontFamily="monospace" textAnchor="middle">{r}</text>
+                        <text x={isMini ? "26" : "30"} y={Y_UPPER_ROWS[r] + 3} fill="#0f172a" fontSize="9.5" fontWeight="800" fontFamily="monospace" textAnchor="middle">{r}</text>
+                        <text x={isMini ? (BOARD_WIDTH - 26) : (BOARD_WIDTH - 30)} y={Y_UPPER_ROWS[r] + 3} fill="#0f172a" fontSize="9.5" fontWeight="800" fontFamily="monospace" textAnchor="middle">{r}</text>
                     </g>
                 ))}
 
@@ -412,17 +412,17 @@ function Breadboard({
                     x="14" 
                     y={isMini ? 92 : 140} 
                     width={BOARD_WIDTH - 28} 
-                    height="8" 
+                    height={isMini ? "10" : "8"} 
                     rx="2" 
-                    fill="#d8dee6" 
-                    stroke="#b4beca" 
+                    fill="#cbd5e1" 
+                    stroke="#94a3b8" 
                     strokeWidth="0.8" 
                 />
 
                 {ROWS_LOWER.map((r) => (
                     <g key={`row-l-${r}`}>
-                        <text x="30" y={Y_LOWER_ROWS[r] + 3} fill="#64748b" fontSize="9" fontWeight="600" fontFamily="monospace" textAnchor="middle">{r}</text>
-                        <text x={BOARD_WIDTH - 30} y={Y_LOWER_ROWS[r] + 3} fill="#64748b" fontSize="9" fontWeight="600" fontFamily="monospace" textAnchor="middle">{r}</text>
+                        <text x={isMini ? "26" : "30"} y={Y_LOWER_ROWS[r] + 3} fill="#0f172a" fontSize="9.5" fontWeight="800" fontFamily="monospace" textAnchor="middle">{r}</text>
+                        <text x={isMini ? (BOARD_WIDTH - 26) : (BOARD_WIDTH - 30)} y={Y_LOWER_ROWS[r] + 3} fill="#0f172a" fontSize="9.5" fontWeight="800" fontFamily="monospace" textAnchor="middle">{r}</text>
                     </g>
                 ))}
 

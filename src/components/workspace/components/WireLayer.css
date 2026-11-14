@@ -56,7 +56,7 @@
 
 .wire-point-dot.is-endpoint {
     pointer-events: auto !important;
-    cursor: crosshair;
+    cursor: pointer;
 }
 
 .wire-point-dot.is-endpoint:hover {
@@ -67,7 +67,7 @@
 /* Intermediate Waypoints / Bend Nodes */
 .wire-point-dot.is-waypoint {
     pointer-events: auto !important;
-    cursor: grab;
+    cursor: pointer;
     transition: r 0.15s ease, filter 0.15s ease;
 }
 
@@ -77,23 +77,33 @@
 }
 
 .wire-point-dot.is-waypoint:active {
-    cursor: grabbing;
+    cursor: pointer;
 }
 
 .wire-group:hover .wire-point-dot {
     opacity: 1;
 }
 
-/* Real-Time Vibrant Yellow Glowing Electron / Current Flow Dots */
+/* Real-Time Vibrant Yellow Glowing Electron Flow Dots (Strictly Negative to Positive) */
 .wire-electron-flow {
-    animation: wireElectronFlow 0.75s linear infinite;
+    animation: wireElectronFlowForward 0.75s linear infinite;
     filter: drop-shadow(0 0 4px #facc15) drop-shadow(0 0 8px #eab308);
     pointer-events: none;
 }
 
-@keyframes wireElectronFlow {
+.wire-electron-flow.reverse {
+    animation: wireElectronFlowReverse 0.75s linear infinite;
+}
+
+@keyframes wireElectronFlowForward {
     to {
         stroke-dashoffset: -34;
+    }
+}
+
+@keyframes wireElectronFlowReverse {
+    to {
+        stroke-dashoffset: 34;
     }
 }
 

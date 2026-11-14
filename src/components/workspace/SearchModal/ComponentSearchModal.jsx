@@ -321,14 +321,14 @@ export const SEARCH_CATALOG = [
 ];
 
 const CATEGORIES = [
-    { id: "all", label: "All Items" },
-    { id: "mcu", label: "Microcontrollers" },
-    { id: "outputs", label: "Displays & Outputs" },
-    { id: "power", label: "Power & Batteries" },
-    { id: "inputs", label: "Inputs & Switches" },
-    { id: "passives", label: "Passives" },
-    { id: "breadboards", label: "Breadboards" },
-    { id: "instruments", label: "Instruments" }
+    { id: "all", label: "All Items", icon: "ri-apps-2-line" },
+    { id: "mcu", label: "Microcontrollers", icon: "ri-cpu-line" },
+    { id: "outputs", label: "Displays & LEDs", icon: "ri-lightbulb-line" },
+    { id: "power", label: "Power & Batteries", icon: "ri-battery-2-charge-line" },
+    { id: "inputs", label: "Inputs & Switches", icon: "ri-toggle-line" },
+    { id: "passives", label: "Passives", icon: "ri-pulse-line" },
+    { id: "breadboards", label: "Breadboards", icon: "ri-layout-grid-line" },
+    { id: "instruments", label: "Instruments", icon: "ri-dashboard-3-line" }
 ];
 
 export function Component3DThumbnail({ type }) {
@@ -611,53 +611,57 @@ function ComponentSearchModal({
                         <span className="search-esc-badge" onClick={onClose}>ESC</span>
                     </div>
 
-                    {/* Category Filter Pills */}
-                    <div className="search-categories-bar">
-                        {CATEGORIES.map(cat => (
-                            <button
-                                key={cat.id}
-                                className={`cat-pill-btn ${selectedCategory === cat.id ? "active" : ""}`}
-                                onClick={() => setSelectedCategory(cat.id)}
-                            >
-                                {cat.label}
-                            </button>
-                        ))}
-                    </div>
+                    {/* Split Body: Left Categories Sidebar & Center Results Viewport */}
+                    <div className="search-modal-body-split">
+                        <aside className="search-categories-sidebar">
+                            <span className="search-sidebar-heading">CATEGORIES</span>
+                            {CATEGORIES.map(cat => (
+                                <button
+                                    key={cat.id}
+                                    className={`cat-sidebar-btn ${selectedCategory === cat.id ? "active" : ""}`}
+                                    onClick={() => setSelectedCategory(cat.id)}
+                                >
+                                    <i className={cat.icon}></i>
+                                    <span>{cat.label}</span>
+                                </button>
+                            ))}
+                        </aside>
 
-                    {/* Results Grid / List with 3D Images */}
-                    <div className="search-results-viewport">
-                        {filteredResults.length > 0 ? (
-                            <div className="search-results-grid">
-                                {filteredResults.map(item => (
-                                    <div 
-                                        key={item.id}
-                                        className="search-item-card"
-                                        onClick={() => handleSelectComponent(item)}
-                                    >
-                                        <div className="item-thumbnail-stage">
-                                            <Component3DThumbnail type={item.type} />
-                                        </div>
-                                        <div className="item-info-meta">
-                                            <div className="item-title-row">
-                                                <h4 className="item-name">{item.name}</h4>
-                                                <span className="item-category-tag">{item.categoryLabel}</span>
+                        {/* Results Grid / List with 3D Images */}
+                        <div className="search-results-viewport">
+                            {filteredResults.length > 0 ? (
+                                <div className="search-results-grid">
+                                    {filteredResults.map(item => (
+                                        <div 
+                                            key={item.id}
+                                            className="search-item-card"
+                                            onClick={() => handleSelectComponent(item)}
+                                        >
+                                            <div className="item-thumbnail-stage">
+                                                <Component3DThumbnail type={item.type} />
                                             </div>
-                                            <p className="item-specs-subtext">{item.specs}</p>
+                                            <div className="item-info-meta">
+                                                <div className="item-title-row">
+                                                    <h4 className="item-name">{item.name}</h4>
+                                                    <span className="item-category-tag">{item.categoryLabel}</span>
+                                                </div>
+                                                <p className="item-specs-subtext">{item.specs}</p>
+                                            </div>
+                                            <button className="item-add-action-btn" title="Add to Canvas">
+                                                <i className="ri-add-line"></i>
+                                                <span>Add</span>
+                                            </button>
                                         </div>
-                                        <button className="item-add-action-btn" title="Add to Canvas">
-                                            <i className="ri-add-line"></i>
-                                            <span>Add</span>
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="search-empty-state">
-                                <i className="ri-compass-3-line"></i>
-                                <h3>No components found for "{searchQuery}"</h3>
-                                <p>Try searching for "Resistor", "Arduino", "Breadboard", or clear filters.</p>
-                            </div>
-                        )}
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="search-empty-state">
+                                    <i className="ri-compass-3-line"></i>
+                                    <h3>No components found for "{searchQuery}"</h3>
+                                    <p>Try searching for "Resistor", "Arduino", "Breadboard", or clear filters.</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Footer Tips */}

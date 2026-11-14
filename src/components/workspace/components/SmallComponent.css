@@ -13,6 +13,14 @@
     transition: filter 0.15s ease;
 }
 
+.canvas-small-comp text,
+.canvas-small-comp svg text,
+.canvas-small-comp span {
+    text-rendering: geometricPrecision;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
 .canvas-small-comp:active {
     cursor: default;
 }
@@ -23,7 +31,7 @@
 }
 
 /* Base fallback outline - only applies to components without specialized wraps */
-.canvas-small-comp.selected:not(.comp-lcd-1602):not(.comp-lcd-2004):not(.comp-led):not(.comp-resistor):not(.comp-capacitor-ceramic):not(.comp-capacitor-electrolytic):not(.comp-battery-aa):not(.comp-battery-aaa):not(.comp-battery-coin):not(.comp-battery-9v):not(.comp-potentiometer):not(.comp-buzzer):not(.comp-motor-dc):not(.comp-motor-geared):not(.comp-motor-bo):not(.comp-servo-sg90):not(.comp-sensor-ultrasonic):not(.comp-sensor-pir):not(.comp-sensor-temp):not(.comp-sensor-temperature):not(.comp-photoresistor):not(.comp-transistor):not(.comp-transistor-npn):not(.comp-transistor-pnp):not(.comp-mosfet-n):not(.comp-mosfet-p):not([class*="comp-ic-"]) {
+.canvas-small-comp.selected:not(.comp-lcd-1602):not(.comp-lcd-2004):not(.comp-led):not(.comp-resistor):not(.comp-capacitor-ceramic):not(.comp-capacitor-electrolytic):not(.comp-battery-aa):not(.comp-battery-aaa):not(.comp-battery-coin):not(.comp-battery-9v):not(.comp-potentiometer):not(.comp-buzzer):not(.comp-motor-dc):not(.comp-motor-geared):not(.comp-motor-bo):not(.comp-servo-sg90):not(.comp-sensor-ultrasonic):not(.comp-sensor-pir):not(.comp-sensor-temp):not(.comp-sensor-temperature):not(.comp-sensor-tmp36):not(.comp-sensor-soil):not(.comp-sensor-soil-moisture):not(.comp-photoresistor):not(.comp-transistor):not(.comp-transistor-npn):not(.comp-transistor-pnp):not(.comp-mosfet-n):not(.comp-mosfet-p):not([class*="comp-ic-"]) {
     outline: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
     outline-offset: 3px;
     border-radius: 4px;
@@ -356,7 +364,7 @@
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 2px 4px rgba(0, 0, 0, 0.6);
     z-index: 50;
     pointer-events: auto;
-    cursor: crosshair;
+    cursor: pointer;
     transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
 
@@ -1192,7 +1200,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    cursor: crosshair;
+    cursor: pointer;
     z-index: 50;
     transition: transform 0.15s ease;
 }
@@ -1580,16 +1588,6 @@
     text-shadow: 0 0 6px rgba(56, 189, 248, 0.8);
 }
 
-.coin-cell-container.active-discharging .pin-coin-pos .coin-pin-badge {
-    background: #ef4444;
-    box-shadow: 0 0 10px #ef4444, 0 0 16px rgba(239, 68, 68, 0.8);
-}
-
-.coin-cell-container.active-discharging .pin-coin-neg .coin-pin-badge {
-    background: #22c55e;
-    box-shadow: 0 0 10px #22c55e, 0 0 16px rgba(34, 197, 94, 0.8);
-}
-
 .coin-energy-pulse-ring {
     position: absolute;
     inset: -4px;
@@ -1631,7 +1629,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    cursor: crosshair;
+    cursor: pointer;
     pointer-events: auto;
     transform: translateX(-50%);
     transition: transform 0.15s ease;
@@ -1787,7 +1785,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: crosshair;
+    cursor: pointer;
     transform: translateX(-50%);
     box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
@@ -2326,12 +2324,12 @@
     border: 2px solid #64748b;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.3);
     position: relative;
-    cursor: grab;
+    cursor: pointer;
     transition: box-shadow 0.15s ease;
 }
 
 .pot-rotary-knob:active {
-    cursor: grabbing;
+    cursor: pointer;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7), inset 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
@@ -2981,7 +2979,7 @@
     width: 160px;
     height: 160px;
     pointer-events: auto;
-    cursor: grab;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2991,7 +2989,7 @@
 
 .motor-3d-webgl-wrapper:active,
 .geared-motor-3d-webgl-wrapper:active {
-    cursor: grabbing;
+    cursor: pointer;
 }
 
 /* Live Digital Tachometer / RPM OLED HUD Display */
@@ -3731,6 +3729,25 @@
     animation: ultrasonicEchoDash 0.9s linear infinite;
 }
 
+.sonar-cone-arc {
+    animation: sonarConePulse 1.4s ease-out infinite;
+}
+
+@keyframes sonarConePulse {
+    0% {
+        opacity: 0.15;
+        stroke: #38bdf8;
+    }
+    50% {
+        opacity: 0.85;
+        stroke: #0284c7;
+    }
+    100% {
+        opacity: 0.2;
+        stroke: #0369a1;
+    }
+}
+
 @keyframes ultrasonicEchoDash {
     to {
         stroke-dashoffset: -20;
@@ -3761,3 +3778,55 @@
     -webkit-user-select: none;
     transition: opacity 0.15s ease;
 }
+
+/* ============================================================
+   24. SOIL MOISTURE SENSOR & PIR CONE STYLING
+============================================================ */
+.soil-sensor-container {
+    width: 32px;
+    height: 16px;
+    position: relative;
+    user-select: none;
+}
+
+.canvas-small-comp.selected .soil-sensor-container::before {
+    content: "";
+    position: absolute;
+    left: -10px;
+    top: -118px;
+    width: 52px;
+    height: 122px;
+    border: 1.5px solid var(--project-accent, var(--accent, #FF8A00));
+    border-radius: 6px;
+    pointer-events: none;
+}
+
+.pin-soil-vcc, .pin-soil-gnd, .pin-soil-sig {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ca8a04;
+    border: 1.5px solid #713f12;
+    position: absolute;
+    cursor: crosshair;
+    z-index: 5;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pin-soil-vcc:hover, .pin-soil-gnd:hover, .pin-soil-sig:hover,
+.pin-soil-vcc.targeted, .pin-soil-gnd.targeted, .pin-soil-sig.targeted {
+    transform: translate(-50%, -50%) scale(1.4) !important;
+    background: #facc15 !important;
+    box-shadow: 0 0 10px #facc15 !important;
+}
+
+.pir-cone-svg {
+    user-select: none;
+    -webkit-user-select: none;
+    transition: filter 0.25s ease;
+}
+
+.pir-cone-svg:hover {
+    filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.4));
+}
+

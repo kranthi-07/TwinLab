@@ -558,7 +558,9 @@ function Workspace({ onBackToHome }) {
         setTimeout(() => setToastMessage(""), 2000);
     }, [activeTargetBoard, availableMcuBoards]);
 
-    const selectedComponent = components.find(c => c.id === selectedId);
+    const selectedComponent = Array.isArray(selectedId)
+        ? (selectedId.length === 1 ? components.find(c => c.id === selectedId[0]) : null)
+        : components.find(c => c.id === selectedId);
 
     // Keep draft updated in session storage so page reloads never lose in-progress work
     useEffect(() => {
@@ -716,6 +718,25 @@ function Workspace({ onBackToHome }) {
             setTimeout(() => setToastMessage(""), 1800);
             return;
         }
+        if (Array.isArray(selectedId) && selectedId.length > 0) {
+            const selectedComps = components.filter(c => selectedId.includes(c.id));
+            clipboardRef.current = { type: "multiple", data: JSON.parse(JSON.stringify(selectedComps)) };
+            setToastMessage(`📋 Copied ${selectedComps.length} Components (Ctrl+C)`);
+            setTimeout(() => setToastMessage(""), 1800);
+            return;
+        }
+        if (Array.isArray(selectedId) && selectedId.length > 0) {
+            recordSnapshot();
+            const selectedComps = components.filter(c => selectedId.includes(c.id));
+            clipboardRef.current = { type: "multiple", data: JSON.parse(JSON.stringify(selectedComps)) };
+            setComponents(prev => prev.filter(c => !selectedId.includes(c.id)));
+            setWires(prev => prev.filter(w => !selectedId.includes(w.fromComponentId) && !selectedId.includes(w.toComponentId)));
+            setSelectedId(null);
+            setIsUnsaved(true);
+            setToastMessage(`✂ Cut ${selectedComps.length} Components (Ctrl+X)`);
+            setTimeout(() => setToastMessage(""), 1800);
+            return;
+        }
         if (selectedComponent) {
             clipboardRef.current = { type: "component", data: JSON.parse(JSON.stringify(selectedComponent)) };
             setToastMessage(`📋 Copied "${selectedComponent.name || 'Component'}" (Ctrl+C)`);
@@ -749,6 +770,18 @@ function Workspace({ onBackToHome }) {
             setSelectedWireId(null);
             setIsUnsaved(true);
             setToastMessage("✂ Cut All (Ctrl+X)");
+            setTimeout(() => setToastMessage(""), 1800);
+            return;
+        }
+        if (Array.isArray(selectedId) && selectedId.length > 0) {
+            recordSnapshot();
+            const selectedComps = components.filter(c => selectedId.includes(c.id));
+            clipboardRef.current = { type: "multiple", data: JSON.parse(JSON.stringify(selectedComps)) };
+            setComponents(prev => prev.filter(c => !selectedId.includes(c.id)));
+            setWires(prev => prev.filter(w => !selectedId.includes(w.fromComponentId) && !selectedId.includes(w.toComponentId)));
+            setSelectedId(null);
+            setIsUnsaved(true);
+            setToastMessage(`✂ Cut ${selectedComps.length} Components (Ctrl+X)`);
             setTimeout(() => setToastMessage(""), 1800);
             return;
         }
@@ -809,6 +842,22 @@ function Workspace({ onBackToHome }) {
             setTimeout(() => setToastMessage(""), 1800);
             return;
         }
+        if (clipboardRef.current.type === "multiple" && Array.isArray(clipboardRef.current.data)) {
+            const data = clipboardRef.current.data;
+            const now = Date.now();
+            const pastedComps = data.map((c, idx) => ({
+                ...c,
+                id: `${c.type}-${now}-${idx}`,
+                x: (c.x || 100) + offset,
+                y: (c.y || 100) + offset
+            }));
+            setComponents(prev => [...prev, ...pastedComps]);
+            setSelectedId(pastedComps.map(c => c.id));
+            setIsUnsaved(true);
+            setToastMessage(`📋 Pasted ${pastedComps.length} Components (Ctrl+V)`);
+            setTimeout(() => setToastMessage(""), 1800);
+            return;
+        }
         if (clipboardRef.current.type === "component") {
             const original = clipboardRef.current.data;
             const newId = `${original.type}-${Date.now()}`;
@@ -841,6 +890,24 @@ function Workspace({ onBackToHome }) {
 
     // Duplicate action (Ctrl+D)
     const handleDuplicate = useCallback(() => {
+        if (Array.isArray(selectedId) && selectedId.length > 0) {
+            recordSnapshot();
+            const offset = 32;
+            const now = Date.now();
+            const selectedComps = components.filter(c => selectedId.includes(c.id));
+            const newComps = selectedComps.map((c, idx) => ({
+                ...c,
+                id: `${c.type}-${now}-${idx}`,
+                x: (c.x || 320) + offset,
+                y: (c.y || 112) + offset
+            }));
+            setComponents(prev => [...prev, ...newComps]);
+            setSelectedId(newComps.map(c => c.id));
+            setIsUnsaved(true);
+            setToastMessage(`Duplicated ${newComps.length} Components (Ctrl+D)`);
+            setTimeout(() => setToastMessage(""), 1800);
+            return;
+        }
         if (selectedComponent) {
             recordSnapshot();
             const offset = 32;
@@ -993,10 +1060,16 @@ function Workspace({ onBackToHome }) {
                 if (selectedId) {
                     e.preventDefault();
                     recordSnapshot();
-                    setComponents(prev => prev.filter(c => c.id !== selectedId));
+                    if (Array.isArray(selectedId)) {
+                        setComponents(prev => prev.filter(c => !selectedId.includes(c.id)));
+                        setWires(prev => prev.filter(w => !selectedId.includes(w.fromComponentId) && !selectedId.includes(w.toComponentId)));
+                        setToastMessage(`Deleted ${selectedId.length} Components (Del)`);
+                    } else {
+                        setComponents(prev => prev.filter(c => c.id !== selectedId));
+                        setToastMessage("Deleted Component (Del)");
+                    }
                     setSelectedId(null);
                     setIsUnsaved(true);
-                    setToastMessage("Deleted Component (Del)");
                     setTimeout(() => setToastMessage(""), 1600);
                     return;
                 }
@@ -1095,7 +1168,32 @@ function Workspace({ onBackToHome }) {
     }, [isUnsaved]);
 
     // Mutually exclusive selection and mode handlers to prevent UI collisions
-    const handleSelectComponent = useCallback((id) => {
+    const handleSelectComponent = useCallback((id, e) => {
+        const isMulti = e && (e.ctrlKey || e.metaKey);
+        if (isMulti) {
+            if (!id) return;
+            setSelectedId(prev => {
+                let current = [];
+                if (Array.isArray(prev)) {
+                    current = [...prev];
+                } else if (prev && prev !== "all") {
+                    current = [prev];
+                }
+                let next;
+                if (current.includes(id)) {
+                    next = current.filter(item => item !== id);
+                } else {
+                    next = [...current, id];
+                }
+                return next.length === 1 ? next[0] : (next.length === 0 ? null : next);
+            });
+            setSelectedWireId(null);
+            setIsWireMode(false);
+            setToastMessage("💡 You can select multiple components using Ctrl + Click");
+            setTimeout(() => setToastMessage(""), 2800);
+            return;
+        }
+
         setSelectedId(id);
         if (id) {
             setSelectedWireId(null);
@@ -1193,16 +1291,38 @@ function Workspace({ onBackToHome }) {
         setPlacingComponent(null);
     };
 
-    const handleUpdateComponent = (id, updates) => {
-        recordSnapshot();
+    const handleUpdateComponent = (id, updates, record = false) => {
+        if (record) recordSnapshot();
         setComponents(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
     };
 
     const handleDeleteComponent = (id, record = true) => {
+        if (!id) return;
         if (record) recordSnapshot();
+        if (id === "all") {
+            setComponents([]);
+            setWires([]);
+            setSelectedId(null);
+            setSelectedWireId(null);
+            setIsUnsaved(true);
+            setToastMessage("🗑 Deleted All Components & Wires");
+            setTimeout(() => setToastMessage(""), 1800);
+            return;
+        }
+        if (Array.isArray(id)) {
+            setComponents(prev => prev.filter(c => !id.includes(c.id)));
+            setWires(prev => prev.filter(w => !id.includes(w.fromComponentId) && !id.includes(w.toComponentId)));
+            setSelectedId(null);
+            setIsUnsaved(true);
+            setToastMessage(`🗑 Deleted ${id.length} Components`);
+            setTimeout(() => setToastMessage(""), 1600);
+            return;
+        }
         setComponents(prev => prev.filter(c => c.id !== id));
-        if (selectedId === id) setSelectedId(null);
+        if (selectedId === id || (Array.isArray(selectedId) && selectedId.includes(id))) setSelectedId(null);
         setIsUnsaved(true);
+        setToastMessage("🗑 Deleted Component");
+        setTimeout(() => setToastMessage(""), 1600);
     };
 
     const handleRotateSelected = () => {
@@ -1378,25 +1498,17 @@ function Workspace({ onBackToHome }) {
                 )}
             </AnimatePresence>
 
-            {/* ACTIVATED FOCUS BUTTON (Minimalist top center icon button) */}
+            {/* FOCUS ESC HINT PILL (Fades away smoothly after entering focus mode) */}
             <AnimatePresence>
                 {isFocusMode && (
                     <motion.div 
-                        className="focus-mode-floating-control"
-                        initial={{ opacity: 0, y: -16, scale: 0.88 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -16, scale: 0.88 }}
-                        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                        className="focus-esc-hint-pill"
+                        initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                        animate={{ opacity: [0, 1, 1, 0], y: [-20, 0, 0, -8] }}
+                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                        transition={{ duration: 3.5, times: [0, 0.15, 0.75, 1], ease: "easeInOut" }}
                     >
-                        <button
-                            type="button"
-                            className="focus-exit-minimal-btn"
-                            onClick={() => setIsFocusMode(false)}
-                            title="Exit Focus Mode (F or Esc)"
-                            aria-label="Exit Focus Mode"
-                        >
-                            <i className="ri-fullscreen-exit-line"></i>
-                        </button>
+                        <span>Click <kbd>Esc</kbd> to exit focus mode</span>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -1419,6 +1531,9 @@ function Workspace({ onBackToHome }) {
                 onDeleteWire={handleDeleteWire}
                 onRotate={handleRotateSelected}
                 onDelete={() => selectedId && handleDeleteComponent(selectedId)}
+                onCopy={handleDuplicate}
+                onDeleteAll={() => handleDeleteComponent("all")}
+                selectedId={selectedId}
                 onAddComponent={handleAddComponent}
                 isWireMode={isWireMode}
                 onToggleWireMode={handleToggleWireMode}
@@ -1470,14 +1585,16 @@ function Workspace({ onBackToHome }) {
                 simulationResult={simulationResult}
             />
 
-            {/* Bottom Console: Seamlessly fades out & in via CSS transitions */}
-            <BottomConsole 
-                logs={combinedLogs} 
-                isSimulating={isSimulating} 
-                supplyVoltage={simulationResult.supplyVoltage}
-                isOpen={isSerialOpen}
-                onToggleOpen={() => setIsSerialOpen(prev => !prev)}
-            />
+            {/* Bottom Console: Hidden in Focus Mode, seamlessly fades out & in */}
+            {!isFocusMode && (
+                <BottomConsole 
+                    logs={combinedLogs} 
+                    isSimulating={isSimulating} 
+                    supplyVoltage={simulationResult.supplyVoltage}
+                    isOpen={isSerialOpen}
+                    onToggleOpen={() => setIsSerialOpen(prev => !prev)}
+                />
+            )}
 
             {/* Embedded MCU Firmware Code Studio */}
             <AnimatePresence>

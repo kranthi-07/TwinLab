@@ -543,6 +543,17 @@ export const COMPONENTS_CATALOG = [
         tag: "Sensor"
     },
     {
+        id: "sensor-soil",
+        name: "Soil Moisture Sensor",
+        type: "sensor-soil",
+        category: "devices",
+        icon: "ri-drop-line",
+        width: 48,
+        height: 96,
+        desc: "Immersion probe sensor measuring volumetric water content with analog 0-5V signal",
+        tag: "Sensor"
+    },
+    {
         id: "lcd-2004",
         name: "20x4 Character LCD (I2C)",
         type: "lcd-2004",

@@ -30,6 +30,7 @@ export const DESIGNATOR_PREFIXES = {
     "sensor-ultrasonic": "US",
     "sensor-pir": "PIR",
     "sensor-tmp36": "U",
+    "sensor-soil": "SOIL",
     "potentiometer": "POT",
     "buzzer": "BZ",
     "breadboard-half": "BB",

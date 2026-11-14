@@ -120,42 +120,6 @@
 }
 
 /* ==========================================
-   MOVE ALL CIRCUIT HUD INDICATOR
-========================================== */
-.move-all-hud-badge {
-    position: absolute;
-    top: 76px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(15, 23, 42, 0.94);
-    backdrop-filter: blur(16px);
-    border: 1.5px solid var(--project-accent, #FF8A00);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65), 0 0 16px rgba(255, 138, 0, 0.35);
-    color: #f8fafc;
-    padding: 8px 20px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    z-index: 1000;
-    pointer-events: none;
-    letter-spacing: 0.02em;
-    animation: moveAllPulse 1.4s infinite alternate ease-in-out;
-}
-
-.move-all-hud-badge i {
-    font-size: 15px;
-    color: var(--project-accent, #FF8A00);
-}
-
-@keyframes moveAllPulse {
-    from { transform: translateX(-50%) scale(1); }
-    to { transform: translateX(-50%) scale(1.03); }
-}
-
-/* ==========================================
    DROP TARGET HINT
 ========================================== */
 

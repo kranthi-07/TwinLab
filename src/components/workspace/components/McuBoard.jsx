@@ -362,7 +362,7 @@ function McuBoard({
                     transformOrigin: "0 0"
                 }}
                 onMouseDown={(e) => {
-                    onSelect && onSelect(id);
+                    onSelect && onSelect(id, e);
                     onMouseDown && onMouseDown(e, id);
                 }}
             >
@@ -525,7 +525,7 @@ function McuBoard({
                     transformOrigin: "0 0"
                 }}
                 onMouseDown={(e) => {
-                    onSelect && onSelect(id);
+                    onSelect && onSelect(id, e);
                     onMouseDown && onMouseDown(e, id);
                 }}
             >
@@ -617,7 +617,7 @@ function McuBoard({
                     transformOrigin: "0 0"
                 }}
                 onMouseDown={(e) => {
-                    onSelect && onSelect(id);
+                    onSelect && onSelect(id, e);
                     onMouseDown && onMouseDown(e, id);
                 }}
             >
@@ -674,7 +674,7 @@ function McuBoard({
                 }}
                 onMouseDown={(e) => {
                     if (isWireMode) return;
-                    onSelect && onSelect(id);
+                    onSelect && onSelect(id, e);
                     onMouseDown && onMouseDown(e, id);
                 }}
             >
@@ -778,7 +778,7 @@ function McuBoard({
                 }}
                 onMouseDown={(e) => {
                     if (isWireMode) return;
-                    onSelect && onSelect(id);
+                    onSelect && onSelect(id, e);
                     onMouseDown && onMouseDown(e, id);
                 }}
             >
@@ -813,7 +813,7 @@ function McuBoard({
             }}
             onMouseDown={(e) => {
                 if (isWireMode) return;
-                onSelect && onSelect(id);
+                onSelect && onSelect(id, e);
                 onMouseDown && onMouseDown(e, id);
             }}
         >

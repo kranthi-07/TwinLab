@@ -10,8 +10,42 @@ function Minimap({
     onResetView
 }) {
     const [collapsed, setCollapsed] = useState(false);
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
     const mapBodyRef = useRef(null);
     const isDraggingRef = useRef(false);
+    const isMovingHeaderRef = useRef(false);
+    const startHeaderDragRef = useRef({ mouseX: 0, mouseY: 0, startX: 0, startY: 0 });
+
+    const handleHeaderDown = (e) => {
+        if (e.target.closest(".minimap-btn")) return;
+        e.stopPropagation();
+        isMovingHeaderRef.current = true;
+        startHeaderDragRef.current = {
+            mouseX: e.clientX,
+            mouseY: e.clientY,
+            startX: dragOffset.x,
+            startY: dragOffset.y
+        };
+
+        const handlePointerMove = (ev) => {
+            if (!isMovingHeaderRef.current) return;
+            const dx = ev.clientX - startHeaderDragRef.current.mouseX;
+            const dy = ev.clientY - startHeaderDragRef.current.mouseY;
+            setDragOffset({
+                x: startHeaderDragRef.current.startX + dx,
+                y: startHeaderDragRef.current.startY + dy
+            });
+        };
+
+        const handlePointerUp = () => {
+            isMovingHeaderRef.current = false;
+            window.removeEventListener("pointermove", handlePointerMove);
+            window.removeEventListener("pointerup", handlePointerUp);
+        };
+
+        window.addEventListener("pointermove", handlePointerMove);
+        window.addEventListener("pointerup", handlePointerUp);
+    };
 
     // Compute bounding box of all items with padding
     const bounds = useMemo(() => {
@@ -130,9 +164,21 @@ function Minimap({
     };
 
     return (
-        <aside className={`workspace-minimap ${collapsed ? "collapsed" : ""} ${isOffscreen ? "offscreen-alert" : ""}`}>
-            <div className="minimap-header">
+        <aside 
+            className={`workspace-minimap ${collapsed ? "collapsed" : ""} ${isOffscreen ? "offscreen-alert" : ""}`}
+            style={{ 
+                transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`,
+                cursor: "default"
+            }}
+        >
+            <div 
+                className="minimap-header"
+                onPointerDown={handleHeaderDown}
+                title="Drag header to move Minimap"
+                style={{ cursor: "default" }}
+            >
                 <div className="minimap-title">
+                    <i className="ri-drag-move-fill minimap-drag-handle" style={{ fontSize: 13, color: "#64748b" }}></i>
                     <i className="ri-map-2-line"></i>
                     <span>Minimap</span>
                     {isOffscreen && <span className="offscreen-pill">Offscreen</span>}
@@ -166,7 +212,7 @@ function Minimap({
                     className="minimap-body" 
                     onPointerDown={handlePointerDown} 
                     title="Click or drag to navigate workspace"
-                    style={{ cursor: "crosshair" }}
+                    style={{ cursor: "pointer" }}
                 >
                     <svg width={MAP_WIDTH} height={MAP_HEIGHT} className="minimap-svg">
                         {/* Dot Grid representation */}

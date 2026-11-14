@@ -130,11 +130,11 @@
 .schematic-svg-viewport {
     width: 100%;
     height: 100%;
-    cursor: grab;
+    cursor: pointer;
 }
 
 .schematic-view-container:active .schematic-svg-viewport {
-    cursor: grabbing;
+    cursor: pointer;
 }
 
 /* Component Symbols Text & Markings */

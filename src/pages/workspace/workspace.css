@@ -200,8 +200,47 @@
 
 
 /* ==========================================
-   FOCUS MODE ACTIVATED FLOATING BUTTON & MINIMAP
+   FOCUS MODE ESC HINT PILL & MINIMAP
 ========================================== */
+
+.focus-esc-hint-pill {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    padding: 8px 20px;
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 16px rgba(56, 189, 248, 0.2);
+    z-index: 9999;
+    pointer-events: none;
+    user-select: none;
+}
+
+.focus-esc-hint-pill kbd {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-family: monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: #38bdf8;
+    margin: 0 4px;
+}
+
+[data-theme="light"] .focus-esc-hint-pill {
+    background: rgba(255, 255, 255, 0.94);
+    border-color: rgba(15, 23, 42, 0.14);
+    color: #0f172a;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
 
 .focus-mode-floating-control {
     position: absolute;
@@ -384,4 +423,40 @@
     background: rgba(8, 12, 20, 0.95) !important;
     border: 1px solid rgba(6, 182, 212, 0.3) !important;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), 0 0 20px rgba(6, 182, 212, 0.2) !important;
+}
+
+/* ============================================================
+   GLOBAL ARROW CURSOR: Standard arrow cursor everywhere across workspace
+   ============================================================ */
+.workspace,
+.workspace *,
+.workspace button,
+.workspace a,
+.workspace select,
+.workspace .terminal-pin,
+.workspace .component-card,
+.workspace .topbar-btn,
+.workspace .tool-btn,
+.workspace .btn,
+.workspace .action-btn,
+.workspace .custom-ide-dropdown-trigger,
+.workspace .breadboard-hole-node,
+.workspace [role="button"],
+.workspace [cursor="pointer"] {
+    cursor: default !important;
+}
+
+/* Allow text selection in inputs and code editor */
+.workspace input,
+.workspace textarea,
+.workspace .monaco-editor,
+.workspace .monaco-editor * {
+    cursor: text !important;
+}
+
+/* Allow move cursor for draggable items like minimap header / floating bars */
+.workspace .minimap-header,
+.workspace .floating-inspector-header,
+.workspace .custom-ide-window-header {
+    cursor: move !important;
 }

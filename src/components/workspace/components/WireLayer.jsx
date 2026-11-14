@@ -118,7 +118,9 @@ function WireLayer({
                 const isSelected = selectedWireId === wire.id || selectedWireId === "all";
                 const wireMode = wire.routingMode || routingMode;
                 const pathStr = pointsToPath(wire.points, wireMode);
-                const hasCurrent = Boolean(simulationResult?.wireStates?.[wire.id]?.hasCurrent);
+                const wireState = simulationResult?.wireStates?.[wire.id];
+                const hasCurrent = Boolean(wireState?.hasCurrent);
+                const flowDirection = wireState?.direction || "forward";
 
                 return (
                     <g 
@@ -172,7 +174,7 @@ function WireLayer({
                             className="wire-core"
                         />
 
-                        {/* 4. Glowing Yellow Electron / Current Flow Dots (ONLY shown when real current is flowing!) */}
+                        {/* 4. Glowing Yellow Electron / Current Flow Dots (strictly negative to positive) */}
                         {isSimulating && hasCurrent && (
                             <path 
                                 d={pathStr}
@@ -181,7 +183,7 @@ function WireLayer({
                                 strokeDasharray="3 14"
                                 strokeLinecap="round"
                                 fill="none"
-                                className="wire-electron-flow"
+                                className={`wire-electron-flow ${flowDirection === "reverse" ? "reverse" : "forward"}`}
                             />
                         )}
 

@@ -556,6 +556,49 @@ export function ComponentArt({ type, color = "#ef4444", className = "", size = "
         );
     }
 
+    // 31b. TMP36 PRECISION TEMPERATURE SENSOR (TO-92 PACKAGE)
+    if (t.includes("temp") || t.includes("tmp36")) {
+        return (
+            <svg viewBox="0 0 100 68" className={`comp-art-svg ${className}`}>
+                {/* 3 Straight Leads (VCC, VOUT, GND) */}
+                <line x1="38" y1="44" x2="38" y2="60" stroke="#cbd5e1" strokeWidth="2.5" />
+                <line x1="50" y1="44" x2="50" y2="60" stroke="#cbd5e1" strokeWidth="2.5" />
+                <line x1="62" y1="44" x2="62" y2="60" stroke="#cbd5e1" strokeWidth="2.5" />
+                {/* TO-92 Semi-Cylindrical Body */}
+                <path d="M 30 44 L 70 44 C 70 18, 30 18, 30 44 Z" fill="#09090b" stroke="#27272a" strokeWidth="1.5" />
+                <rect x="32" y="41" width="36" height="3" fill="#18181b" />
+                <text x="50" y="32" fill="#38bdf8" fontSize="6" fontFamily="monospace" fontWeight="900" textAnchor="middle">TMP36</text>
+                <text x="50" y="39" fill="#94a3b8" fontSize="4" fontFamily="monospace" fontWeight="700" textAnchor="middle">-40°C~125°C</text>
+            </svg>
+        );
+    }
+
+    // 31c. SOIL MOISTURE SENSOR PROBE
+    if (t.includes("soil")) {
+        return (
+            <svg viewBox="0 0 100 68" className={`comp-art-svg ${className}`}>
+                {/* 3 Header Pins at top (VCC, GND, SIG) */}
+                <line x1="42" y1="12" x2="42" y2="4" stroke="#ca8a04" strokeWidth="2.2" strokeLinecap="round" />
+                <line x1="50" y1="12" x2="50" y2="4" stroke="#ca8a04" strokeWidth="2.2" strokeLinecap="round" />
+                <line x1="58" y1="12" x2="58" y2="4" stroke="#ca8a04" strokeWidth="2.2" strokeLinecap="round" />
+                {/* Red Controller PCB */}
+                <rect x="30" y="12" width="40" height="22" rx="3" fill="#dc2626" stroke="#991b1b" strokeWidth="1.5" />
+                {/* Status LEDs & Trimmer */}
+                <circle cx="36" cy="18" r="1.8" fill="#22c55e" />
+                <circle cx="64" cy="18" r="1.8" fill="#eab308" />
+                <rect x="46" y="16" width="8" height="8" rx="1.5" fill="#3b82f6" stroke="#1d4ed8" strokeWidth="0.8" />
+                <circle cx="50" cy="20" r="2" fill="#ca8a04" />
+                <text x="50" y="30" fill="#ffffff" fontSize="4.5" fontFamily="monospace" fontWeight="900" textAnchor="middle">SOIL</text>
+                {/* Left & Right Long Immersion Probe Prongs */}
+                <rect x="36" y="34" width="9" height="30" rx="3" fill="#b91c1c" stroke="#991b1b" strokeWidth="1" />
+                <rect x="55" y="34" width="9" height="30" rx="3" fill="#b91c1c" stroke="#991b1b" strokeWidth="1" />
+                {/* Gold Interdigitated Sensing Traces */}
+                <line x1="40.5" y1="40" x2="40.5" y2="60" stroke="#f59e0b" strokeWidth="2.2" strokeLinecap="round" />
+                <line x1="59.5" y1="40" x2="59.5" y2="60" stroke="#f59e0b" strokeWidth="2.2" strokeLinecap="round" />
+            </svg>
+        );
+    }
+
     // 32. DC MOTOR WITH PROPELLER
     if (t.includes("motor-dc") || t === "dc-motor") {
         return (
