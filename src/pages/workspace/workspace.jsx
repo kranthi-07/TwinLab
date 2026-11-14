@@ -330,7 +330,7 @@ function Workspace({ onBackToHome }) {
 
     // Available MCU boards on canvas
     const availableMcuBoards = useMemo(() => {
-        return components.filter(c => ["arduino-uno", "arduino-mega", "arduino-nano", "esp32-devkit", "esp32", "esp32-s3"].includes(c.type));
+        return components.filter(c => ["arduino-uno", "arduino-mega", "arduino-nano", "esp32-devkit", "esp32", "esp32-s3", "rpi-pico", "raspberry-pi"].includes(c.type));
     }, [components]);
 
     const activeTargetBoard = availableMcuBoards.find(b => b.id === targetMcuId) || availableMcuBoards[0] || null;

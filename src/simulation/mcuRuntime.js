@@ -235,6 +235,7 @@ export class McuExecutionSession {
     }
 
     getBuiltinLedPin() {
+        if (this.boardType === "rpi-pico" || this.boardType === "raspberry-pi") return 25;
         return (this.boardType === "esp32" || this.boardType === "esp32-devkit") ? 2 : 13;
     }
 

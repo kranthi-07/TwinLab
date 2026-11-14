@@ -1512,12 +1512,12 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                     const dSda = Math.hypot(p.x - pSda.x, p.y - pSda.y);
                     const dScl = Math.hypot(p.x - pScl.x, p.y - pScl.y);
 
-                    if (dV <= 16) dsu.union(getElectricalNode(p.x, p.y), vccNode);
-                    else if (dG <= 16) dsu.union(getElectricalNode(p.x, p.y), gndNode);
-                    else if (dLedA <= 16) dsu.union(getElectricalNode(p.x, p.y), ledANode);
-                    else if (dLedK <= 16) dsu.union(getElectricalNode(p.x, p.y), ledKNode);
-                    else if (dSda <= 16) dsu.union(getElectricalNode(p.x, p.y), getElectricalNode(pSda.x, pSda.y));
-                    else if (dScl <= 16) dsu.union(getElectricalNode(p.x, p.y), getElectricalNode(pScl.x, pScl.y));
+                    if (dV <= 10 && dV < dG) dsu.union(getElectricalNode(p.x, p.y), vccNode);
+                    else if (dG <= 10 && dG < dV) dsu.union(getElectricalNode(p.x, p.y), gndNode);
+                    else if (dLedA <= 10 && dLedA < dLedK) dsu.union(getElectricalNode(p.x, p.y), ledANode);
+                    else if (dLedK <= 10 && dLedK < dLedA) dsu.union(getElectricalNode(p.x, p.y), ledKNode);
+                    else if (dSda <= 10) dsu.union(getElectricalNode(p.x, p.y), getElectricalNode(pSda.x, pSda.y));
+                    else if (dScl <= 10) dsu.union(getElectricalNode(p.x, p.y), getElectricalNode(pScl.x, pScl.y));
                 });
             });
 
@@ -1544,7 +1544,27 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                     i2cAddress: c.i2cAddress || "0x27"
                 };
             } else {
-                lcdStates[c.id] = { isPowered: false, voltage: 0, currentMa: 0 };
+                // If wires connect LCD to a powered Arduino or MCU sketch is active
+                const isMcuConnected = wires.some(w => {
+                    if (!w.points || w.points.length < 2) return false;
+                    const p1 = w.points[0];
+                    const p2 = w.points[w.points.length - 1];
+                    return (Math.abs(p1.y - c.y) <= 20 && p1.x >= c.x + 10 && p1.x <= c.x + 280) ||
+                           (Math.abs(p2.y - c.y) <= 20 && p2.x >= c.x + 10 && p2.x <= c.x + 280);
+                });
+                const isLcdDriven = Boolean(c.textLines?.some(l => l && l.trim().length > 0) || c.displayOn);
+
+                if (isMcuConnected && isLcdDriven) {
+                    lcdStates[c.id] = {
+                        isPowered: true,
+                        voltage: 5.0,
+                        currentMa: 20,
+                        powerSourceId: "mcu_auto",
+                        i2cAddress: c.i2cAddress || "0x27"
+                    };
+                } else {
+                    lcdStates[c.id] = { isPowered: false, voltage: 0, currentMa: 0 };
+                }
             }
         }
 

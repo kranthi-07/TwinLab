@@ -1378,7 +1378,7 @@ function SmallComponent({
                 const is2004 = type === "lcd-2004";
                 const numCols = is2004 ? 20 : 16;
                 const numRows = is2004 ? 4 : 2;
-                const isPowered = Boolean(isSimulating && simState?.isPowered);
+                const isPowered = Boolean(isSimulating && (simState?.isPowered || (textLines && textLines.some(l => l && l.trim().length > 0)) || (component?.textLines && component.textLines.some(l => l && l.trim().length > 0))));
                 const isBacklightActive = isPowered && backlightOn !== false;
                 const isDisplayVisible = isPowered && displayOn !== false;
                 const bgColor = backlightColor || "#0284c7";
