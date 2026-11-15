@@ -1,0 +1,242 @@
+/* Fullscreen Intro Overlay */
+.twinlab-intro-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999;
+    background: #050811;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: pointer;
+    transition: background 0.75s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.twinlab-intro-overlay.docking-active {
+    background: transparent;
+    pointer-events: none;
+}
+
+/* Hide static topbar brand while intro is in center, reveal when docking arrives */
+body.twinlab-intro-active .topbar .brand {
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+
+/* Premium Obsidian Backdrop & Subtle Blueprint Grid */
+.intro-backdrop {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+}
+
+.docking-active .intro-backdrop {
+    opacity: 0;
+}
+
+.intro-grid-pattern {
+    position: absolute;
+    inset: 0;
+    background-image: 
+        linear-gradient(rgba(56, 189, 248, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.035) 1px, transparent 1px);
+    background-size: 36px 36px;
+    background-position: center center;
+    mask-image: radial-gradient(circle at center, black 30%, transparent 75%);
+    -webkit-mask-image: radial-gradient(circle at center, black 30%, transparent 75%);
+}
+
+.intro-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(56, 189, 248, 0.12) 0%, rgba(255, 138, 0, 0.04) 38%, #050811 75%);
+}
+
+/* Minimalist Futuristic Corner HUD Marks */
+.intro-simple-hud {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    transition: opacity 0.4s ease;
+}
+
+.docking-active .intro-simple-hud {
+    opacity: 0;
+}
+
+.hud-corner-mark {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    color: rgba(148, 163, 184, 0.5);
+    user-select: none;
+}
+
+.hud-corner-mark .hud-plus {
+    color: #38bdf8;
+    font-weight: 800;
+    font-size: 13px;
+}
+
+.hud-corner-mark.top-left {
+    top: 28px;
+    left: 32px;
+}
+
+.hud-corner-mark.top-right {
+    top: 28px;
+    right: 32px;
+}
+
+.hud-corner-mark.bottom-left {
+    bottom: 28px;
+    left: 32px;
+}
+
+.hud-corner-mark.bottom-right {
+    bottom: 28px;
+    right: 32px;
+}
+
+/* Center Stage - Statically at (50%, 44%) */
+.intro-center-stage {
+    position: absolute;
+    left: 50%;
+    top: 44%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Flying Brand Container */
+.intro-flying-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    will-change: transform, opacity;
+}
+
+/* Assembled Brand: Flex container holding [Twin] [Lab] [Logo as X] */
+.intro-brand-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+/* Word Slide Blocks (revealing continuously out from the logo) */
+.intro-word-slide {
+    overflow: hidden;
+    white-space: nowrap;
+    display: flex;
+    align-items: baseline;
+    font-size: 44px;
+    font-weight: 850;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    will-change: max-width, opacity, transform;
+}
+
+.intro-word-slide.word-twin .brand-twin {
+    color: #ffffff;
+    text-shadow: 0 0 25px rgba(255, 255, 255, 0.45), 0 0 50px rgba(56, 189, 248, 0.25);
+    display: inline-block;
+    padding-right: 2px;
+}
+
+.intro-word-slide.word-lab .brand-lab {
+    color: #ff8a00;
+    text-shadow: 0 0 25px rgba(255, 138, 0, 0.55), 0 0 50px rgba(255, 138, 0, 0.25);
+    display: inline-block;
+    padding-right: 14px;
+}
+
+/* Logo Slot: starts BIG (2.2) in center, moves smoothly as Lab and Twin slide left */
+.intro-logo-slot {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transform-origin: center center;
+    will-change: transform;
+}
+
+.intro-mark-glow-pulse {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.35) 0%, rgba(255, 138, 0, 0.2) 50%, transparent 75%);
+    filter: blur(16px);
+    animation: introGlowPulse 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes introGlowPulse {
+    0% { transform: scale(0.9); opacity: 0.45; }
+    100% { transform: scale(1.3); opacity: 0.95; }
+}
+
+.intro-mark-core-spark {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 0 12px #38bdf8, 0 0 24px #ff8a00;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.locked-as-x .intro-mark-core-spark {
+    opacity: 0.9;
+    animation: coreSparkPulse 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes coreSparkPulse {
+    0% { transform: scale(0.8); opacity: 0.5; }
+    100% { transform: scale(1.4); opacity: 1; }
+}
+
+.intro-twinlab-mark {
+    position: relative;
+    z-index: 2;
+    filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.65)) drop-shadow(0 0 28px rgba(255, 138, 0, 0.4));
+}
+
+/* Simple, Futuristic Badge below brand */
+.intro-simple-badge {
+    margin-top: 14px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    color: #38bdf8;
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Minimalist Skip Hint */
+.intro-skip-hint {
+    position: absolute;
+    bottom: 24px;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: rgba(255, 255, 255, 0.22);
+    pointer-events: none;
+    user-select: none;
+}

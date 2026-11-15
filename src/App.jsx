@@ -3,10 +3,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import WorkspaceLayout from "./layouts/WorkspaceLayout";
 import HomepageLayout from "./layouts/HomepageLayout";
 import ErrorBoundary from "./components/common/ErrorBoundary";
+import IntroLoadingAnimation from "./components/common/IntroLoadingAnimation";
 
 const VIEW_STORAGE_KEY = "twinlab_active_view";
 
 function App() {
+    const [showIntro, setShowIntro] = useState(true);
+
     // Keep user in workspace on page refresh if they were in workspace!
     const [view, setView] = useState(() => {
         if (window.location.hash === "#workspace" || window.location.hash === "#/workspace") {
@@ -38,6 +41,12 @@ function App() {
 
     // Global Top-Level Shortcuts: Ctrl+L (Launch Workspace), Ctrl+D (Launch Code Editor)
     useEffect(() => {
+        const handleReplayIntro = () => setShowIntro(true);
+        window.addEventListener("twinlab:replay_intro", handleReplayIntro);
+        return () => window.removeEventListener("twinlab:replay_intro", handleReplayIntro);
+    }, []);
+
+    useEffect(() => {
         const handleGlobalShortcuts = (e) => {
             const isCtrl = e.ctrlKey || e.metaKey;
             const isInput = e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable;
@@ -68,6 +77,9 @@ function App() {
 
     return (
         <ErrorBoundary>
+            {showIntro && (
+                <IntroLoadingAnimation onComplete={() => setShowIntro(false)} />
+            )}
             <AnimatePresence mode="wait">
                 {view === "workspace" ? (
                     <motion.div

@@ -1,0 +1,230 @@
+/* Futuristic Workspace Loader Overlay */
+.workspace-futuristic-loader {
+    position: absolute;
+    inset: 0;
+    z-index: 9000;
+    background: #060913;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    user-select: none;
+}
+
+/* Background Cyber Grid & Vignette */
+.ws-loader-grid {
+    position: absolute;
+    inset: 0;
+    background-image: 
+        linear-gradient(rgba(56, 189, 248, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.035) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-position: center center;
+    pointer-events: none;
+    mask-image: radial-gradient(circle at center, black 35%, transparent 80%);
+    -webkit-mask-image: radial-gradient(circle at center, black 35%, transparent 80%);
+}
+
+.ws-loader-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 48%, rgba(56, 189, 248, 0.1) 0%, rgba(255, 138, 0, 0.04) 40%, #060913 75%);
+    pointer-events: none;
+}
+
+/* Minimalist Corner Crosshairs */
+.ws-corner-cross {
+    position: absolute;
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    color: rgba(148, 163, 184, 0.5);
+    pointer-events: none;
+    user-select: none;
+}
+
+.ws-corner-cross.tl { top: 24px; left: 28px; }
+.ws-corner-cross.tr { top: 24px; right: 28px; text-align: right; }
+.ws-corner-cross.bl { bottom: 24px; left: 28px; }
+.ws-corner-cross.br { bottom: 24px; right: 28px; text-align: right; }
+
+/* Center Box */
+.ws-loader-center-box {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    max-width: 380px;
+    width: 88%;
+}
+
+/* Holo Ring Reticle */
+.ws-holo-ring-container {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ws-holo-svg-outer {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    animation: wsRotateClockwise 12s linear infinite;
+}
+
+.ws-holo-svg-inner {
+    position: absolute;
+    width: 78%;
+    height: 78%;
+    animation: wsRotateCounterClockwise 8s linear infinite;
+}
+
+@keyframes wsRotateClockwise {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes wsRotateCounterClockwise {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
+}
+
+.ws-holo-core {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ws-core-energy-aura {
+    position: absolute;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.35) 0%, rgba(255, 138, 0, 0.2) 50%, transparent 75%);
+    filter: blur(12px);
+    animation: wsCorePulse 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes wsCorePulse {
+    0% { transform: scale(0.85); opacity: 0.5; }
+    100% { transform: scale(1.25); opacity: 0.95; }
+}
+
+/* Title Box */
+.ws-loader-title-box {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.ws-loader-title {
+    font-size: 28px;
+    font-weight: 850;
+    margin: 0;
+    line-height: 1;
+    letter-spacing: -0.025em;
+}
+
+.ws-loader-title .brand-twin {
+    color: #ffffff;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+}
+
+.ws-loader-title .brand-lab {
+    color: #ff8a00;
+    text-shadow: 0 0 20px rgba(255, 138, 0, 0.5);
+}
+
+.ws-loader-title .brand-x {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 30px;
+    font-weight: 950;
+    font-family: system-ui, -apple-system, sans-serif;
+    line-height: 1;
+    background: linear-gradient(135deg, #ffb800 0%, #ff6600 50%, #ff2a00 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 10px rgba(255, 102, 0, 0.8));
+}
+
+.ws-loader-subtitle {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: #38bdf8;
+    text-transform: uppercase;
+}
+
+/* Progress Wrap - Minimal & Sleek */
+.ws-loader-progress-wrap {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.ws-progress-track {
+    width: 100%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 999px;
+    position: relative;
+    overflow: hidden;
+}
+
+.ws-progress-neon-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #00f0ff 0%, #38bdf8 50%, #ff8a00 100%);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.7);
+    border-radius: 999px;
+    position: relative;
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ws-progress-metric {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    color: #94a3b8;
+}
+
+.ws-metric-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 6px #10b981;
+    display: inline-block;
+    margin-right: 6px;
+    animation: wsDotBlink 1s ease-in-out infinite alternate;
+}
+
+@keyframes wsDotBlink {
+    0% { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+
+.ws-metric-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ws-metric-val {
+    color: #ff8a00;
+    font-weight: 700;
+    margin-left: 8px;
+}

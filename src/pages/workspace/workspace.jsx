@@ -13,6 +13,7 @@ import Minimap from "../../components/workspace/Minimap/Minimap";
 import SchematicView from "../../components/workspace/SchematicView/SchematicView";
 import Oscilloscope from "../../components/workspace/Instruments/Oscilloscope";
 import ComponentSearchModal from "../../components/workspace/SearchModal/ComponentSearchModal";
+import WorkspaceLoader from "../../components/workspace/WorkspaceLoader";
 import { McuExecutionSession, DEFAULT_SKETCHES } from "../../simulation/mcuRuntime";
 import cloudProjectService from "../../services/cloudProjectService";
 import authService from "../../services/authService";
@@ -203,6 +204,15 @@ function getStarterCircuit(type) {
 }
 
 function Workspace({ onBackToHome }) {
+    // Futuristic Workspace Loader state
+    const [isWorkspaceLoading, setIsWorkspaceLoading] = useState(true);
+
+    useEffect(() => {
+        const handleTriggerLoader = () => setIsWorkspaceLoading(true);
+        window.addEventListener("twinlab:workspace_loading", handleTriggerLoader);
+        return () => window.removeEventListener("twinlab:workspace_loading", handleTriggerLoader);
+    }, []);
+
     // Load initial project: check saved project or draft on reload
     const [components, setComponents] = useState(() => {
         try {
@@ -1524,6 +1534,15 @@ function Workspace({ onBackToHome }) {
                 "--project-accent-border": `${projectMeta.accent || "#FF8A00"}45`
             }}
         >
+            {/* Futuristic Cyber Loader when mounting workspace or opening project */}
+            {isWorkspaceLoading && (
+                <WorkspaceLoader
+                    projectName={projectMeta.name || "HARDWARE DIGITAL TWIN"}
+                    duration={1050}
+                    onComplete={() => setIsWorkspaceLoading(false)}
+                />
+            )}
+
             {/* View Mode Toggle: Interactive Canvas vs IEEE Schematic Diagram */}
             {viewMode === "schematic" ? (
                 <SchematicView
