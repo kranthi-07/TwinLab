@@ -1,6 +1,6 @@
 // Embedded MCU Firmware Execution Engine & C++ Transpiler
 // Supports Arduino Uno R3 (ATmega328P) & ESP32 DevKit V1 (ESP-WROOM-32)
-import { soundManager } from "../utils/audioManager";
+import { soundManager } from "../utils/audioManager.js";
 
 export const DEFAULT_SKETCHES = {
     blank: `// Clean Empty Arduino Sketch\nvoid setup() {\n  // put your setup code here, to run once:\n\n}\n\nvoid loop() {\n  // put your main code here, to run repeatedly:\n\n}`,
@@ -242,20 +242,16 @@ void loop() {
 
     pico_py_blink: `# Raspberry Pi Pico MicroPython Blink
 from machine import Pin
-import time
+import utime
 
 # Built-in LED on GP25
 led = Pin(25, Pin.OUT)
 print("Raspberry Pi Pico MicroPython Ready!")
 
 while True:
-    led.value(1)
-    print("GP25 LED: ON")
-    time.sleep(0.5)
-
-    led.value(0)
-    print("GP25 LED: OFF")
-    time.sleep(0.5)
+    led.toggle()
+    print("GP25 LED Toggled")
+    utime.sleep(0.5)
 `,
 
     pico_py_ultrasonic: `# Raspberry Pi Pico MicroPython Ultrasonic Sonar
@@ -413,6 +409,10 @@ export class McuExecutionSession {
                 continue;
             }
 
+            if (stmt === "pass") {
+                continue;
+            }
+
             if (stmt === "while True") {
                 stmt = "while (__runningRef.current)";
             } else if (stmt.startsWith("while ")) {
@@ -486,17 +486,28 @@ export class McuExecutionSession {
         s = s.replace(/\bor\b/g, "||");
         s = s.replace(/\bnot\b/g, "!");
 
-        // Pin instantiation: Pin(...) -> new Pin(...)
-        s = s.replace(/\bPin\s*\(/g, "new Pin(");
-        s = s.replace(/\bI2cLcd\s*\(/g, "new I2cLcd(");
+        // Pin instantiation: only convert bare Pin(...) so machine.Pin(...) is not broken
+        s = s.replace(/(^|[^.\w])Pin\s*\(/g, "$1new Pin(");
+        s = s.replace(/(^|[^.\w])I2cLcd\s*\(/g, "$1new I2cLcd(");
 
-        // Sleep calls
+        // Sleep calls (utime, time, sleep)
+        s = s.replace(/\butime\.sleep\s*\(\s*([^)]+)\s*\)/g, "await utime.sleep($1)");
+        s = s.replace(/\butime\.sleep_ms\s*\(\s*([^)]+)\s*\)/g, "await utime.sleep_ms($1)");
+        s = s.replace(/\butime\.sleep_us\s*\(\s*([^)]+)\s*\)/g, "await utime.sleep_us($1)");
         s = s.replace(/\btime\.sleep\s*\(\s*([^)]+)\s*\)/g, "await time.sleep($1)");
         s = s.replace(/\btime\.sleep_ms\s*\(\s*([^)]+)\s*\)/g, "await time.sleep_ms($1)");
         s = s.replace(/\btime\.sleep_us\s*\(\s*([^)]+)\s*\)/g, "await time.sleep_us($1)");
-        s = s.replace(/\bsleep\s*\(\s*([^)]+)\s*\)/g, "await sleep($1)");
-        s = s.replace(/\bsleep_ms\s*\(\s*([^)]+)\s*\)/g, "await sleep_ms($1)");
-        s = s.replace(/\bsleep_us\s*\(\s*([^)]+)\s*\)/g, "await sleep_us($1)");
+        s = s.replace(/(^|[^.\w])sleep\s*\(\s*([^)]+)\s*\)/g, "$1await sleep($2)");
+        s = s.replace(/(^|[^.\w])sleep_ms\s*\(\s*([^)]+)\s*\)/g, "$1await sleep_ms($2)");
+        s = s.replace(/(^|[^.\w])sleep_us\s*\(\s*([^)]+)\s*\)/g, "$1await sleep_us($2)");
+
+        // MicroPython time ticks
+        s = s.replace(/\butime\.ticks_ms\s*\(\s*\)/g, "Date.now()");
+        s = s.replace(/\butime\.ticks_us\s*\(\s*\)/g, "(Date.now() * 1000)");
+        s = s.replace(/\butime\.ticks_diff\s*\(\s*([^,]+),\s*([^)]+)\)/g, "(($1) - ($2))");
+        s = s.replace(/\btime\.ticks_ms\s*\(\s*\)/g, "Date.now()");
+        s = s.replace(/\btime\.ticks_us\s*\(\s*\)/g, "(Date.now() * 1000)");
+        s = s.replace(/\btime\.ticks_diff\s*\(\s*([^,]+),\s*([^)]+)\)/g, "(($1) - ($2))");
 
         // Ultrasonic pulse
         s = s.replace(/\btime_pulse_us\s*\(\s*([^)]+)\s*\)/g, "await time_pulse_us($1)");
@@ -893,41 +904,55 @@ export class McuExecutionSession {
         };
 
         // MicroPython & Python Objects and Classes
-        class PyPin {
-            constructor(pinNum, mode = "OUTPUT", pull = null) {
-                let p = pinNum;
-                if (typeof p === "string" && (p.toLowerCase() === "led" || p.toUpperCase() === "LED")) {
-                    p = builtinPin;
-                }
-                this.pin = String(p).replace(/^GP/i, "").trim();
-                this.mode = mode === "INPUT" || mode === "INPUT_PULLUP" ? mode : "OUTPUT";
-                this.currentVal = 0;
-                context.__pinMode(this.pin, this.mode);
+        function PyPin(pinNum, mode = "OUTPUT", pull = null) {
+            if (!(this instanceof PyPin)) {
+                return new PyPin(pinNum, mode, pull);
             }
-            value(v) {
-                if (v === undefined) {
-                    return context.__digitalRead(this.pin);
-                }
-                const val = (v === 1 || v === true || v === "1") ? 1 : 0;
-                this.currentVal = val;
-                context.__digitalWrite(this.pin, val);
-                return val;
+            let p = pinNum;
+            if (typeof p === "string" && (p.toLowerCase() === "led" || p.toUpperCase() === "LED")) {
+                p = builtinPin;
             }
-            on() { return this.value(1); }
-            off() { return this.value(0); }
-            high() { return this.value(1); }
-            low() { return this.value(0); }
-            toggle() { return this.value(this.currentVal === 1 ? 0 : 1); }
+            this.pin = String(p).replace(/^GP/i, "").trim();
+            if (mode === "INPUT" || mode === 0 || mode === "IN" || mode === PyPin.IN) {
+                this.mode = (pull === "PULL_UP" || pull === PyPin.PULL_UP) ? "INPUT_PULLUP" : "INPUT";
+            } else {
+                this.mode = "OUTPUT";
+            }
+            this.currentVal = 0;
+            context.__pinMode(this.pin, this.mode);
         }
         PyPin.OUT = "OUTPUT";
         PyPin.IN = "INPUT";
         PyPin.PULL_UP = "INPUT_PULLUP";
         PyPin.PULL_DOWN = "INPUT";
 
+        PyPin.prototype.value = function(v) {
+            if (v === undefined) {
+                return context.__digitalRead(this.pin);
+            }
+            const val = (v === 1 || v === true || v === "1") ? 1 : 0;
+            this.currentVal = val;
+            context.__digitalWrite(this.pin, val);
+            return val;
+        };
+        PyPin.prototype.on = function() { return this.value(1); };
+        PyPin.prototype.off = function() { return this.value(0); };
+        PyPin.prototype.high = function() { return this.value(1); };
+        PyPin.prototype.low = function() { return this.value(0); };
+        PyPin.prototype.toggle = function() { return this.value(this.currentVal === 1 ? 0 : 1); };
+        PyPin.prototype.init = function(mode, pull) {
+            if (mode) this.mode = mode;
+            context.__pinMode(this.pin, this.mode);
+        };
+
         const pyTime = {
             sleep: async (s) => await context.__delay(Math.round((Number(s) || 0) * 1000)),
             sleep_ms: async (ms) => await context.__delay(Math.round(Number(ms) || 0)),
-            sleep_us: async (us) => await context.__delayMicroseconds(Math.round(Number(us) || 0))
+            sleep_us: async (us) => await context.__delayMicroseconds(Math.round(Number(us) || 0)),
+            ticks_ms: () => Date.now(),
+            ticks_us: () => Date.now() * 1000,
+            ticks_diff: (t1, t2) => (Number(t1) || 0) - (Number(t2) || 0),
+            time: () => Math.floor(Date.now() / 1000)
         };
 
         const pyPulse = async (pinObj, val, timeout = 30000) => {
@@ -935,30 +960,57 @@ export class McuExecutionSession {
             return await context.__pulseIn(p, val, timeout);
         };
 
-        class PyI2cLcd {
-            constructor(i2c, addr = 0x27, rows = 2, cols = 16) {
-                this.lcd = new context.__LiquidCrystal(addr, cols, rows);
-                this.lcd.begin(cols, rows);
+        function PyI2cLcd(i2c, addr = 0x27, rows = 2, cols = 16) {
+            if (!(this instanceof PyI2cLcd)) {
+                return new PyI2cLcd(i2c, addr, rows, cols);
             }
-            putstr(str) { this.lcd.print(str); }
-            clear() { this.lcd.clear(); }
-            move_to(col, row) { this.lcd.setCursor(col, row); }
-            backlight_on() { this.lcd.backlight(); }
-            backlight_off() { this.lcd.noBacklight(); }
+            this.lcd = new context.__LiquidCrystal(addr, cols, rows);
+            this.lcd.begin(cols, rows);
         }
+        PyI2cLcd.prototype.putstr = function(str) { this.lcd.print(str); };
+        PyI2cLcd.prototype.clear = function() { this.lcd.clear(); };
+        PyI2cLcd.prototype.move_to = function(col, row) { this.lcd.setCursor(col, row); };
+        PyI2cLcd.prototype.backlight_on = function() { this.lcd.backlight(); };
+        PyI2cLcd.prototype.backlight_off = function() { this.lcd.noBacklight(); };
+
+        function PyADC(pin) {
+            if (!(this instanceof PyADC)) return new PyADC(pin);
+            let p = pin?.pin != null ? pin.pin : pin;
+            this.pin = String(p).replace(/^GP/i, "").trim();
+        }
+        PyADC.prototype.read_u16 = function() {
+            const raw10 = context.__analogRead(this.pin);
+            return Math.min(65535, Math.round((raw10 / 1023) * 65535));
+        };
+
+        function PyPWM(pin) {
+            if (!(this instanceof PyPWM)) return new PyPWM(pin);
+            let p = pin?.pin != null ? pin.pin : pin;
+            this.pin = String(p).replace(/^GP/i, "").trim();
+        }
+        PyPWM.prototype.freq = function(hz) { /* PWM frequency */ };
+        PyPWM.prototype.duty_u16 = function(val) {
+            const duty8 = Math.max(0, Math.min(255, Math.round((Number(val) || 0) / 257)));
+            context.__analogWrite(this.pin, duty8);
+        };
 
         context.Pin = PyPin;
         context.time = pyTime;
+        context.utime = pyTime;
         context.sleep = pyTime.sleep;
         context.sleep_ms = pyTime.sleep_ms;
         context.sleep_us = pyTime.sleep_us;
         context.time_pulse_us = pyPulse;
         context.I2cLcd = PyI2cLcd;
+        context.ADC = PyADC;
+        context.PWM = PyPWM;
         context.machine = {
             Pin: PyPin,
+            ADC: PyADC,
+            PWM: PyPWM,
             time_pulse_us: pyPulse,
-            ADC: class { constructor(pin) { this.pin = pin; } read_u16() { return Math.round((context.__analogRead(this.pin) / 1023) * 65535); } },
-            PWM: class { constructor(pin) { this.pin = pin; } duty_u16(val) { context.__analogWrite(this.pin, Math.round((val / 65535) * 255)); } }
+            time: pyTime,
+            utime: pyTime
         };
         context.print = async (...args) => {
             const text = args.map(a => typeof a === "object" ? JSON.stringify(a) : String(a)).join(" ");
@@ -986,9 +1038,23 @@ export class McuExecutionSession {
                 code.includes("from machine import") ||
                 code.includes("import machine") ||
                 code.includes("import time") ||
+                code.includes("import utime") ||
+                code.includes("from utime import") ||
+                code.includes("from time import") ||
                 code.includes("time_pulse_us") ||
                 code.includes("Pin.OUT") ||
-                code.includes("Pin.IN")
+                code.includes("Pin.IN") ||
+                code.includes("Pin(") ||
+                code.includes("machine.Pin") ||
+                code.includes("utime.") ||
+                code.includes(".toggle()") ||
+                code.includes(".value(") ||
+                code.includes(".on()") ||
+                code.includes(".off()") ||
+                code.includes(".low()") ||
+                code.includes(".high()") ||
+                (code.includes("print(") && !code.includes("Serial.print")) ||
+                ((this.boardType?.includes("pico") || this.boardType === "raspberry-pi") && !code.includes("void setup") && !code.includes("void loop") && !code.includes("int main"))
             ) && !code.includes("void setup") && !code.includes("void loop");
 
             if (isPythonCode) {
@@ -1014,12 +1080,15 @@ export class McuExecutionSession {
                             __runningRef,
                             Pin,
                             time,
+                            utime,
                             sleep,
                             sleep_ms,
                             sleep_us,
                             time_pulse_us,
                             I2cLcd,
                             machine,
+                            ADC,
+                            PWM,
                             print
                         } = __context;
 

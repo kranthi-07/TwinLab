@@ -55,13 +55,7 @@
 }
 
 .wire-point-dot.is-endpoint {
-    pointer-events: auto !important;
-    cursor: pointer;
-}
-
-.wire-point-dot.is-endpoint:hover {
-    filter: drop-shadow(0 0 6px #38bdf8);
-    r: 7px;
+    pointer-events: none !important;
 }
 
 /* Intermediate Waypoints / Bend Nodes */
@@ -107,16 +101,22 @@
     }
 }
 
-/* While routing an active wire, placed wire bodies do not intercept clicks, allowing clean multi-wire terminal wrapping */
-.canvas-wires-layer.routing-active .wire-group {
-    pointer-events: none;
+/* While routing an active wire or in wire mode, placed wire bodies NEVER intercept clicks or hovers, allowing clean terminal activation */
+.canvas-wires-layer.routing-active .wire-group,
+.canvas-wires-layer.is-wire-mode .wire-group {
+    pointer-events: none !important;
 }
 
-.canvas-wires-layer.routing-active .wire-click-target {
-    pointer-events: none;
+.canvas-wires-layer.routing-active .wire-click-target,
+.canvas-wires-layer.is-wire-mode .wire-click-target {
+    pointer-events: none !important;
 }
 
 .canvas-wires-layer.routing-active .wire-point-dot.is-endpoint,
+.canvas-wires-layer.is-wire-mode .wire-point-dot.is-endpoint {
+    pointer-events: none !important;
+}
+
 .canvas-wires-layer.routing-active .wire-point-dot.is-waypoint {
     pointer-events: auto !important;
 }

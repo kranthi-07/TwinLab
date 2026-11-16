@@ -21,6 +21,7 @@ function WireLayer({
     routingMode = "curved", // "curved" | "manhattan" | "straight"
     isSimulating = false,
     simulationResult = null,
+    isWireMode = false,
     onSelectWire,
     onDeleteWire,
     onStartWireAtPoint,
@@ -112,7 +113,7 @@ function WireLayer({
     };
 
     return (
-        <svg className={`canvas-wires-layer ${activeWire ? "routing-active" : ""}`}>
+        <svg className={`canvas-wires-layer ${activeWire ? "routing-active" : ""} ${isWireMode ? "is-wire-mode" : ""}`}>
             {/* Placed Wires */}
             {wires.map((wire) => {
                 const isSelected = selectedWireId === wire.id || selectedWireId === "all";
@@ -128,11 +129,11 @@ function WireLayer({
                         className={`wire-group ${isSelected ? "selected" : ""}`}
                         style={{ "--wire-color": wire.color || "#10b981" }}
                     >
-                        {/* 1. Generous 32px transparent hit-detection area with fast double-click support to bend wire */}
+                        {/* 1. Precise 8px hit-detection area: strictly stays within 4px of wire centerline, NEVER overlapping adjacent 16px breadboard pins */}
                         <path 
                             d={pathStr}
                             stroke="transparent"
-                            strokeWidth="32"
+                            strokeWidth="8"
                             fill="none"
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -195,38 +196,37 @@ function WireLayer({
                                     key={`pt-${idx}`}
                                     cx={pt.x} 
                                     cy={pt.y} 
-                                    r={isEndpoint ? "5.5" : "4.5"} 
+                                    r={isEndpoint ? "4" : "4.5"} 
                                     fill={isEndpoint ? "#ffffff" : (isSelected ? "#FF8A00" : (wire.color || "#10b981"))} 
                                     stroke={isSelected ? "#FF8A00" : (wire.color || "#10b981")}
-                                    strokeWidth={isEndpoint ? "2" : "2"}
+                                    strokeWidth={isEndpoint ? "1.5" : "2"}
                                     className={`wire-point-dot ${isEndpoint ? "is-endpoint" : "is-waypoint"}`}
-                                    onMouseDown={(e) => {
+                                    style={isEndpoint ? { pointerEvents: "none" } : undefined}
+                                    onMouseDown={!isEndpoint ? (e) => {
                                         // Allow dragging existing bend waypoints
-                                        if (!isEndpoint) {
-                                            e.stopPropagation();
-                                            onStartDragWirePoint && onStartDragWirePoint({
-                                                wireId: wire.id,
-                                                pointIndex: idx,
-                                                initialWirePoints: wire.points,
-                                                initialMouseX: e.clientX,
-                                                initialMouseY: e.clientY
-                                            });
-                                        }
-                                    }}
-                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onStartDragWirePoint && onStartDragWirePoint({
+                                            wireId: wire.id,
+                                            pointIndex: idx,
+                                            initialWirePoints: wire.points,
+                                            initialMouseX: e.clientX,
+                                            initialMouseY: e.clientY
+                                        });
+                                    } : undefined}
+                                    onClick={!isEndpoint ? (e) => {
                                         e.stopPropagation();
                                         const nodeKey = `${wire.id}_${idx}`;
                                         const now = Date.now();
                                         const lastClick = lastNodeClickRef.current[nodeKey] || 0;
                                         lastNodeClickRef.current[nodeKey] = now;
-                                        if (now - lastClick < 450 || isEndpoint) {
+                                        if (now - lastClick < 450) {
                                             onStartWireAtPoint && onStartWireAtPoint({ x: pt.x, y: pt.y });
                                         }
-                                    }}
-                                    onDoubleClick={(e) => {
+                                    } : undefined}
+                                    onDoubleClick={!isEndpoint ? (e) => {
                                         e.stopPropagation();
                                         onStartWireAtPoint && onStartWireAtPoint({ x: pt.x, y: pt.y });
-                                    }}
+                                    } : undefined}
                                 />
                             );
                         })}

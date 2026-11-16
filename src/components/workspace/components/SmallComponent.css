@@ -9,7 +9,7 @@
     left: 0;
     user-select: none;
     cursor: default;
-    z-index: 20; /* STRICTLY ABOVE BREADBOARD (which is z-index 5/8) */
+    z-index: 40; /* STRICTLY ABOVE BREADBOARD (5/8) AND WIRES (35) - TERMINALS ALWAYS INTERACTIVE */
     transition: filter 0.15s ease;
 }
 
@@ -358,6 +358,8 @@
     position: absolute;
     width: 9px;
     height: 9px;
+    margin-top: -4.5px;
+    margin-left: -4.5px;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 45%, #64748b 100%);
     border: 1.5px solid #1e293b;
@@ -371,7 +373,7 @@
 .terminal-pin::after {
     content: "";
     position: absolute;
-    inset: -6px;
+    inset: -3.5px;
     border-radius: 50%;
 }
 
@@ -439,13 +441,13 @@
 }
 
 .resistor-container .pin-1 {
-    top: -3px;
-    left: -3px;
+    top: 0;
+    left: 0;
 }
 
 .resistor-container .pin-2 {
-    top: -3px;
-    left: 61px;
+    top: 0;
+    left: 64px;
 }
 
 .resistor-wire-track {
@@ -474,11 +476,11 @@
 }
 
 .resistor-hole-lead.lead-left {
-    left: -1px;
+    left: -1.75px;
 }
 
 .resistor-hole-lead.lead-right {
-    left: 61.5px;
+    left: 62.25px;
 }
 
 .resistor-ceramic-body {
@@ -536,15 +538,15 @@
 
 /* Precision Terminal Pins (Directly centered at (0, 0) and (16, 0)) */
 .led-container .pin-anode {
-    top: -4px;
-    left: -4px;
-    z-index: 20;
+    top: 0;
+    left: 0;
+    z-index: 50;
 }
 
 .led-container .pin-cathode {
-    top: -4px;
-    left: 12px;
-    z-index: 20;
+    top: 0;
+    left: 16px;
+    z-index: 50;
 }
 
 /* Polarity + / - Label Badges */
@@ -758,13 +760,13 @@
 }
 
 .capacitor-container .pin-1 {
-    top: -3px;
-    left: -3px;
+    top: 0;
+    left: 0;
 }
 
 .capacitor-container .pin-2 {
-    top: -3px;
-    left: 13px;
+    top: 0;
+    left: 16px;
 }
 
 .cap-lead-stems {
@@ -822,10 +824,10 @@
     height: 32px;
 }
 
-.button-tactile-container .pin-tl { top: -3px; left: -3px; }
-.button-tactile-container .pin-tr { top: -3px; left: 29px; }
-.button-tactile-container .pin-bl { top: 29px; left: -3px; }
-.button-tactile-container .pin-br { top: 29px; left: 29px; }
+.button-tactile-container .pin-tl { top: 0; left: 0; }
+.button-tactile-container .pin-tr { top: 0; left: 32px; }
+.button-tactile-container .pin-bl { top: 32px; left: 0; }
+.button-tactile-container .pin-br { top: 32px; left: 32px; }
 
 .tactile-case-body {
     position: absolute;
@@ -884,9 +886,9 @@
     height: 48px;
 }
 
-.pot-container .pin-t1 { top: 45px; left: -3px; }
-.pot-container .pin-wiper { top: 45px; left: 13px; }
-.pot-container .pin-t2 { top: 45px; left: 29px; }
+.pot-container .pin-t1 { top: 48px; left: 0; }
+.pot-container .pin-wiper { top: 48px; left: 16px; }
+.pot-container .pin-t2 { top: 48px; left: 32px; }
 
 .pot-lead-stems {
     position: absolute;
@@ -989,9 +991,9 @@
     height: 16px;
 }
 
-.switch-spdt-container .pin-sw1 { top: 13px; left: -3px; }
-.switch-spdt-container .pin-swcom { top: 13px; left: 13px; }
-.switch-spdt-container .pin-sw2 { top: 13px; left: 29px; }
+.switch-spdt-container .pin-sw1 { top: 16px; left: 0; }
+.switch-spdt-container .pin-swcom { top: 16px; left: 16px; }
+.switch-spdt-container .pin-sw2 { top: 16px; left: 32px; }
 
 .switch-lead-stems {
     position: absolute;
@@ -1094,8 +1096,8 @@
     height: 32px;
 }
 
-.buzzer-container .pin-pos { top: 29px; left: -3px; }
-.buzzer-container .pin-neg { top: 29px; left: 13px; }
+.buzzer-container .pin-pos { top: 32px; left: 0; }
+.buzzer-container .pin-neg { top: 32px; left: 16px; }
 
 .buzzer-cylinder {
     position: absolute;
@@ -3668,17 +3670,22 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 4px;
-    height: 4px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
-    background: #22c55e;
-    box-shadow: 0 0 5px #22c55e;
-    animation: logicPinBlink 1.4s ease-in-out infinite alternate;
+    pointer-events: none;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-@keyframes logicPinBlink {
-    0% { opacity: 0.5; }
-    100% { opacity: 1; }
+.ic-logic-status-dot.is-high {
+    background: #22c55e;
+    box-shadow: 0 0 7px #22c55e, 0 0 12px rgba(34, 197, 94, 0.7);
+}
+
+.ic-logic-status-dot.is-low {
+    background: #64748b;
+    box-shadow: none;
+    opacity: 0.35;
 }
 
 /* 6. DC Motor Propeller Fan High-Speed Spin */

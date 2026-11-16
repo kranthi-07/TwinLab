@@ -538,6 +538,7 @@ function SmallComponent({
                         {/* Terminal Pin 1 at (0, 0) */}
                         <span 
                             className={`terminal-pin pin-1 ${hoveredTerminal === "r1" ? "targeted" : ""}`}
+                            style={{ left: 0, top: 0 }}
                             onMouseEnter={() => setHoveredTerminal("r1")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "r1", 0, 0)}
@@ -563,6 +564,7 @@ function SmallComponent({
                         {/* Terminal Pin 2 at (64, 0) */}
                         <span 
                             className={`terminal-pin pin-2 ${hoveredTerminal === "r2" ? "targeted" : ""}`}
+                            style={{ left: 64, top: 0 }}
                             onMouseEnter={() => setHoveredTerminal("r2")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "r2", 64, 0)}
@@ -814,7 +816,7 @@ function SmallComponent({
                         </div>
                         <span 
                             className={`terminal-pin pin-1 ${hoveredTerminal === "cap1" ? "targeted" : ""}`}
-                            style={{ left: 0, top: 0, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 0, top: 0 }}
                             onMouseEnter={() => setHoveredTerminal("cap1")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "cap1", 0, 0)}
@@ -829,7 +831,7 @@ function SmallComponent({
                         )}
                         <span 
                             className={`terminal-pin pin-2 ${hoveredTerminal === "cap2" ? "targeted" : ""}`}
-                            style={{ left: 16, top: 0, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 16, top: 0 }}
                             onMouseEnter={() => setHoveredTerminal("cap2")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "cap2", 16, 0)}
@@ -1578,7 +1580,7 @@ function SmallComponent({
                                 <React.Fragment key={pin.id}>
                                     <span
                                         className={`terminal-pin pin-lcd-${pin.id} ${hoveredTerminal === `lcd_${pin.id}` ? "targeted" : ""}`}
-                                        style={{ left: pinX, top: pinY, transform: "translate(-50%, -50%)", zIndex: 50 }}
+                                        style={{ left: pinX, top: pinY, zIndex: 50 }}
                                         onMouseEnter={() => setHoveredTerminal(`lcd_${pin.id}`)}
                                         onMouseLeave={() => setHoveredTerminal(null)}
                                         onMouseDown={(e) => handleTerminalMouseDown(e, `lcd_${pin.id}`, pinX, pinY)}
@@ -1628,7 +1630,7 @@ function SmallComponent({
                         {/* Terminal 1 (0, 16) */}
                         <span 
                             className={`terminal-pin pin-sw-1 ${hoveredTerminal === "sw1" ? "targeted" : ""}`}
-                            style={{ left: 0, top: 16, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 0, top: 16 }}
                             onMouseEnter={() => setHoveredTerminal("sw1")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "sw1", 0, 16)}
@@ -1645,7 +1647,7 @@ function SmallComponent({
                         {/* Terminal 2 (32, 16) */}
                         <span 
                             className={`terminal-pin pin-sw-2 ${hoveredTerminal === "sw2" ? "targeted" : ""}`}
-                            style={{ left: 32, top: 16, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 32, top: 16 }}
                             onMouseEnter={() => setHoveredTerminal("sw2")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "sw2", 32, 16)}
@@ -1716,7 +1718,7 @@ function SmallComponent({
                         {/* Terminal 1 (0, 16) */}
                         <span 
                             className={`terminal-pin pin-ldr-1 ${hoveredTerminal === "ldr1" ? "targeted" : ""}`}
-                            style={{ left: 0, top: 16, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 0, top: 16 }}
                             onMouseEnter={() => setHoveredTerminal("ldr1")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "ldr1", 0, 16)}
@@ -1733,7 +1735,7 @@ function SmallComponent({
                         {/* Terminal 2 (32, 16) */}
                         <span 
                             className={`terminal-pin pin-ldr-2 ${hoveredTerminal === "ldr2" ? "targeted" : ""}`}
-                            style={{ left: 32, top: 16, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 32, top: 16 }}
                             onMouseEnter={() => setHoveredTerminal("ldr2")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "ldr2", 32, 16)}
@@ -1772,7 +1774,7 @@ function SmallComponent({
                     {/* Pin 1: Emitter (E) (0, 0) */}
                     <span 
                         className={`terminal-pin pin-trans-e ${hoveredTerminal === "trE" ? "targeted" : ""}`}
-                        style={{ left: 0, top: 0, transform: "translate(-50%, -50%)" }}
+                        style={{ left: 0, top: 0 }}
                         onMouseEnter={() => setHoveredTerminal("trE")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "trE", 0, 0)}
@@ -1789,7 +1791,7 @@ function SmallComponent({
                     {/* Pin 2: Base (B) (16, 0) */}
                     <span 
                         className={`terminal-pin pin-trans-b ${hoveredTerminal === "trB" ? "targeted" : ""}`}
-                        style={{ left: 16, top: 0, transform: "translate(-50%, -50%)" }}
+                        style={{ left: 16, top: 0 }}
                         onMouseEnter={() => setHoveredTerminal("trB")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "trB", 16, 0)}
@@ -1806,7 +1808,7 @@ function SmallComponent({
                     {/* Pin 3: Collector (C) (32, 0) */}
                     <span 
                         className={`terminal-pin pin-trans-c ${hoveredTerminal === "trC" ? "targeted" : ""}`}
-                        style={{ left: 32, top: 0, transform: "translate(-50%, -50%)" }}
+                        style={{ left: 32, top: 0 }}
                         onMouseEnter={() => setHoveredTerminal("trC")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "trC", 32, 0)}
@@ -1867,7 +1869,7 @@ function SmallComponent({
                     {/* Pin 1: Gate (G) (0, 0) */}
                     <span 
                         className={`terminal-pin pin-mosfet-g ${hoveredTerminal === "mosG" ? "targeted" : ""}`}
-                        style={{ left: 0, top: 0, transform: "translate(-50%, -50%)" }}
+                        style={{ left: 0, top: 0 }}
                         onMouseEnter={() => setHoveredTerminal("mosG")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "mosG", 0, 0)}
@@ -1884,7 +1886,7 @@ function SmallComponent({
                     {/* Pin 2: Drain (D) (16, 0) */}
                     <span 
                         className={`terminal-pin pin-mosfet-d ${hoveredTerminal === "mosD" ? "targeted" : ""}`}
-                        style={{ left: 16, top: 0, transform: "translate(-50%, -50%)" }}
+                        style={{ left: 16, top: 0 }}
                         onMouseEnter={() => setHoveredTerminal("mosD")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "mosD", 16, 0)}
@@ -1901,7 +1903,7 @@ function SmallComponent({
                     {/* Pin 3: Source (S) (32, 0) */}
                     <span 
                         className={`terminal-pin pin-mosfet-s ${hoveredTerminal === "mosS" ? "targeted" : ""}`}
-                        style={{ left: 32, top: 0, transform: "translate(-50%, -50%)" }}
+                        style={{ left: 32, top: 0 }}
                         onMouseEnter={() => setHoveredTerminal("mosS")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "mosS", 32, 0)}
@@ -1934,7 +1936,7 @@ function SmallComponent({
                     {/* Negative Pin (16, 32) */}
                     <span 
                         className={`terminal-pin pin-coin-neg ${hoveredTerminal === "coinNeg" ? "targeted" : ""}`}
-                        style={{ left: 16, top: 32, transform: "translate(-50%, -50%)" }}
+                        style={{ left: 16, top: 32 }}
                         onMouseEnter={() => setHoveredTerminal("coinNeg")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "coinNeg", 16, 32)}
@@ -1951,7 +1953,7 @@ function SmallComponent({
                     {/* Positive Pin (48, 32) */}
                     <span 
                         className={`terminal-pin pin-coin-pos ${hoveredTerminal === "coinPos" ? "targeted" : ""}`}
-                        style={{ left: 48, top: 32, transform: "translate(-50%, -50%)" }}
+                        style={{ left: 48, top: 32 }}
                         onMouseEnter={() => setHoveredTerminal("coinPos")}
                         onMouseLeave={() => setHoveredTerminal(null)}
                         onMouseDown={(e) => handleTerminalMouseDown(e, "coinPos", 48, 32)}
@@ -2027,7 +2029,7 @@ function SmallComponent({
                         {/* Anode (+) Pin at (0, 0) */}
                         <span 
                             className={`terminal-pin pin-elec-anode ${hoveredTerminal === "elAnode" ? "targeted" : ""}`}
-                            style={{ left: 0, top: 0, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 0, top: 0 }}
                             onMouseEnter={() => setHoveredTerminal("elAnode")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "elAnode", 0, 0)}
@@ -2044,7 +2046,7 @@ function SmallComponent({
                         {/* Cathode (−) Pin at (16, 0) */}
                         <span 
                             className={`terminal-pin pin-elec-cathode ${hoveredTerminal === "elCathode" ? "targeted" : ""}`}
-                            style={{ left: 16, top: 0, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 16, top: 0 }}
                             onMouseEnter={() => setHoveredTerminal("elCathode")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "elCathode", 16, 0)}
@@ -2304,7 +2306,7 @@ function SmallComponent({
                         {/* Positive Terminal Pin (0, 0) */}
                         <span 
                             className={`terminal-pin pin-motor-pos ${hoveredTerminal === "motPos" ? "targeted" : ""}`}
-                            style={{ left: 0, top: 0, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 0, top: 0 }}
                             onMouseEnter={() => setHoveredTerminal("motPos")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "motPos", 0, 0)}
@@ -2321,7 +2323,7 @@ function SmallComponent({
                         {/* Negative Terminal Pin (48, 0) */}
                         <span 
                             className={`terminal-pin pin-motor-neg ${hoveredTerminal === "motNeg" ? "targeted" : ""}`}
-                            style={{ left: 48, top: 0, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 48, top: 0 }}
                             onMouseEnter={() => setHoveredTerminal("motNeg")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "motNeg", 48, 0)}
@@ -2601,7 +2603,7 @@ function SmallComponent({
                         {/* Positive Terminal Pin (0, 0) */}
                         <span 
                             className={`terminal-pin pin-geared-pos ${hoveredTerminal === "gbPos" ? "targeted" : ""}`}
-                            style={{ left: 0, top: 0, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 0, top: 0 }}
                             onMouseEnter={() => setHoveredTerminal("gbPos")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "gbPos", 0, 0)}
@@ -2618,7 +2620,7 @@ function SmallComponent({
                         {/* Negative Terminal Pin (48, 0) */}
                         <span 
                             className={`terminal-pin pin-geared-neg ${hoveredTerminal === "gbNeg" ? "targeted" : ""}`}
-                            style={{ left: 48, top: 0, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 48, top: 0 }}
                             onMouseEnter={() => setHoveredTerminal("gbNeg")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "gbNeg", 48, 0)}
@@ -2716,7 +2718,7 @@ function SmallComponent({
                             <React.Fragment key={pin.name}>
                                 <span
                                     className={`terminal-pin pin-servo-${pin.name.toLowerCase()} ${hoveredTerminal === `servo_${pin.name}` ? "targeted" : ""}`}
-                                    style={{ left: pin.x, top: 0, transform: "translate(-50%, -50%)" }}
+                                    style={{ left: pin.x, top: 0 }}
                                     onMouseEnter={() => setHoveredTerminal(`servo_${pin.name}`)}
                                     onMouseLeave={() => setHoveredTerminal(null)}
                                     onMouseDown={(e) => handleTerminalMouseDown(e, `servo_${pin.name}`, pin.x, 0)}
@@ -2752,7 +2754,7 @@ function SmallComponent({
                 // 14 Pins strictly snapped across breadboard center trough (Row e at Y=0, Row f at Y=32):
                 // Top row 14-8 at Y=0 (Plugs into breadboard Row e)
                 // Bottom row 1-7 at Y=32 (Plugs into breadboard Row f)
-                const topPins = [
+                let topPins = [
                     { num: 14, name: "VCC", x: 0, is5V: true, desc: "Power +5V" },
                     { num: 13, name: "4B", x: 16, desc: "Input 4B" },
                     { num: 12, name: "4A", x: 32, desc: "Input 4A" },
@@ -2761,7 +2763,7 @@ function SmallComponent({
                     { num: 9, name: "3A", x: 80, desc: "Input 3A" },
                     { num: 8, name: "3Y", x: 96, isOut: true, desc: "Output 3Y" }
                 ];
-                const bottomPins = [
+                let bottomPins = [
                     { num: 1, name: "1A", x: 0, desc: "Input 1A" },
                     { num: 2, name: "1B", x: 16, desc: "Input 1B" },
                     { num: 3, name: "1Y", x: 32, isOut: true, desc: "Output 1Y" },
@@ -2770,6 +2772,46 @@ function SmallComponent({
                     { num: 6, name: "2Y", x: 80, isOut: true, desc: "Output 2Y" },
                     { num: 7, name: "GND", x: 96, isGnd: true, desc: "Ground 0V" }
                 ];
+
+                if (icCode.includes("74HC04")) {
+                    topPins = [
+                        { num: 14, name: "VCC", x: 0, is5V: true, desc: "Power +5V" },
+                        { num: 13, name: "6A", x: 16, desc: "Input 6A" },
+                        { num: 12, name: "6Y", x: 32, isOut: true, desc: "Output 6Y" },
+                        { num: 11, name: "5A", x: 48, desc: "Input 5A" },
+                        { num: 10, name: "5Y", x: 64, isOut: true, desc: "Output 5Y" },
+                        { num: 9, name: "4A", x: 80, desc: "Input 4A" },
+                        { num: 8, name: "4Y", x: 96, isOut: true, desc: "Output 4Y" }
+                    ];
+                    bottomPins = [
+                        { num: 1, name: "1A", x: 0, desc: "Input 1A" },
+                        { num: 2, name: "1Y", x: 16, isOut: true, desc: "Output 1Y" },
+                        { num: 3, name: "2A", x: 32, desc: "Input 2A" },
+                        { num: 4, name: "2Y", x: 48, isOut: true, desc: "Output 2Y" },
+                        { num: 5, name: "3A", x: 64, desc: "Input 3A" },
+                        { num: 6, name: "3Y", x: 80, isOut: true, desc: "Output 3Y" },
+                        { num: 7, name: "GND", x: 96, isGnd: true, desc: "Ground 0V" }
+                    ];
+                } else if (icCode.includes("74HC02")) {
+                    topPins = [
+                        { num: 14, name: "VCC", x: 0, is5V: true, desc: "Power +5V" },
+                        { num: 13, name: "4Y", x: 16, isOut: true, desc: "Output 4Y" },
+                        { num: 12, name: "4B", x: 32, desc: "Input 4B" },
+                        { num: 11, name: "4A", x: 48, desc: "Input 4A" },
+                        { num: 10, name: "3Y", x: 64, isOut: true, desc: "Output 3Y" },
+                        { num: 9, name: "3B", x: 80, desc: "Input 3B" },
+                        { num: 8, name: "3A", x: 96, desc: "Input 3A" }
+                    ];
+                    bottomPins = [
+                        { num: 1, name: "1Y", x: 0, isOut: true, desc: "Output 1Y" },
+                        { num: 2, name: "1A", x: 16, desc: "Input 1A" },
+                        { num: 3, name: "1B", x: 32, desc: "Input 1B" },
+                        { num: 4, name: "2Y", x: 48, isOut: true, desc: "Output 2Y" },
+                        { num: 5, name: "2A", x: 64, desc: "Input 2A" },
+                        { num: 6, name: "2B", x: 80, desc: "Input 2B" },
+                        { num: 7, name: "GND", x: 96, isGnd: true, desc: "Ground 0V" }
+                    ];
+                }
                 const isPowered = Boolean(isSimulating && simState?.isPowered);
 
                 return (
@@ -2801,7 +2843,7 @@ function SmallComponent({
                             <React.Fragment key={`top-${p.num}`}>
                                 <span
                                     className={`terminal-pin pin-ic-top ${hoveredTerminal === `ic_${p.num}` ? "targeted" : ""}`}
-                                    style={{ left: p.x, top: 0, transform: "translate(-50%, -50%)" }}
+                                    style={{ left: p.x, top: 0 }}
                                     onMouseEnter={() => setHoveredTerminal(`ic_${p.num}`)}
                                     onMouseLeave={() => setHoveredTerminal(null)}
                                     onMouseDown={(e) => handleTerminalMouseDown(e, `ic_${p.num}`, p.x, 0)}
@@ -2809,11 +2851,13 @@ function SmallComponent({
                                     onClick={(e) => handleTerminalPress(e, `ic_${p.num}`, p.x, 0)}
                                     onDoubleClick={(e) => handleTerminalAction(e, p.x, 0)}
                                 >
-                                    {isPowered && p.isOut && <span className="ic-logic-status-dot"></span>}
+                                    {isPowered && p.isOut && (
+                                        <span className={`ic-logic-status-dot ${simState?.outputs?.[p.num] ? "is-high" : "is-low"}`}></span>
+                                    )}
                                 </span>
                                 {hoveredTerminal === `ic_${p.num}` && (
                                     <div className="terminal-hover-tooltip" style={{ left: p.x, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
-                                        Pin {p.num}: {p.name} ({p.desc})
+                                        Pin {p.num}: {p.name} ({p.desc}){isPowered && p.isOut ? ` - ${simState?.outputs?.[p.num] ? "HIGH (5V)" : "LOW (0V)"}` : ""}
                                     </div>
                                 )}
                             </React.Fragment>
@@ -2824,7 +2868,7 @@ function SmallComponent({
                             <React.Fragment key={`bot-${p.num}`}>
                                 <span
                                     className={`terminal-pin pin-ic-bot ${hoveredTerminal === `ic_${p.num}` ? "targeted" : ""}`}
-                                    style={{ left: p.x, top: 32, transform: "translate(-50%, -50%)" }}
+                                    style={{ left: p.x, top: 32 }}
                                     onMouseEnter={() => setHoveredTerminal(`ic_${p.num}`)}
                                     onMouseLeave={() => setHoveredTerminal(null)}
                                     onMouseDown={(e) => handleTerminalMouseDown(e, `ic_${p.num}`, p.x, 32)}
@@ -2832,11 +2876,13 @@ function SmallComponent({
                                     onClick={(e) => handleTerminalPress(e, `ic_${p.num}`, p.x, 32)}
                                     onDoubleClick={(e) => handleTerminalAction(e, p.x, 32)}
                                 >
-                                    {isPowered && p.isOut && <span className="ic-logic-status-dot"></span>}
+                                    {isPowered && p.isOut && (
+                                        <span className={`ic-logic-status-dot ${simState?.outputs?.[p.num] ? "is-high" : "is-low"}`}></span>
+                                    )}
                                 </span>
                                 {hoveredTerminal === `ic_${p.num}` && (
                                     <div className="terminal-hover-tooltip" style={{ left: p.x, top: 32, transform: `translate(-50%, 0) translateY(10px) rotate(${-(rotation || 0)}deg)` }}>
-                                        Pin {p.num}: {p.name} ({p.desc})
+                                        Pin {p.num}: {p.name} ({p.desc}){isPowered && p.isOut ? ` - ${simState?.outputs?.[p.num] ? "HIGH (5V)" : "LOW (0V)"}` : ""}
                                     </div>
                                 )}
                             </React.Fragment>
@@ -3167,7 +3213,7 @@ function SmallComponent({
                             <React.Fragment key={pin.name}>
                                 <span
                                     className={`terminal-pin pin-sonar-${pin.name.toLowerCase()} ${hoveredTerminal === `sonar_${pin.name}` ? "targeted" : ""}`}
-                                    style={{ left: pin.x, top: 0, transform: "translate(-50%, -50%)" }}
+                                    style={{ left: pin.x, top: 0 }}
                                     onMouseEnter={() => setHoveredTerminal(`sonar_${pin.name}`)}
                                     onMouseLeave={() => setHoveredTerminal(null)}
                                     onMouseDown={(e) => handleTerminalMouseDown(e, `sonar_${pin.name}`, pin.x, 0)}
@@ -3492,7 +3538,7 @@ function SmallComponent({
                             <React.Fragment key={pin.name}>
                                 <span
                                     className={`terminal-pin pin-pir-${pin.name.toLowerCase()} ${hoveredTerminal === `pir_${pin.name}` ? "targeted" : ""}`}
-                                    style={{ left: pin.x, top: 0, transform: "translate(-50%, -50%)" }}
+                                    style={{ left: pin.x, top: 0 }}
                                     onMouseEnter={() => setHoveredTerminal(`pir_${pin.name}`)}
                                     onMouseLeave={() => setHoveredTerminal(null)}
                                     onMouseDown={(e) => handleTerminalMouseDown(e, `pir_${pin.name}`, pin.x, 0)}
@@ -3567,7 +3613,7 @@ function SmallComponent({
                         {/* Pin 1: VCC (+Vs) at (0, 0) */}
                         <span
                             className={`terminal-pin pin-temp-vcc ${hoveredTerminal === "tmpVcc" ? "targeted" : ""}`}
-                            style={{ left: 0, top: 0, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 0, top: 0 }}
                             onMouseEnter={() => setHoveredTerminal("tmpVcc")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "tmpVcc", 0, 0)}
@@ -3584,7 +3630,7 @@ function SmallComponent({
                         {/* Pin 2: VOUT (Analog Temp) at (16, 0) */}
                         <span
                             className={`terminal-pin pin-temp-vout ${hoveredTerminal === "tmpVout" ? "targeted" : ""}`}
-                            style={{ left: 16, top: 0, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 16, top: 0 }}
                             onMouseEnter={() => setHoveredTerminal("tmpVout")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "tmpVout", 16, 0)}
@@ -3601,7 +3647,7 @@ function SmallComponent({
                         {/* Pin 3: GND at (32, 0) */}
                         <span
                             className={`terminal-pin pin-temp-gnd ${hoveredTerminal === "tmpGnd" ? "targeted" : ""}`}
-                            style={{ left: 32, top: 0, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 32, top: 0 }}
                             onMouseEnter={() => setHoveredTerminal("tmpGnd")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "tmpGnd", 32, 0)}
@@ -3720,7 +3766,7 @@ function SmallComponent({
                         {/* Pin 1: VCC at (0, 0) */}
                         <span
                             className={`terminal-pin pin-soil-vcc ${hoveredTerminal === "soil_vcc" ? "targeted" : ""}`}
-                            style={{ left: 0, top: 0, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 0, top: 0 }}
                             onMouseEnter={() => setHoveredTerminal("soil_vcc")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "soil_vcc", 0, 0)}
@@ -3737,7 +3783,7 @@ function SmallComponent({
                         {/* Pin 2: GND at (16, 0) */}
                         <span
                             className={`terminal-pin pin-soil-gnd ${hoveredTerminal === "soil_gnd" ? "targeted" : ""}`}
-                            style={{ left: 16, top: 0, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 16, top: 0 }}
                             onMouseEnter={() => setHoveredTerminal("soil_gnd")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "soil_gnd", 16, 0)}
@@ -3754,7 +3800,7 @@ function SmallComponent({
                         {/* Pin 3: SIG at (32, 0) */}
                         <span
                             className={`terminal-pin pin-soil-sig ${hoveredTerminal === "soil_sig" ? "targeted" : ""}`}
-                            style={{ left: 32, top: 0, transform: "translate(-50%, -50%)" }}
+                            style={{ left: 32, top: 0 }}
                             onMouseEnter={() => setHoveredTerminal("soil_sig")}
                             onMouseLeave={() => setHoveredTerminal(null)}
                             onMouseDown={(e) => handleTerminalMouseDown(e, "soil_sig", 32, 0)}

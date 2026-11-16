@@ -128,23 +128,37 @@ function CodeEditor({
         return DEFAULT_SKETCHES?.blank || DEFAULT_BLANK_TEMPLATE;
     });
 
+    const isPico = targetBoard?.type?.includes("pico") || targetBoard?.type?.includes("raspberry");
+
+    const [language, setLanguage] = useState(() => {
+        if (externalCode && (
+            externalCode.includes("from machine import") || 
+            externalCode.includes("import machine") || 
+            externalCode.includes("import utime") || 
+            externalCode.includes("import time") || 
+            externalCode.startsWith("#")
+        ) && !externalCode.includes("void setup") && !externalCode.includes("void loop")) {
+            return "micropython";
+        }
+        if (isPico && (!externalCode || (!externalCode.includes("void setup") && !externalCode.includes("void loop")))) {
+            return "micropython";
+        }
+        try {
+            const saved = localStorage.getItem("twinlab_active_language");
+            if (saved) return saved;
+        } catch (_) {}
+        return "cpp";
+    });
+
     const [activeFileName, setActiveFileName] = useState(() => {
+        if (isPico && (!externalCode || (!externalCode.includes("void setup") && !externalCode.includes("void loop")))) {
+            return "main.py";
+        }
         try {
             return localStorage.getItem("twinlab_active_filename") || "sketch.ino";
         } catch (_) {
             return "sketch.ino";
         }
-    });
-
-    const [language, setLanguage] = useState(() => {
-        try {
-            const saved = localStorage.getItem("twinlab_active_language");
-            if (saved) return saved;
-        } catch (_) {}
-        if (externalCode && (externalCode.includes("from machine import") || externalCode.includes("import machine") || externalCode.startsWith("#"))) {
-            return "micropython";
-        }
-        return "cpp";
     });
 
     const handleSwitchLanguage = (newLang) => {
@@ -153,7 +167,7 @@ function CodeEditor({
             localStorage.setItem("twinlab_active_language", newLang);
         } catch (_) {}
 
-        const isPico = currentBoard?.type?.includes("pico") || currentBoard?.type?.includes("raspberry");
+        const isPicoBoard = targetBoard?.type?.includes("pico") || targetBoard?.type?.includes("raspberry");
 
         if (newLang === "micropython" || newLang === "python") {
             if (!activeFileName.endsWith(".py")) {
@@ -161,9 +175,9 @@ function CodeEditor({
                 try { localStorage.setItem("twinlab_active_filename", "main.py"); } catch (_) {}
             }
             if (!code || code.trim().length === 0 || code.includes("void setup()") || code.includes("void loop()")) {
-                const pyTemplate = isPico 
-                    ? (DEFAULT_SKETCHES.pico_py_blink || `# Raspberry Pi Pico MicroPython\nfrom machine import Pin\nimport time\n\nled = Pin(25, Pin.OUT)\n\nwhile True:\n    led.value(1)\n    print("GP25 LED ON")\n    time.sleep(0.5)\n    led.value(0)\n    print("GP25 LED OFF")\n    time.sleep(0.5)\n`)
-                    : `# MicroPython Firmware\nfrom machine import Pin\nimport time\n\nled = Pin(2, Pin.OUT)\n\nwhile True:\n    led.value(1)\n    time.sleep(0.5)\n    led.value(0)\n    time.sleep(0.5)\n`;
+                const pyTemplate = isPicoBoard 
+                    ? (DEFAULT_SKETCHES.pico_py_blink || `# Raspberry Pi Pico MicroPython Blink\nfrom machine import Pin\nimport utime\n\nled = Pin(25, Pin.OUT)\nprint("Raspberry Pi Pico MicroPython Ready!")\n\nwhile True:\n    led.toggle()\n    print("GP25 LED Toggled")\n    utime.sleep(0.5)\n`)
+                    : `# MicroPython Firmware\nfrom machine import Pin\nimport utime\n\nled = Pin(2, Pin.OUT)\n\nwhile True:\n    led.toggle()\n    utime.sleep(0.5)\n`;
                 handleCodeTextChange(pyTemplate);
             }
         } else {
@@ -171,8 +185,8 @@ function CodeEditor({
                 setActiveFileName("sketch.ino");
                 try { localStorage.setItem("twinlab_active_filename", "sketch.ino"); } catch (_) {}
             }
-            if (!code || code.trim().length === 0 || code.includes("from machine import") || code.includes("import machine")) {
-                const cppTemplate = isPico 
+            if (!code || code.trim().length === 0 || code.includes("from machine import") || code.includes("import machine") || code.includes("import utime")) {
+                const cppTemplate = isPicoBoard 
                     ? (DEFAULT_SKETCHES.pico_c_blink || `void setup() {\n  pinMode(25, OUTPUT);\n  Serial.begin(115200);\n}\n\nvoid loop() {\n  digitalWrite(25, HIGH);\n  delay(500);\n  digitalWrite(25, LOW);\n  delay(500);\n}`)
                     : DEFAULT_BLANK_TEMPLATE;
                 handleCodeTextChange(cppTemplate);
@@ -196,12 +210,42 @@ function CodeEditor({
         return code !== savedCodeBaseline;
     }, [code, savedCodeBaseline]);
 
-    // Synchronize if external code is injected from parent (e.g. project load)
+    // Synchronize if external code is injected from parent (e.g. project load or board change)
     useEffect(() => {
         if (externalCode !== undefined && externalCode !== null && externalCode !== code) {
             setCode(externalCode);
+            const isPy = (
+                externalCode.includes("from machine import") ||
+                externalCode.includes("import machine") ||
+                externalCode.includes("import utime") ||
+                externalCode.includes("import time") ||
+                externalCode.includes("time_pulse_us") ||
+                externalCode.startsWith("#")
+            ) && !externalCode.includes("void setup") && !externalCode.includes("void loop");
+
+            if (isPy) {
+                setLanguage("micropython");
+                setActiveFileName("main.py");
+            } else if (externalCode.includes("void setup") || externalCode.includes("void loop")) {
+                setLanguage("cpp");
+                setActiveFileName("sketch.ino");
+            }
         }
     }, [externalCode]);
+
+    // Synchronize language and file name when target board changes to Pico
+    useEffect(() => {
+        if (targetBoard) {
+            const isPicoBoard = targetBoard.type?.includes("pico") || targetBoard.type?.includes("raspberry");
+            if (isPicoBoard) {
+                const isCpp = code && (code.includes("void setup") || code.includes("void loop"));
+                if (!isCpp) {
+                    setLanguage("micropython");
+                    setActiveFileName("main.py");
+                }
+            }
+        }
+    }, [targetBoard?.id, targetBoard?.type]);
 
     // Update code helper that preserves immediately into localStorage
     const handleCodeTextChange = (newCode) => {
@@ -265,9 +309,10 @@ function CodeEditor({
     const handleCommitSaveFile = (e) => {
         if (e) e.preventDefault();
         let name = (saveFileNameInput || "").trim();
-        if (!name) name = "sketch.ino";
-        if (!name.endsWith(".ino") && !name.endsWith(".cpp")) {
-            name += ".ino";
+        const isPy = language === "micropython" || language === "python";
+        if (!name) name = isPy ? "main.py" : "sketch.ino";
+        if (!name.endsWith(".ino") && !name.endsWith(".cpp") && !name.endsWith(".py")) {
+            name += isPy ? ".py" : ".ino";
         }
 
         const now = new Date();
@@ -297,6 +342,7 @@ function CodeEditor({
         try {
             localStorage.setItem("twinlab_active_filename", name);
             localStorage.setItem("twinlab_saved_code_baseline", code);
+            if (isPy) localStorage.setItem("twinlab_active_language", "micropython");
         } catch (_) {}
 
         setIsSaveModalOpen(false);
@@ -308,11 +354,24 @@ function CodeEditor({
         setCode(file.code);
         setActiveFileName(file.name);
         setSavedCodeBaseline(file.code);
+        const isPy = file.name.endsWith(".py") || (
+            file.code && (
+                file.code.includes("from machine import") || 
+                file.code.includes("import machine") || 
+                file.code.includes("import utime")
+            ) && !file.code.includes("void setup") && !file.code.includes("void loop")
+        );
+        if (isPy) {
+            setLanguage("micropython");
+        } else {
+            setLanguage("cpp");
+        }
         try {
             localStorage.setItem("twinlab_active_code", file.code);
             localStorage.setItem("twinlab_user_code", file.code);
             localStorage.setItem("twinlab_active_filename", file.name);
             localStorage.setItem("twinlab_saved_code_baseline", file.code);
+            localStorage.setItem("twinlab_active_language", isPy ? "micropython" : "cpp");
         } catch (_) {}
         if (onCodeChange) onCodeChange(file.code);
         setIsSavedFilesOpen(false);
@@ -329,14 +388,20 @@ function CodeEditor({
 
     // New Blank Sketch (+)
     const handleNewSketch = () => {
-        const blank = DEFAULT_BLANK_TEMPLATE;
+        const isPicoBoard = targetBoard?.type?.includes("pico") || targetBoard?.type?.includes("raspberry");
+        const blank = isPicoBoard 
+            ? (DEFAULT_SKETCHES.pico_py_blink || `# Raspberry Pi Pico MicroPython Blink\nfrom machine import Pin\nimport utime\n\nled = Pin(25, Pin.OUT)\nprint("Raspberry Pi Pico MicroPython Ready!")\n\nwhile True:\n    led.toggle()\n    print("GP25 LED Toggled")\n    utime.sleep(0.5)\n`)
+            : DEFAULT_BLANK_TEMPLATE;
+        const filename = isPicoBoard ? "main.py" : "sketch.ino";
         setCode(blank);
-        setActiveFileName("sketch.ino");
+        setActiveFileName(filename);
+        if (isPicoBoard) setLanguage("micropython");
         setSavedCodeBaseline(null);
         try {
             localStorage.setItem("twinlab_active_code", blank);
             localStorage.setItem("twinlab_user_code", blank);
-            localStorage.setItem("twinlab_active_filename", "sketch.ino");
+            localStorage.setItem("twinlab_active_filename", filename);
+            if (isPicoBoard) localStorage.setItem("twinlab_active_language", "micropython");
             localStorage.removeItem("twinlab_saved_code_baseline");
         } catch (_) {}
         if (onCodeChange) onCodeChange(blank);
@@ -451,12 +516,14 @@ function CodeEditor({
             return {
                 id: targetBoard.id,
                 name: targetBoard.name || "Arduino Uno R3",
+                type: targetBoard.type || "arduino-uno",
                 port: "COM3"
             };
         }
         return {
             id: "arduino-default",
             name: "Arduino Uno R3",
+            type: "arduino-uno",
             port: "COM3"
         };
     }, [targetBoard]);

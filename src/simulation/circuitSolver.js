@@ -56,7 +56,7 @@ function getBreadboardNodeAt(breadboard, wx, wy) {
     if (localX < 0 || localX > boardW || localY < 0 || localY > boardH) return null;
 
     const bbId = breadboard.id;
-    const tol = 6; // Strict 6px snap tolerance to prevent cross-row bleed
+    const tol = 8; // Optimal 8px tolerance (exact half of 16px grid) ensuring 100% coverage with zero dead gaps between holes
 
     // 1. Top Power Rails (Full & Half boards only)
     if (hasRails) {
@@ -554,12 +554,12 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const n1 = getElectricalNode(c.x, c.y);
             const n2 = getElectricalNode(c.x + dx, c.y + dy);
 
-            // Connect nearby wire endpoints (precise 10px snap directly on terminal leads)
+            // Connect nearby wire endpoints (up to 20px snap directly on terminal leads)
             wires.forEach(w => {
                 if (!w.points || w.points.length < 2) return;
                 [w.points[0], w.points[w.points.length - 1]].forEach(p => {
-                    if (Math.hypot(p.x - c.x, p.y - c.y) <= 10) dsu.union(getElectricalNode(p.x, p.y), n1);
-                    if (Math.hypot(p.x - (c.x + dx), p.y - (c.y + dy)) <= 10) dsu.union(getElectricalNode(p.x, p.y), n2);
+                    if (Math.hypot(p.x - c.x, p.y - c.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), n1);
+                    if (Math.hypot(p.x - (c.x + dx), p.y - (c.y + dy)) <= 20) dsu.union(getElectricalNode(p.x, p.y), n2);
                 });
             });
 
@@ -579,6 +579,15 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const p2 = { x: Math.round(c.x + 32 * cos - 16 * sin), y: Math.round(c.y + 32 * sin + 16 * cos) };
             const n1 = getElectricalNode(p1.x, p1.y);
             const n2 = getElectricalNode(p2.x, p2.y);
+
+            wires.forEach(w => {
+                if (!w.points || w.points.length < 2) return;
+                [w.points[0], w.points[w.points.length - 1]].forEach(p => {
+                    if (Math.hypot(p.x - p1.x, p.y - p1.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), n1);
+                    if (Math.hypot(p.x - p2.x, p.y - p2.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), n2);
+                });
+            });
+
             const lux = c.lux != null ? c.lux : 50;
             const r = c.resistance || Math.round(1000000 * Math.pow(10, -(lux / 25)));
             resistors.push({
@@ -597,6 +606,15 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const p2 = { x: Math.round(c.x + 32 * cos - 16 * sin), y: Math.round(c.y + 32 * sin + 16 * cos) };
             const n1 = getElectricalNode(p1.x, p1.y);
             const n2 = getElectricalNode(p2.x, p2.y);
+
+            wires.forEach(w => {
+                if (!w.points || w.points.length < 2) return;
+                [w.points[0], w.points[w.points.length - 1]].forEach(p => {
+                    if (Math.hypot(p.x - p1.x, p.y - p1.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), n1);
+                    if (Math.hypot(p.x - p2.x, p.y - p2.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), n2);
+                });
+            });
+
             const isClosed = Boolean(c.isOn != null ? c.isOn : c.switchState === "closed");
             resistors.push({
                 id: c.id,
@@ -625,14 +643,14 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const n2a = getElectricalNode(p2a.x, p2a.y);
             const n2b = getElectricalNode(p2b.x, p2b.y);
 
-            // Connect nearby wire endpoints (precision snap 8px)
+            // Connect nearby wire endpoints (precision snap 20px)
             wires.forEach(w => {
                 if (!w.points || w.points.length < 2) return;
                 [w.points[0], w.points[w.points.length - 1]].forEach(p => {
-                    if (Math.hypot(p.x - p1a.x, p.y - p1a.y) <= 8) dsu.union(getElectricalNode(p.x, p.y), n1a);
-                    if (Math.hypot(p.x - p1b.x, p.y - p1b.y) <= 8) dsu.union(getElectricalNode(p.x, p.y), n1b);
-                    if (Math.hypot(p.x - p2a.x, p.y - p2a.y) <= 8) dsu.union(getElectricalNode(p.x, p.y), n2a);
-                    if (Math.hypot(p.x - p2b.x, p.y - p2b.y) <= 8) dsu.union(getElectricalNode(p.x, p.y), n2b);
+                    if (Math.hypot(p.x - p1a.x, p.y - p1a.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), n1a);
+                    if (Math.hypot(p.x - p1b.x, p.y - p1b.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), n1b);
+                    if (Math.hypot(p.x - p2a.x, p.y - p2a.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), n2a);
+                    if (Math.hypot(p.x - p2b.x, p.y - p2b.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), n2b);
                 });
             });
 
@@ -666,9 +684,9 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             wires.forEach(w => {
                 if (!w.points || w.points.length < 2) return;
                 [w.points[0], w.points[w.points.length - 1]].forEach(p => {
-                    if (Math.hypot(p.x - p1.x, p.y - p1.y) <= 8) dsu.union(getElectricalNode(p.x, p.y), n1);
-                    if (Math.hypot(p.x - pCom.x, p.y - pCom.y) <= 8) dsu.union(getElectricalNode(p.x, p.y), nCom);
-                    if (Math.hypot(p.x - p2.x, p.y - p2.y) <= 8) dsu.union(getElectricalNode(p.x, p.y), n2);
+                    if (Math.hypot(p.x - p1.x, p.y - p1.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), n1);
+                    if (Math.hypot(p.x - pCom.x, p.y - pCom.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), nCom);
+                    if (Math.hypot(p.x - p2.x, p.y - p2.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), n2);
                 });
             });
 
@@ -699,9 +717,9 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             wires.forEach(w => {
                 if (!w.points || w.points.length < 2) return;
                 [w.points[0], w.points[w.points.length - 1]].forEach(p => {
-                    if (Math.hypot(p.x - p1.x, p.y - p1.y) <= 8) dsu.union(getElectricalNode(p.x, p.y), n1);
-                    if (Math.hypot(p.x - pW.x, p.y - pW.y) <= 8) dsu.union(getElectricalNode(p.x, p.y), nW);
-                    if (Math.hypot(p.x - p2.x, p.y - p2.y) <= 8) dsu.union(getElectricalNode(p.x, p.y), n2);
+                    if (Math.hypot(p.x - p1.x, p.y - p1.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), n1);
+                    if (Math.hypot(p.x - pW.x, p.y - pW.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), nW);
+                    if (Math.hypot(p.x - p2.x, p.y - p2.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), n2);
                 });
             });
 
@@ -856,6 +874,187 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         }
     });
 
+    // 3f. Solve DIP Logic ICs (74HC08, 74HC00, 74HC32, 74HC04, 74HC02, 74HC86, 74HC132, 555)
+    // Runs before LEDs and passive loads so that gate logic outputs act as active power sources
+    const icStates = {};
+    const dipIcs = components.filter(c => c.type?.startsWith("ic-"));
+
+    const pinOffsets14 = {
+        1: { lx: 0, ly: 32 },
+        2: { lx: 16, ly: 32 },
+        3: { lx: 32, ly: 32 },
+        4: { lx: 48, ly: 32 },
+        5: { lx: 64, ly: 32 },
+        6: { lx: 80, ly: 32 },
+        7: { lx: 96, ly: 32 }, // GND
+        8: { lx: 96, ly: 0 },
+        9: { lx: 80, ly: 0 },
+        10: { lx: 64, ly: 0 },
+        11: { lx: 48, ly: 0 },
+        12: { lx: 32, ly: 0 },
+        13: { lx: 16, ly: 0 },
+        14: { lx: 0, ly: 0 }    // VCC
+    };
+
+    // First map all physical pin electrical nodes for every IC and union with breadboard & wires
+    const icPinNodesMap = {};
+    dipIcs.forEach(c => {
+        const rot = ((c.rotation || 0) * Math.PI) / 180;
+        const cos = Math.cos(rot);
+        const sin = Math.sin(rot);
+        const pNodes = {};
+
+        for (let pinNum = 1; pinNum <= 14; pinNum++) {
+            const off = pinOffsets14[pinNum];
+            const wx = Math.round(c.x + off.lx * cos - off.ly * sin);
+            const wy = Math.round(c.y + off.lx * sin + off.ly * cos);
+            const pNode = getElectricalNode(wx, wy);
+            pNodes[pinNum] = pNode;
+
+            // Connect nearby wire endpoints (up to 16px snap)
+            wires.forEach(w => {
+                if (!w.points || w.points.length < 2) return;
+                [w.points[0], w.points[w.points.length - 1]].forEach(p => {
+                    if (Math.hypot(p.x - wx, p.y - wy) <= 16) {
+                        dsu.union(getElectricalNode(p.x, p.y), pNode);
+                    }
+                });
+            });
+        }
+        icPinNodesMap[c.id] = pNodes;
+    });
+
+    // Run 2 passes of logic gate evaluation (to resolve cascaded IC logic gates)
+    for (let pass = 0; pass < 2; pass++) {
+        dipIcs.forEach(c => {
+            const pNodes = icPinNodesMap[c.id];
+            if (!pNodes) return;
+
+            const vccNode = dsu.find(pNodes[14]);
+            const gndNode = dsu.find(pNodes[7]);
+
+            if (vccNode === gndNode) {
+                icStates[c.id] = { isPowered: false, voltage: 0, currentMa: 0, outputs: {} };
+                return;
+            }
+
+            const powerConn = findActivePowerSourceForLoad(vccNode, gndNode);
+            if (!powerConn || powerConn.polarity !== "forward" || powerConn.voltage < 2.0) {
+                icStates[c.id] = { isPowered: false, voltage: 0, currentMa: 0, outputs: {} };
+                return;
+            }
+
+            const vSupply = powerConn.voltage;
+            const vccRoot = dsu.find(vccNode);
+            const gndRoot = dsu.find(gndNode);
+
+            const icType = (c.type?.replace("ic-", "") || "").toLowerCase();
+            const icCode = (c.modelNumber || c.icCode || icType).toUpperCase();
+
+            let gates = [];
+            if (icCode.includes("74HC08") || icType.includes("74hc08")) {
+                // Quad 2-Input AND Gate
+                gates = [
+                    { in: [1, 2], out: 3, fn: ([a, b]) => a && b },
+                    { in: [4, 5], out: 6, fn: ([a, b]) => a && b },
+                    { in: [9, 10], out: 8, fn: ([a, b]) => a && b },
+                    { in: [12, 13], out: 11, fn: ([a, b]) => a && b }
+                ];
+            } else if (icCode.includes("74HC00") || icType.includes("74hc00") || icCode.includes("74HC132") || icType.includes("74hc132")) {
+                // Quad 2-Input NAND Gate & Quad NAND Schmitt Trigger
+                gates = [
+                    { in: [1, 2], out: 3, fn: ([a, b]) => !(a && b) },
+                    { in: [4, 5], out: 6, fn: ([a, b]) => !(a && b) },
+                    { in: [9, 10], out: 8, fn: ([a, b]) => !(a && b) },
+                    { in: [12, 13], out: 11, fn: ([a, b]) => !(a && b) }
+                ];
+            } else if (icCode.includes("74HC32") || icType.includes("74hc32")) {
+                // Quad 2-Input OR Gate
+                gates = [
+                    { in: [1, 2], out: 3, fn: ([a, b]) => a || b },
+                    { in: [4, 5], out: 6, fn: ([a, b]) => a || b },
+                    { in: [9, 10], out: 8, fn: ([a, b]) => a || b },
+                    { in: [12, 13], out: 11, fn: ([a, b]) => a || b }
+                ];
+            } else if (icCode.includes("74HC86") || icType.includes("74hc86")) {
+                // Quad 2-Input XOR Gate
+                gates = [
+                    { in: [1, 2], out: 3, fn: ([a, b]) => Boolean(a) !== Boolean(b) },
+                    { in: [4, 5], out: 6, fn: ([a, b]) => Boolean(a) !== Boolean(b) },
+                    { in: [9, 10], out: 8, fn: ([a, b]) => Boolean(a) !== Boolean(b) },
+                    { in: [12, 13], out: 11, fn: ([a, b]) => Boolean(a) !== Boolean(b) }
+                ];
+            } else if (icCode.includes("74HC02") || icType.includes("74hc02")) {
+                // Quad 2-Input NOR Gate (outputs on 1, 4, 10, 13)
+                gates = [
+                    { in: [2, 3], out: 1, fn: ([a, b]) => !(a || b) },
+                    { in: [5, 6], out: 4, fn: ([a, b]) => !(a || b) },
+                    { in: [8, 9], out: 10, fn: ([a, b]) => !(a || b) },
+                    { in: [11, 12], out: 13, fn: ([a, b]) => !(a || b) }
+                ];
+            } else if (icCode.includes("74HC04") || icType.includes("74hc04")) {
+                // Hex Inverter (NOT Gate)
+                gates = [
+                    { in: [1], out: 2, fn: ([a]) => !a },
+                    { in: [3], out: 4, fn: ([a]) => !a },
+                    { in: [5], out: 6, fn: ([a]) => !a },
+                    { in: [9], out: 8, fn: ([a]) => !a },
+                    { in: [11], out: 10, fn: ([a]) => !a },
+                    { in: [13], out: 12, fn: ([a]) => !a }
+                ];
+            } else {
+                // Generic / default: assume Quad NAND (74HC00/132)
+                gates = [
+                    { in: [1, 2], out: 3, fn: ([a, b]) => !(a && b) },
+                    { in: [4, 5], out: 6, fn: ([a, b]) => !(a && b) },
+                    { in: [9, 10], out: 8, fn: ([a, b]) => !(a && b) },
+                    { in: [12, 13], out: 11, fn: ([a, b]) => !(a && b) }
+                ];
+            }
+
+            const gateOutputs = {};
+            gates.forEach(g => {
+                const inValues = g.in.map(pinIn => {
+                    const inNode = dsu.find(pNodes[pinIn]);
+                    if (inNode === vccRoot) return true;
+                    if (inNode === gndRoot) return false;
+                    if (posNodes.some(pn => dsu.find(pn) === inNode)) return true;
+                    const pSrc = findActivePowerSourceForLoad(inNode, gndRoot);
+                    if (pSrc && pSrc.polarity === "forward" && pSrc.voltage >= 2.0) return true;
+                    return false;
+                });
+
+                const outLogic = Boolean(g.fn(inValues));
+                gateOutputs[g.out] = outLogic ? 1 : 0;
+
+                const outNode = dsu.find(pNodes[g.out]);
+                if (outLogic) {
+                    posNodes.push(outNode);
+                    const srcId = `ic_gate_${c.id}_pin${g.out}`;
+                    if (!powerSources.some(ps => ps.id === srcId)) {
+                        powerSources.push({
+                            id: srcId,
+                            sourceType: c.type,
+                            sourceId: c.id,
+                            name: `${icCode} Output Pin ${g.out} (${vSupply.toFixed(1)}V)`,
+                            posNode: outNode,
+                            gndNode: gndRoot,
+                            voltage: vSupply
+                        });
+                    }
+                }
+            });
+
+            icStates[c.id] = {
+                isPowered: true,
+                voltage: vSupply,
+                currentMa: 5,
+                powerSourceId: powerConn.powerSource.id,
+                outputs: gateOutputs
+            };
+        });
+    }
+
     // 4. Solve LEDs
     const leds = [];
     const ledStates = {};
@@ -872,15 +1071,15 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             let anodeNode = getElectricalNode(c.x, c.y);
             let cathodeNode = getElectricalNode(c.x + dx, c.y + dy);
 
-            // Connect nearby wire endpoints (precise 10px snap directly on terminal leads)
+            // Connect nearby wire endpoints (up to 20px snap directly on terminal leads)
             wires.forEach(w => {
                 if (!w.points || w.points.length < 2) return;
                 [w.points[0], w.points[w.points.length - 1]].forEach(p => {
                     const dAnode = Math.hypot(p.x - c.x, p.y - c.y);
                     const dCathode = Math.hypot(p.x - (c.x + dx), p.y - (c.y + dy));
-                    if (dAnode <= 10 && dAnode < dCathode) {
+                    if (dAnode <= 20 && dAnode < dCathode) {
                         dsu.union(getElectricalNode(p.x, p.y), anodeNode);
-                    } else if (dCathode <= 10 && dCathode < dAnode) {
+                    } else if (dCathode <= 20 && dCathode < dAnode) {
                         dsu.union(getElectricalNode(p.x, p.y), cathodeNode);
                     }
                 });
@@ -1055,8 +1254,8 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             wires.forEach(w => {
                 if (!w.points || w.points.length < 2) return;
                 [w.points[0], w.points[w.points.length - 1]].forEach(p => {
-                    if (Math.hypot(p.x - pPos.x, p.y - pPos.y) <= 12) dsu.union(getElectricalNode(p.x, p.y), posNode);
-                    if (Math.hypot(p.x - pNeg.x, p.y - pNeg.y) <= 12) dsu.union(getElectricalNode(p.x, p.y), negNode);
+                    if (Math.hypot(p.x - pPos.x, p.y - pPos.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), posNode);
+                    if (Math.hypot(p.x - pNeg.x, p.y - pNeg.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), negNode);
                 });
             });
 
@@ -1111,15 +1310,15 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             let posNode = getElectricalNode(pPos.x, pPos.y);
             let negNode = getElectricalNode(pNeg.x, pNeg.y);
 
-            // Connect nearby wire endpoints (precise 10px snap directly on solder eyelets)
+            // Connect nearby wire endpoints (up to 20px snap directly on solder eyelets)
             wires.forEach(w => {
                 if (!w.points || w.points.length < 2) return;
                 [w.points[0], w.points[w.points.length - 1]].forEach(p => {
                     const dPos = Math.hypot(p.x - pPos.x, p.y - pPos.y);
                     const dNeg = Math.hypot(p.x - pNeg.x, p.y - pNeg.y);
-                    if (dPos <= 10 && dPos < dNeg) {
+                    if (dPos <= 20 && dPos < dNeg) {
                         dsu.union(getElectricalNode(p.x, p.y), posNode);
-                    } else if (dNeg <= 10 && dNeg < dPos) {
+                    } else if (dNeg <= 20 && dNeg < dPos) {
                         dsu.union(getElectricalNode(p.x, p.y), negNode);
                     }
                 });
@@ -1184,9 +1383,8 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         }
     });
 
-    // 4d. Solve Active Sensors, Modules, ICs, LCDs & Servos
+    // 4d. Solve Active Sensors, Modules, LCDs & Servos
     const sensorStates = {};
-    const icStates = {};
     const lcdStates = {};
     const servoStates = {};
 
@@ -1439,43 +1637,6 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                 }
             } else {
                 sensorStates[c.id] = { isPowered: false, moisture: c.moisture || 45, voltageOut: 0, currentMa: 0 };
-            }
-        }
-
-        // DIP Logic ICs (74HCxx & 555): Pin 14 VCC (0, 0), Pin 7 GND (96, 32)
-        if (c.type?.startsWith("ic-")) {
-            const pVcc = { x: c.x, y: c.y };
-            const pGnd = { x: Math.round(c.x + 96 * cos - 32 * sin), y: Math.round(c.y + 96 * sin + 32 * cos) };
-            let vccNode = getElectricalNode(pVcc.x, pVcc.y);
-            let gndNode = getElectricalNode(pGnd.x, pGnd.y);
-
-            wires.forEach(w => {
-                if (!w.points || w.points.length < 2) return;
-                [w.points[0], w.points[w.points.length - 1]].forEach(p => {
-                    const dV = Math.hypot(p.x - pVcc.x, p.y - pVcc.y);
-                    const dG = Math.hypot(p.x - pGnd.x, p.y - pGnd.y);
-                    if (dV <= 10 && dV < dG) dsu.union(getElectricalNode(p.x, p.y), vccNode);
-                    else if (dG <= 10 && dG < dV) dsu.union(getElectricalNode(p.x, p.y), gndNode);
-                });
-            });
-
-            vccNode = dsu.find(vccNode);
-            gndNode = dsu.find(gndNode);
-
-            if (vccNode !== gndNode) {
-                const powerConn = findActivePowerSourceForLoad(vccNode, gndNode);
-                if (powerConn && powerConn.polarity === "forward" && powerConn.voltage >= 2.0) {
-                    icStates[c.id] = {
-                        isPowered: true,
-                        voltage: powerConn.voltage,
-                        currentMa: 5,
-                        powerSourceId: powerConn.powerSource.id
-                    };
-                } else {
-                    icStates[c.id] = { isPowered: false, voltage: 0, currentMa: 0 };
-                }
-            } else {
-                icStates[c.id] = { isPowered: false, voltage: 0, currentMa: 0 };
             }
         }
 
@@ -1981,7 +2142,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
 
         const standbyIcStates = {};
         components.filter(c => c.type?.startsWith("ic-")).forEach(c => {
-            standbyIcStates[c.id] = { isPowered: false, voltage: 0, currentMa: 0 };
+            standbyIcStates[c.id] = { isPowered: false, voltage: 0, currentMa: 0, outputs: {} };
         });
 
         const standbyLcdStates = {};
@@ -2004,10 +2165,22 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             standbyWireStates[w.id] = { hasCurrent: false };
         });
 
+        const standbyResistorStates = {};
+        components.filter(c => c.type === "resistor").forEach(c => {
+            standbyResistorStates[c.id] = { isPowered: false, isConducting: false, current: 0, voltage: 0 };
+        });
+
+        const standbyCapacitorStates = {};
+        components.filter(c => c.type === "capacitor-ceramic" || c.type === "capacitor-electrolytic").forEach(c => {
+            standbyCapacitorStates[c.id] = { isPowered: false, isDischarging: false, voltage: 0 };
+        });
+
         return {
             isSimulating: false,
             supplyVoltage: batteries[0]?.voltage || 0,
             ledStates: standbyLedStates,
+            resistorStates: standbyResistorStates,
+            capacitorStates: standbyCapacitorStates,
             batteryStates: standbyBatteryStates,
             buzzerStates: standbyBuzzerStates,
             motorStates: standbyMotorStates,
@@ -2206,10 +2379,32 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const comp = components.find(c => c.id === icId);
             if (comp) {
                 const rotRad = ((comp.rotation || 0) * Math.PI) / 180;
+                const cos = Math.cos(rotRad);
+                const sin = Math.sin(rotRad);
                 conductingNodes.add(dsu.find(getElectricalNode(comp.x, comp.y)));
-                const gndX = Math.round(comp.x + 96 * Math.cos(rotRad) - 32 * Math.sin(rotRad));
-                const gndY = Math.round(comp.y + 96 * Math.sin(rotRad) + 32 * Math.cos(rotRad));
+                const gndX = Math.round(comp.x + 96 * cos - 32 * sin);
+                const gndY = Math.round(comp.y + 96 * sin + 32 * cos);
                 conductingNodes.add(dsu.find(getElectricalNode(gndX, gndY)));
+
+                if (state.outputs) {
+                    const pinOffsets14 = {
+                        1: { lx: 0, ly: 32 }, 2: { lx: 16, ly: 32 }, 3: { lx: 32, ly: 32 },
+                        4: { lx: 48, ly: 32 }, 5: { lx: 64, ly: 32 }, 6: { lx: 80, ly: 32 },
+                        7: { lx: 96, ly: 32 }, 8: { lx: 96, ly: 0 }, 9: { lx: 80, ly: 0 },
+                        10: { lx: 64, ly: 0 }, 11: { lx: 48, ly: 0 }, 12: { lx: 32, ly: 0 },
+                        13: { lx: 16, ly: 0 }, 14: { lx: 0, ly: 0 }
+                    };
+                    Object.entries(state.outputs).forEach(([pNum, val]) => {
+                        if (val) {
+                            const off = pinOffsets14[Number(pNum)];
+                            if (off) {
+                                const px = Math.round(comp.x + off.lx * cos - off.ly * sin);
+                                const py = Math.round(comp.y + off.lx * sin + off.ly * cos);
+                                conductingNodes.add(dsu.find(getElectricalNode(px, py)));
+                            }
+                        }
+                    });
+                }
             }
         }
     });
@@ -2384,6 +2579,97 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         };
     });
 
+    // F. Solve Resistor Operating States (Thermal Glow & Current Sensing)
+    const resistorStates = {};
+    components.filter(c => c.type === "resistor").forEach(c => {
+        const resEntry = resistors.find(r => r.id === c.id);
+        if (!resEntry) {
+            resistorStates[c.id] = { isPowered: false, isConducting: false, current: 0, voltage: 0 };
+            return;
+        }
+        const rN1 = dsu.find(resEntry.node1);
+        const rN2 = dsu.find(resEntry.node2);
+
+        let currentMa = 0;
+        let isConducting = false;
+
+        const powerConn = findActivePowerSourceForLoad(rN1, rN2);
+        if (powerConn && powerConn.voltage > 0 && rN1 !== rN2) {
+            const totalR = Math.max(resEntry.resistance, 1) + (powerConn.seriesR || 0);
+            currentMa = (powerConn.voltage / totalR) * 1000;
+            isConducting = currentMa > 0.05;
+        }
+
+        if (!isConducting) {
+            for (const lId in ledStates) {
+                if (ledStates[lId]?.isOn || ledStates[lId]?.isOverloaded) {
+                    const ledComp = components.find(comp => comp.id === lId);
+                    if (ledComp) {
+                        const ledAnode = dsu.find(getElectricalNode(ledComp.x, ledComp.y));
+                        const rot = ((ledComp.rotation || 0) * Math.PI) / 180;
+                        const ledCathode = dsu.find(getElectricalNode(ledComp.x + Math.round(16 * Math.cos(rot)), ledComp.y + Math.round(16 * Math.sin(rot))));
+                        if (rN1 === ledAnode || rN2 === ledAnode || rN1 === ledCathode || rN2 === ledCathode) {
+                            currentMa = ledStates[lId].currentMa || 15;
+                            isConducting = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!isConducting && conductingNodes.has(rN1) && conductingNodes.has(rN2) && rN1 !== rN2) {
+            isConducting = true;
+            currentMa = 10;
+        }
+
+        resistorStates[c.id] = {
+            isPowered: isConducting,
+            isConducting: isConducting,
+            current: isConducting ? currentMa : 0,
+            voltage: isConducting ? (currentMa * resEntry.resistance) / 1000 : 0
+        };
+    });
+
+    // G. Solve Capacitor Operating States
+    const capacitorStates = {};
+    components.filter(c => c.type === "capacitor-ceramic" || c.type === "capacitor-electrolytic").forEach(c => {
+        const rotRad = ((c.rotation || 0) * Math.PI) / 180;
+        const dx = Math.round(Math.cos(rotRad) * 16);
+        const dy = Math.round(Math.sin(rotRad) * 16);
+
+        let n1 = getElectricalNode(c.x, c.y);
+        let n2 = getElectricalNode(c.x + dx, c.y + dy);
+
+        wires.forEach(w => {
+            if (!w.points || w.points.length < 2) return;
+            [w.points[0], w.points[w.points.length - 1]].forEach(p => {
+                const d1 = Math.hypot(p.x - c.x, p.y - c.y);
+                const d2 = Math.hypot(p.x - (c.x + dx), p.y - (c.y + dy));
+                if (d1 <= 20 && d1 < d2) dsu.union(getElectricalNode(p.x, p.y), n1);
+                else if (d2 <= 20 && d2 < d1) dsu.union(getElectricalNode(p.x, p.y), n2);
+            });
+        });
+
+        n1 = dsu.find(n1);
+        n2 = dsu.find(n2);
+
+        if (n1 !== n2) {
+            const powerConn = findActivePowerSourceForLoad(n1, n2);
+            if (powerConn && powerConn.voltage > 0) {
+                capacitorStates[c.id] = {
+                    isPowered: true,
+                    isDischarging: false,
+                    voltage: powerConn.voltage
+                };
+            } else {
+                capacitorStates[c.id] = { isPowered: false, voltage: 0 };
+            }
+        } else {
+            capacitorStates[c.id] = { isPowered: false, voltage: 0 };
+        }
+    });
+
     const activeSupplyVoltage = powerSources.length > 0 
         ? powerSources[0].voltage 
         : (batteries.length > 0 && batteries[0].voltage != null ? Number(batteries[0].voltage) : 5.0);
@@ -2392,6 +2678,8 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         isSimulating: true,
         supplyVoltage: activeSupplyVoltage,
         ledStates,
+        resistorStates,
+        capacitorStates,
         batteryStates,
         buzzerStates,
         motorStates,

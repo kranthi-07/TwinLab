@@ -135,9 +135,22 @@ function Breadboard({
         return { mode: "normal", opacity: 1 };
     };
 
+    // Helper to calculate exact world coordinate for any hole respecting board rotation
+    const getHoleWorldPos = (cx, cy) => {
+        if (!rotation) return { x: x + cx, y: y + cy };
+        const rad = (rotation * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        return {
+            x: Math.round(x + cx * cos - cy * sin),
+            y: Math.round(y + cx * sin + cy * cos)
+        };
+    };
+
     // Render single interactive hole with multi-tier highlights
     const renderHole = (key, cx, cy, title, section, col, row = null, rowIndex = null) => {
         const { mode, opacity } = getPinMode(section, col, rowIndex);
+        const holePos = getHoleWorldPos(cx, cy);
 
         return (
             <g 
@@ -146,15 +159,24 @@ function Breadboard({
                 opacity={opacity}
                 onMouseEnter={() => setHoveredPin({ section, col, row, rowIndex })}
                 onMouseLeave={() => setHoveredPin(null)}
-                onMouseDown={(e) => handleHoleMouseDown(e, key, { x: x + cx, y: y + cy })}
-                onMouseUp={(e) => handleHoleMouseUp(e, { x: x + cx, y: y + cy })}
+                onMouseDown={(e) => handleHoleMouseDown(e, key, holePos)}
+                onMouseUp={(e) => handleHoleMouseUp(e, holePos)}
                 onDoubleClick={(e) => {
                     e.stopPropagation();
-                    onStartWireAtPoint && onStartWireAtPoint({ x: x + cx, y: y + cy });
+                    onStartWireAtPoint && onStartWireAtPoint(holePos);
                 }}
-                onClick={(e) => handleHolePress(e, key, { x: x + cx, y: y + cy })}
+                onClick={(e) => handleHolePress(e, key, holePos)}
                 style={{ cursor: "default" }}
             >
+                {/* Full 16x16 invisible hit-box: eliminates dead zones and guarantees 100% precision over entire grid cell */}
+                <rect 
+                    x={cx - 8} 
+                    y={cy - 8} 
+                    width="16" 
+                    height="16" 
+                    fill="transparent" 
+                    style={{ pointerEvents: "all" }} 
+                />
                 {/* 1. Main pointed pin: Small, simple, elegant CAD highlight */}
                 {mode === "target" && (
                     <rect 

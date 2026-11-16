@@ -27,6 +27,7 @@ function isPureBlankTemplate(code) {
     const stripped = code
         .replace(/\/\*[\s\S]*?\*\//g, "")
         .replace(/\/\/.*$/gm, "")
+        .replace(/#.*$/gm, "")
         .replace(/\s+/g, "");
     return stripped === "" || stripped === "voidsetup(){}voidloop(){}";
 }
@@ -411,7 +412,7 @@ function Workspace({ onBackToHome }) {
             if (boardCode !== undefined && boardCode !== null && boardCode.trim().length > 0) {
                 setUserCode(boardCode);
             } else if (activeTargetBoard.type?.includes("pico") || activeTargetBoard.type?.includes("raspberry")) {
-                const picoDefault = `// Raspberry Pi Pico Default Sketch\n// Built-in LED on GP25\n\nvoid setup() {\n  pinMode(25, OUTPUT);\n  Serial.begin(115200);\n  Serial.println("Raspberry Pi Pico Ready!");\n}\n\nvoid loop() {\n  digitalWrite(25, HIGH);\n  delay(500);\n  digitalWrite(25, LOW);\n  delay(500);\n}`;
+                const picoDefault = DEFAULT_SKETCHES.pico_py_blink || `# Raspberry Pi Pico MicroPython Blink\nfrom machine import Pin\nimport utime\n\nled = Pin(25, Pin.OUT)\nprint("Raspberry Pi Pico MicroPython Ready!")\n\nwhile True:\n    led.toggle()\n    print("GP25 LED Toggled")\n    utime.sleep(0.5)\n`;
                 setUserCode(picoDefault);
             }
         }
@@ -527,7 +528,7 @@ function Workspace({ onBackToHome }) {
                     } catch (_) {}
                 }
                 if (!flashed && (board.type?.includes("pico") || board.type?.includes("raspberry"))) {
-                    flashed = `// Raspberry Pi Pico Default Sketch\n// Built-in LED on GP25\n\nvoid setup() {\n  pinMode(25, OUTPUT);\n  Serial.begin(115200);\n  Serial.println("Raspberry Pi Pico Ready!");\n}\n\nvoid loop() {\n  digitalWrite(25, HIGH);\n  delay(500);\n  digitalWrite(25, LOW);\n  delay(500);\n}`;
+                    flashed = DEFAULT_SKETCHES.pico_py_blink || `# Raspberry Pi Pico MicroPython Blink\nfrom machine import Pin\nimport utime\n\nled = Pin(25, Pin.OUT)\nprint("Raspberry Pi Pico MicroPython Ready!")\n\nwhile True:\n    led.toggle()\n    print("GP25 LED Toggled")\n    utime.sleep(0.5)\n`;
                 }
 
                 const hasExecutableCode = flashed && !isPureBlankTemplate(flashed);
@@ -1742,7 +1743,7 @@ function Workspace({ onBackToHome }) {
                                 if (boardCode && boardCode.trim().length > 0) {
                                     setUserCode(boardCode);
                                 } else if (board.type?.includes("pico") || board.type?.includes("raspberry")) {
-                                    const picoDefault = `// Raspberry Pi Pico Default Sketch\n// Built-in LED on GP25\n\nvoid setup() {\n  pinMode(25, OUTPUT);\n  Serial.begin(115200);\n  Serial.println("Raspberry Pi Pico Ready!");\n}\n\nvoid loop() {\n  digitalWrite(25, HIGH);\n  delay(500);\n  digitalWrite(25, LOW);\n  delay(500);\n}`;
+                                    const picoDefault = DEFAULT_SKETCHES.pico_py_blink || `# Raspberry Pi Pico MicroPython Blink\nfrom machine import Pin\nimport utime\n\nled = Pin(25, Pin.OUT)\nprint("Raspberry Pi Pico MicroPython Ready!")\n\nwhile True:\n    led.toggle()\n    print("GP25 LED Toggled")\n    utime.sleep(0.5)\n`;
                                     setUserCode(picoDefault);
                                 }
                             }
