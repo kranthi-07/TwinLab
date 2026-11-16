@@ -573,7 +573,7 @@ function AaBatteryValueControl({ component, onUpdate }) {
 }
 
 function LcdValueControl({ component, onUpdate }) {
-    const is2004 = component.type === "lcd-2004" || Boolean(component.is2004) || component.size === "20x4";
+    const is4Pin = component.is4Pin != null ? Boolean(component.is4Pin) : (component.interfaceType === "16pin" ? false : true);
     const contrast = component.contrast != null ? component.contrast : 85;
     const backlightOn = component.backlightOn !== false;
     const backlightColor = component.backlightColor || "#0284c7";
@@ -589,23 +589,33 @@ function LcdValueControl({ component, onUpdate }) {
 
     return (
         <div className="inspector-lcd-controls" style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            {/* Display Size Toggle */}
+            {/* Display Interface / Pin Configuration Toggle: 4 Pin vs 16 Pin */}
             <div className="inspector-field-group">
-                <span className="studio-control-label">Size</span>
+                <span className="studio-control-label">Pins</span>
                 <div className="cells-segmented-picker">
                     <button
                         type="button"
-                        className={`cell-seg-btn ${!is2004 ? "active" : ""}`}
-                        onClick={() => onUpdate && onUpdate(component.id, { type: "lcd-1602", is2004: false, size: "16x2", name: "16x2 Character LCD" })}
+                        className={`cell-seg-btn ${is4Pin ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { 
+                            is4Pin: true, 
+                            interfaceType: "4pin", 
+                            pinCount: 4, 
+                            name: "16x2 Character LCD (4 Pin)" 
+                        })}
                     >
-                        16x2
+                        4 Pin
                     </button>
                     <button
                         type="button"
-                        className={`cell-seg-btn ${is2004 ? "active" : ""}`}
-                        onClick={() => onUpdate && onUpdate(component.id, { type: "lcd-2004", is2004: true, size: "20x4", name: "20x4 Character LCD" })}
+                        className={`cell-seg-btn ${!is4Pin ? "active" : ""}`}
+                        onClick={() => onUpdate && onUpdate(component.id, { 
+                            is4Pin: false, 
+                            interfaceType: "16pin", 
+                            pinCount: 16, 
+                            name: "16x2 Character LCD (16 Pin)" 
+                        })}
                     >
-                        20x4
+                        16 Pin
                     </button>
                 </div>
             </div>

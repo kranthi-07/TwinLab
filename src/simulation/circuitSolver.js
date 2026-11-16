@@ -1002,6 +1002,21 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                     { in: [11], out: 10, fn: ([a]) => !a },
                     { in: [13], out: 12, fn: ([a]) => !a }
                 ];
+            } else if (icCode.includes("L293D") || icType.includes("l293d")) {
+                // L293D Dual H-Bridge Motor Driver:
+                // Channel 1: In 1 (Pin 2), In 2 (Pin 7) -> Out 1 (Pin 3), Out 2 (Pin 6)
+                // Channel 2: In 3 (Pin 10), In 4 (Pin 12) -> Out 3 (Pin 8), Out 4 (Pin 11)
+                gates = [
+                    { in: [1, 2], out: 3, fn: ([en, in1]) => (en !== false) && in1 },
+                    { in: [1, 7], out: 6, fn: ([en, in2]) => (en !== false) && in2 },
+                    { in: [9, 10], out: 8, fn: ([en, in3]) => (en !== false) && in3 },
+                    { in: [9, 12], out: 11, fn: ([en, in4]) => (en !== false) && in4 }
+                ];
+            } else if (icCode.includes("555") || icType.includes("555")) {
+                // 555 Precision Timer: Pin 3 OUT generates HIGH logic when powered
+                gates = [
+                    { in: [], out: 3, fn: () => true }
+                ];
             } else {
                 // Generic / default: assume Quad NAND (74HC00/132)
                 gates = [
@@ -1640,9 +1655,9 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             }
         }
 
-        // Character LCD Modules (1602 / 2004): 16 Pins along top edge:
-        // Pin 0 (GND): x=24, y=0. Pin 1 (VCC): x=40, y=0.
-        // Pin 14 (LED Anode): x=248, y=0. Pin 15 (LED Cathode): x=264, y=0.
+        // Character LCD Modules (1602 / 2004):
+        // 4-Pin I2C: GND (24, 0), VCC (40, 0), SDA (56, 0), SCL (72, 0)
+        // 16-Pin Parallel: GND (24, 0), VCC (40, 0), ... LED+ (248, 0), LED- (264, 0)
         // Also supports legacy I2C header pins (16,-10 and 32,-10).
         if (c.type?.startsWith("lcd")) {
             // New 16-pin locations:
@@ -1650,6 +1665,10 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const pVcc16 = { x: Math.round(c.x + 40 * cos), y: Math.round(c.y + 40 * sin) };
             const pLedA16 = { x: Math.round(c.x + 248 * cos), y: Math.round(c.y + 248 * sin) };
             const pLedK16 = { x: Math.round(c.x + 264 * cos), y: Math.round(c.y + 264 * sin) };
+
+            // 4-Pin I2C data lines:
+            const pSda4 = { x: Math.round(c.x + 56 * cos), y: Math.round(c.y + 56 * sin) };
+            const pScl4 = { x: Math.round(c.x + 72 * cos), y: Math.round(c.y + 72 * sin) };
 
             // Legacy locations:
             const pGndLeg = { x: Math.round(c.x + 16 * cos - (-10) * sin), y: Math.round(c.y + 16 * sin + (-10) * cos) };
@@ -1661,10 +1680,14 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             let vccNode = getElectricalNode(pVcc16.x, pVcc16.y);
             let ledANode = getElectricalNode(pLedA16.x, pLedA16.y);
             let ledKNode = getElectricalNode(pLedK16.x, pLedK16.y);
+            let sdaNode = getElectricalNode(pSda4.x, pSda4.y);
+            let sclNode = getElectricalNode(pScl4.x, pScl4.y);
 
             // Connect legacy nodes to main nodes
             dsu.union(getElectricalNode(pGndLeg.x, pGndLeg.y), gndNode);
             dsu.union(getElectricalNode(pVccLeg.x, pVccLeg.y), vccNode);
+            dsu.union(getElectricalNode(pSda.x, pSda.y), sdaNode);
+            dsu.union(getElectricalNode(pScl.x, pScl.y), sclNode);
 
             wires.forEach(w => {
                 if (!w.points || w.points.length < 2) return;
@@ -1673,15 +1696,15 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                     const dG = Math.min(Math.hypot(p.x - pGnd16.x, p.y - pGnd16.y), Math.hypot(p.x - pGndLeg.x, p.y - pGndLeg.y));
                     const dLedA = Math.hypot(p.x - pLedA16.x, p.y - pLedA16.y);
                     const dLedK = Math.hypot(p.x - pLedK16.x, p.y - pLedK16.y);
-                    const dSda = Math.hypot(p.x - pSda.x, p.y - pSda.y);
-                    const dScl = Math.hypot(p.x - pScl.x, p.y - pScl.y);
+                    const dSda = Math.min(Math.hypot(p.x - pSda4.x, p.y - pSda4.y), Math.hypot(p.x - pSda.x, p.y - pSda.y));
+                    const dScl = Math.min(Math.hypot(p.x - pScl4.x, p.y - pScl4.y), Math.hypot(p.x - pScl.x, p.y - pScl.y));
 
                     if (dV <= 10 && dV < dG) dsu.union(getElectricalNode(p.x, p.y), vccNode);
                     else if (dG <= 10 && dG < dV) dsu.union(getElectricalNode(p.x, p.y), gndNode);
                     else if (dLedA <= 10 && dLedA < dLedK) dsu.union(getElectricalNode(p.x, p.y), ledANode);
                     else if (dLedK <= 10 && dLedK < dLedA) dsu.union(getElectricalNode(p.x, p.y), ledKNode);
-                    else if (dSda <= 10) dsu.union(getElectricalNode(p.x, p.y), getElectricalNode(pSda.x, pSda.y));
-                    else if (dScl <= 10) dsu.union(getElectricalNode(p.x, p.y), getElectricalNode(pScl.x, pScl.y));
+                    else if (dSda <= 10) dsu.union(getElectricalNode(p.x, p.y), sdaNode);
+                    else if (dScl <= 10) dsu.union(getElectricalNode(p.x, p.y), sclNode);
                 });
             });
 

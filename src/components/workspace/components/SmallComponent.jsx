@@ -1389,17 +1389,25 @@ function SmallComponent({
                 );
             })()}
 
-            {/* REALISTIC 16x2 & 20x4 CHARACTER LCD (16-PIN HEADER MATCHING TINKERCAD) */}
-            {(type === "lcd-1602" || type === "lcd-2004") && (() => {
-                const is2004 = type === "lcd-2004";
+            {/* REALISTIC 16x2 & 20x4 CHARACTER LCD (4-PIN I2C OR 16-PIN PARALLEL HEADER) */}
+            {(type === "lcd-1602" || type === "lcd-2004" || type?.startsWith("lcd")) && (() => {
+                const is2004 = type === "lcd-2004" || Boolean(component?.is2004) || component?.size === "20x4";
+                const is4Pin = component?.is4Pin != null ? Boolean(component.is4Pin) : (component?.interfaceType === "16pin" ? false : true);
                 const numCols = is2004 ? 20 : 16;
                 const numRows = is2004 ? 4 : 2;
-                const isPowered = Boolean(isSimulating && (simState?.isPowered || (textLines && textLines.some(l => l && l.trim().length > 0)) || (component?.textLines && component.textLines.some(l => l && l.trim().length > 0))));
-                const isBacklightActive = isPowered && backlightOn !== false;
-                const isDisplayVisible = isPowered && displayOn !== false;
-                const bgColor = backlightColor || "#0284c7";
-                const txtColor = lcdTextColor || "#ffffff";
-                const contrastVal = contrast != null ? contrast : 85;
+                const curBacklightOn = backlightOn != null ? (backlightOn !== false) : (component?.backlightOn !== false);
+                const curDisplayOn = displayOn != null ? (displayOn !== false) : (component?.displayOn !== false);
+                const isPowered = Boolean(isSimulating && (
+                    simState?.isPowered || 
+                    (textLines && textLines.some(l => l && l.trim().length > 0)) || 
+                    (component?.textLines && component.textLines.some(l => l && l.trim().length > 0)) ||
+                    (curDisplayOn && isSimulating)
+                ));
+                const isBacklightActive = isPowered && curBacklightOn;
+                const isDisplayVisible = isPowered && curDisplayOn;
+                const bgColor = backlightColor || component?.backlightColor || "#0284c7";
+                const txtColor = lcdTextColor || component?.lcdTextColor || "#ffffff";
+                const contrastVal = contrast != null ? contrast : (component?.contrast != null ? component.contrast : 85);
 
                 // Authentic HD44780 contrast curve
                 const charOpacity = isDisplayVisible ? (contrastVal < 25 ? 0.08 : Math.min(1, contrastVal / 75)) : 0;
@@ -1414,9 +1422,11 @@ function SmallComponent({
                 ];
                 const activeLines = (textLines && Array.isArray(textLines) && textLines.length > 0)
                     ? textLines
-                    : defaultLines;
+                    : (component?.textLines && Array.isArray(component.textLines) && component.textLines.length > 0
+                        ? component.textLines
+                        : defaultLines);
 
-                const LCD_PINS_LIST = [
+                const LCD_PINS_16 = [
                     { id: "gnd", name: "GND", desc: "Ground (0V)" },
                     { id: "vcc", name: "VCC", desc: "Power (+5V)" },
                     { id: "v0",  name: "V0",  desc: "Contrast Adjustment" },
@@ -1431,9 +1441,23 @@ function SmallComponent({
                     { id: "db5", name: "DB5", desc: "Data Bit 5" },
                     { id: "db6", name: "DB6", desc: "Data Bit 6" },
                     { id: "db7", name: "DB7", desc: "Data Bit 7" },
-                    { id: "led_a", name: "LED", desc: "Backlight Anode (+5V)" },
-                    { id: "led_k", name: "LED", desc: "Backlight Cathode (GND)" }
+                    { id: "led_a", name: "LED+", desc: "Backlight Anode (+5V)" },
+                    { id: "led_k", name: "LED-", desc: "Backlight Cathode (GND)" }
                 ];
+
+                const LCD_PINS_4 = [
+                    { id: "gnd", name: "GND", desc: "Ground (0V)" },
+                    { id: "vcc", name: "VCC", desc: "Power (+5V)" },
+                    { id: "sda", name: "SDA", desc: "I2C Serial Data" },
+                    { id: "scl", name: "SCL", desc: "I2C Serial Clock" }
+                ];
+
+                const activePinsList = is4Pin ? LCD_PINS_4 : LCD_PINS_16;
+
+                const curRow = cursorRow != null ? cursorRow : (component?.cursorRow || 0);
+                const curCol = cursorCol != null ? cursorCol : (component?.cursorCol || 0);
+                const curBlink = blinkCursor != null ? blinkCursor : (component?.blinkCursor || false);
+                const curShow = showCursor != null ? showCursor : (component?.showCursor || false);
 
                 const pcbWidth = 294;
                 const pcbHeight = 104;
@@ -1448,7 +1472,7 @@ function SmallComponent({
                             position: "relative"
                         }}
                     >
-                        {/* High-Fidelity Green FR-4 PCB with 16 Pins, 4 Corner Mounting Holes, and Silkscreen Labels */}
+                        {/* High-Fidelity Green FR-4 PCB with Header Pins, 4 Corner Mounting Holes, and Silkscreen */}
                         <svg
                             className="lcd-pcb-svg"
                             viewBox={`0 0 ${pcbWidth} ${pcbHeight}`}
@@ -1490,8 +1514,67 @@ function SmallComponent({
                                 </g>
                             ))}
 
-                            {/* 16 Eyelet Pin Pads and Vertical Silkscreen Labels along Top Edge */}
-                            {LCD_PINS_LIST.map((pin, idx) => {
+                            {/* 4-Pin I2C Mode Backpack Silkscreen Graphics */}
+                            {is4Pin && (
+                                <g className="lcd-i2c-backpack-artwork">
+                                    {/* I2C Header Boundary Box */}
+                                    <rect x="18" y="2" width="62" height="28" rx="2" fill="#064e3b" stroke="#34d399" strokeWidth="0.8" opacity="0.8" />
+                                    
+                                    {/* 4 Copper Eyelet Pin Pads with Drill Holes */}
+                                    {LCD_PINS_4.map((pin, idx) => {
+                                        const px = 24 + idx * 16;
+                                        return (
+                                            <g key={pin.id}>
+                                                <circle cx={px} cy="8" r="4.2" fill="#ca8a04" stroke="#eab308" strokeWidth="0.9" />
+                                                <circle cx={px} cy="8" r="2.0" fill="#0f172a" />
+                                                {/* Bold Silkscreen Pin Name */}
+                                                <text
+                                                    x={px}
+                                                    y="22"
+                                                    fill="#ffffff"
+                                                    fontSize="6"
+                                                    fontWeight="900"
+                                                    fontFamily="monospace"
+                                                    textAnchor="middle"
+                                                    letterSpacing="0.02em"
+                                                >
+                                                    {pin.name}
+                                                </text>
+                                            </g>
+                                        );
+                                    })}
+
+                                    {/* I2C Interface Header Silkscreen Text */}
+                                    <text x="88" y="11" fill="#a7f3d0" fontSize="5.5" fontWeight="800" fontFamily="monospace">I2C INTERFACE</text>
+                                    <text x="88" y="19" fill="#fde047" fontSize="4.8" fontWeight="700" fontFamily="monospace">ADDR: 0x27 (PCF8574)</text>
+
+                                    {/* Mini Contrast Potentiometer Trimmer Graphic */}
+                                    <g transform="translate(186, 4)">
+                                        <rect x="0" y="0" width="14" height="14" rx="2" fill="#0284c7" stroke="#0369a1" strokeWidth="0.8" />
+                                        <circle cx="7" cy="7" r="4" fill="#fbbf24" stroke="#d97706" strokeWidth="0.6" />
+                                        <line x1="4.5" y1="7" x2="9.5" y2="7" stroke="#451a03" strokeWidth="1" strokeLinecap="round" />
+                                        <text x="17" y="10" fill="#ffffff" fontSize="4.5" fontWeight="700" fontFamily="sans-serif">TRIM</text>
+                                    </g>
+
+                                    {/* SMD Power LED on Backpack */}
+                                    <g transform="translate(226, 4)">
+                                        <rect x="0" y="2" width="6" height="10" rx="1" fill="#18181b" stroke="#3f3f46" strokeWidth="0.6" />
+                                        <circle cx="3" cy="7" r="2.2" fill={isPowered ? "#ef4444" : "#450a0a"} filter={isPowered ? "drop-shadow(0 0 3px #ef4444)" : "none"} />
+                                        <text x="9" y="10" fill="#cbd5e1" fontSize="4.5" fontWeight="700" fontFamily="sans-serif">PWR</text>
+                                    </g>
+
+                                    {/* I2C Address Solder Jumper Pads A0 A1 A2 */}
+                                    <g transform="translate(254, 5)">
+                                        <rect x="0" y="0" width="4" height="6" rx="0.5" fill="#ca8a04" stroke="#713f12" strokeWidth="0.4" />
+                                        <rect x="6" y="0" width="4" height="6" rx="0.5" fill="#ca8a04" stroke="#713f12" strokeWidth="0.4" />
+                                        <rect x="12" y="0" width="4" height="6" rx="0.5" fill="#ca8a04" stroke="#713f12" strokeWidth="0.4" />
+                                        <text x="0" y="12" fill="#94a3b8" fontSize="3.5" fontFamily="monospace">A0 A1 A2</text>
+                                    </g>
+                                </g>
+                            )}
+
+                            {/* 16-Pin Mode Eyelet Pin Pads and Vertical Silkscreen Labels along Top Edge */}
+                            {!is4Pin && LCD_PINS_16.map((pin, idx) => {
                                 const px = 24 + idx * 16;
                                 return (
                                     <g key={pin.id}>
@@ -1542,11 +1625,11 @@ function SmallComponent({
                                         return (
                                             <div key={rIdx} className={`lcd-text-row row-${rIdx + 1}`}>
                                                 {chars.map((char, cIdx) => {
-                                                    const isCursorCell = isPowered && rIdx === (cursorRow || 0) && cIdx === (cursorCol || 0);
+                                                    const isCursorCell = isPowered && rIdx === curRow && cIdx === curCol;
                                                     return (
                                                         <div 
                                                             key={cIdx} 
-                                                            className={`lcd-matrix-cell ${isCursorCell && blinkCursor ? "cursor-blink" : ""}`}
+                                                            className={`lcd-matrix-cell ${isCursorCell && curBlink ? "cursor-blink" : ""}`}
                                                             style={{
                                                                 "--ghost-opacity": ghostOpacity,
                                                                 "--char-opacity": charOpacity
@@ -1559,7 +1642,7 @@ function SmallComponent({
                                                             <span className="lcd-char-glyph">{char}</span>
 
                                                             {/* Underline Cursor */}
-                                                            {isCursorCell && showCursor && (
+                                                            {isCursorCell && curShow && (
                                                                 <span className="lcd-cursor-underline"></span>
                                                             )}
                                                         </div>
@@ -1572,8 +1655,8 @@ function SmallComponent({
                             </div>
                         </div>
 
-                        {/* Interactive Wire Terminal Pins for all 16 Pins along Top Edge */}
-                        {LCD_PINS_LIST.map((pin, idx) => {
+                        {/* Interactive Wire Terminal Pins for all Active Pins along Top Edge */}
+                        {activePinsList.map((pin, idx) => {
                             const pinX = 24 + idx * 16;
                             const pinY = 0;
                             return (
@@ -2747,9 +2830,23 @@ function SmallComponent({
                     "74HC04": "Hex Inverter (NOT)",
                     "74HC02": "Quad 2-Input NOR Gate",
                     "74HC86": "Quad 2-Input XOR Gate",
-                    "74HC132": "Quad 2-Input NAND Schmitt"
+                    "74HC132": "Quad 2-Input NAND Schmitt",
+                    "L293D": "Dual H-Bridge Motor Driver",
+                    "555": "Precision Timer (NE555)"
+                };
+                const icSubtitles = {
+                    "74HC08": "QUAD 2-IN AND",
+                    "74HC00": "QUAD 2-IN NAND",
+                    "74HC32": "QUAD 2-IN OR",
+                    "74HC04": "HEX INVERTER",
+                    "74HC02": "QUAD 2-IN NOR",
+                    "74HC86": "QUAD 2-IN XOR",
+                    "74HC132": "QUAD NAND SCHMITT",
+                    "L293D": "MOTOR DRIVER",
+                    "555": "PRECISION TIMER"
                 };
                 const partTitle = icTitles[icCode] || `${icCode} Logic Gate`;
+                const subtitle = icSubtitles[icCode] || "LOGIC GATE";
 
                 // 14 Pins strictly snapped across breadboard center trough (Row e at Y=0, Row f at Y=32):
                 // Top row 14-8 at Y=0 (Plugs into breadboard Row e)
@@ -2816,34 +2913,108 @@ function SmallComponent({
 
                 return (
                     <div className={`dip14-ic-container ${isPowered ? "is-powered" : ""}`}>
-                        {/* Metallic Through-Hole DIP Lead Fingers Connecting to Row e (Y=0) and Row f (Y=32) */}
-                        <svg className="dip-leads-svg" viewBox="-4 -2 108 36" width="108" height="36" style={{ position: "absolute", top: -2, left: -4, pointerEvents: "none" }}>
+                        {/* High-Fidelity SVG DIP Package with Metallic Lead Legs & Laser Silkscreen */}
+                        <svg
+                            className="dip-leads-svg"
+                            viewBox="-14 -6 124 44"
+                            width="124"
+                            height="44"
+                            style={{ position: "absolute", top: -6, left: -14, pointerEvents: "none", zIndex: 1 }}
+                        >
+                            <defs>
+                                <linearGradient id={`dip-lead-metal-${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#94a3b8" />
+                                    <stop offset="25%" stopColor="#f8fafc" />
+                                    <stop offset="60%" stopColor="#cbd5e1" />
+                                    <stop offset="100%" stopColor="#64748b" />
+                                </linearGradient>
+                                <linearGradient id={`dip-body-grad-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stopColor="#27272a" />
+                                    <stop offset="12%" stopColor="#18181b" />
+                                    <stop offset="88%" stopColor="#121214" />
+                                    <stop offset="100%" stopColor="#09090b" />
+                                </linearGradient>
+                                <linearGradient id={`dip-body-bevel-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stopColor="rgba(255, 255, 255, 0.22)" />
+                                    <stop offset="100%" stopColor="rgba(0, 0, 0, 0.45)" />
+                                </linearGradient>
+                            </defs>
+
+                            {/* 14 Metallic Lead Frame Legs (Plugging into Row e at Y=0 and Row f at Y=32) */}
                             {[0, 16, 32, 48, 64, 80, 96].map(px => (
-                                <g key={`lead-${px}`}>
-                                    {/* Top Pin Lead Line from Body (Y=6) to Breadboard Row e (Y=0) */}
-                                    <line x1={px} y1="0" x2={px} y2="8" stroke="#cbd5e1" strokeWidth="2.8" strokeLinecap="round" />
-                                    {/* Bottom Pin Lead Line from Body (Y=26) to Breadboard Row f (Y=32) */}
-                                    <line x1={px} y1="24" x2={px} y2="32" stroke="#cbd5e1" strokeWidth="2.8" strokeLinecap="round" />
+                                <g key={`leads-${px}`}>
+                                    {/* Top Pin Leg (Row e, Y=0) */}
+                                    <rect x={px - 2.6} y="4.5" width="5.2" height="2.2" rx="0.5" fill={`url(#dip-lead-metal-${id})`} stroke="#475569" strokeWidth="0.5" />
+                                    <rect x={px - 1.4} y="0" width="2.8" height="5.5" rx="0.4" fill={`url(#dip-lead-metal-${id})`} stroke="#475569" strokeWidth="0.5" />
+                                    <circle cx={px} cy="0" r="2.0" fill="#cbd5e1" stroke="#334155" strokeWidth="0.6" />
+                                    <circle cx={px} cy="0" r="0.9" fill="#0f172a" />
+
+                                    {/* Bottom Pin Leg (Row f, Y=32) */}
+                                    <rect x={px - 2.6} y="25.3" width="5.2" height="2.2" rx="0.5" fill={`url(#dip-lead-metal-${id})`} stroke="#475569" strokeWidth="0.5" />
+                                    <rect x={px - 1.4} y="26.5" width="2.8" height="5.5" rx="0.4" fill={`url(#dip-lead-metal-${id})`} stroke="#475569" strokeWidth="0.5" />
+                                    <circle cx={px} cy="32" r="2.0" fill="#cbd5e1" stroke="#334155" strokeWidth="0.6" />
+                                    <circle cx={px} cy="32" r="0.9" fill="#0f172a" />
                                 </g>
                             ))}
+
+                            {/* Molded Plastic DIP-14 Package Body */}
+                            <rect
+                                x="-8"
+                                y="5.5"
+                                width="112"
+                                height="21"
+                                rx="2.5"
+                                fill={`url(#dip-body-grad-${id})`}
+                                stroke="#27272a"
+                                strokeWidth="1"
+                                filter="drop-shadow(0 4px 10px rgba(0,0,0,0.75))"
+                            />
+                            {/* Inner Bevel Border */}
+                            <rect
+                                x="-7.2"
+                                y="6.3"
+                                width="110.4"
+                                height="19.4"
+                                rx="2"
+                                fill="none"
+                                stroke={`url(#dip-body-bevel-${id})`}
+                                strokeWidth="0.7"
+                            />
+
+                            {/* Orientation Notch at Left Edge */}
+                            <path d="M -8,12.5 A 3.5,3.5 0 0,1 -8,19.5" fill="#09090b" stroke="#3f3f46" strokeWidth="0.8" />
+
+                            {/* Pin 1 Polarity Indicator Dot */}
+                            <circle cx="-2" cy="22.5" r="1.5" fill="#09090b" stroke="#3f3f46" strokeWidth="0.5" />
+
+                            {/* Laser Silkscreen Typography (3 Clean Rows) */}
+                            <text x="48" y="11.2" fill="#71717a" fontSize="3.8" fontWeight="800" fontFamily="sans-serif" textAnchor="middle" letterSpacing="0.12em">TWINLAB</text>
+                            <text x="48" y="17.8" fill="#f8fafc" fontSize="7.2" fontWeight="900" fontFamily="'JetBrains Mono', 'Courier New', monospace" textAnchor="middle" letterSpacing="0.08em">{icCode}</text>
+                            <text x="48" y="23.2" fill="#a1a1aa" fontSize="3.6" fontWeight="600" fontFamily="sans-serif" textAnchor="middle" letterSpacing="0.04em">{subtitle}</text>
+
+                            {/* Subtle Pin Numbers along the Body Edges */}
+                            {topPins.map(p => (
+                                <text key={`lbl-${p.num}`} x={p.x} y="4.2" fill="#64748b" fontSize="3.0" fontWeight="700" fontFamily="monospace" textAnchor="middle">{p.num}</text>
+                            ))}
+                            {bottomPins.map(p => (
+                                <text key={`lbl-${p.num}`} x={p.x} y="29.8" fill="#64748b" fontSize="3.0" fontWeight="700" fontFamily="monospace" textAnchor="middle">{p.num}</text>
+                            ))}
+
+                            {/* Active Silicon Power Indicator LED */}
+                            {isPowered && (
+                                <circle cx="98" cy="16" r="1.4" fill="#22c55e" filter="drop-shadow(0 0 2.5px #22c55e)" />
+                            )}
                         </svg>
 
-                        {/* Molded DIP-14 Plastic Epoxy Body Centered Over Breadboard Divider Trough (Y=16) */}
-                        <div className={`dip14-chip-body ${isPowered ? "active-silicon" : ""}`}>
-                            <div className="ic-notch-mark"></div>
-                            <div className="ic-pin1-dot"></div>
-                            <span className="ic-text-brand">TWINLAB X</span>
-                            <span className="ic-text-code">{icCode}</span>
-                            <span className="ic-text-title">{partTitle.split(" ")[0]}</span>
-                            {isPowered && <div className="ic-power-led-dot"></div>}
-                        </div>
+                        {/* Transparent Body Overlay for Project Accent Selection */}
+                        <div className={`dip14-chip-body ${isPowered ? "active-silicon" : ""}`}></div>
 
                         {/* Top Pins (14 down to 8 at Y=0) with Interactive Tooltips */}
                         {topPins.map((p) => (
                             <React.Fragment key={`top-${p.num}`}>
                                 <span
                                     className={`terminal-pin pin-ic-top ${hoveredTerminal === `ic_${p.num}` ? "targeted" : ""}`}
-                                    style={{ left: p.x, top: 0 }}
+                                    style={{ left: p.x, top: 0, zIndex: 50 }}
                                     onMouseEnter={() => setHoveredTerminal(`ic_${p.num}`)}
                                     onMouseLeave={() => setHoveredTerminal(null)}
                                     onMouseDown={(e) => handleTerminalMouseDown(e, `ic_${p.num}`, p.x, 0)}
@@ -2852,11 +3023,25 @@ function SmallComponent({
                                     onDoubleClick={(e) => handleTerminalAction(e, p.x, 0)}
                                 >
                                     {isPowered && p.isOut && (
-                                        <span className={`ic-logic-status-dot ${simState?.outputs?.[p.num] ? "is-high" : "is-low"}`}></span>
+                                        <span 
+                                            className={`ic-logic-status-dot ${simState?.outputs?.[p.num] ? "is-high" : "is-low"}`}
+                                            style={{
+                                                position: "absolute",
+                                                top: "50%",
+                                                left: "50%",
+                                                transform: "translate(-50%, -50%)",
+                                                width: 4,
+                                                height: 4,
+                                                borderRadius: "50%",
+                                                pointerEvents: "none",
+                                                backgroundColor: simState?.outputs?.[p.num] ? "#22c55e" : "#64748b",
+                                                boxShadow: simState?.outputs?.[p.num] ? "0 0 6px #22c55e" : "none"
+                                            }}
+                                        />
                                     )}
                                 </span>
                                 {hoveredTerminal === `ic_${p.num}` && (
-                                    <div className="terminal-hover-tooltip" style={{ left: p.x, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)` }}>
+                                    <div className="terminal-hover-tooltip" style={{ left: p.x, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)`, zIndex: 60 }}>
                                         Pin {p.num}: {p.name} ({p.desc}){isPowered && p.isOut ? ` - ${simState?.outputs?.[p.num] ? "HIGH (5V)" : "LOW (0V)"}` : ""}
                                     </div>
                                 )}
@@ -2868,7 +3053,7 @@ function SmallComponent({
                             <React.Fragment key={`bot-${p.num}`}>
                                 <span
                                     className={`terminal-pin pin-ic-bot ${hoveredTerminal === `ic_${p.num}` ? "targeted" : ""}`}
-                                    style={{ left: p.x, top: 32 }}
+                                    style={{ left: p.x, top: 32, zIndex: 50 }}
                                     onMouseEnter={() => setHoveredTerminal(`ic_${p.num}`)}
                                     onMouseLeave={() => setHoveredTerminal(null)}
                                     onMouseDown={(e) => handleTerminalMouseDown(e, `ic_${p.num}`, p.x, 32)}
@@ -2877,11 +3062,25 @@ function SmallComponent({
                                     onDoubleClick={(e) => handleTerminalAction(e, p.x, 32)}
                                 >
                                     {isPowered && p.isOut && (
-                                        <span className={`ic-logic-status-dot ${simState?.outputs?.[p.num] ? "is-high" : "is-low"}`}></span>
+                                        <span 
+                                            className={`ic-logic-status-dot ${simState?.outputs?.[p.num] ? "is-high" : "is-low"}`}
+                                            style={{
+                                                position: "absolute",
+                                                top: "50%",
+                                                left: "50%",
+                                                transform: "translate(-50%, -50%)",
+                                                width: 4,
+                                                height: 4,
+                                                borderRadius: "50%",
+                                                pointerEvents: "none",
+                                                backgroundColor: simState?.outputs?.[p.num] ? "#22c55e" : "#64748b",
+                                                boxShadow: simState?.outputs?.[p.num] ? "0 0 6px #22c55e" : "none"
+                                            }}
+                                        />
                                     )}
                                 </span>
                                 {hoveredTerminal === `ic_${p.num}` && (
-                                    <div className="terminal-hover-tooltip" style={{ left: p.x, top: 32, transform: `translate(-50%, 0) translateY(10px) rotate(${-(rotation || 0)}deg)` }}>
+                                    <div className="terminal-hover-tooltip" style={{ left: p.x, top: 32, transform: `translate(-50%, 0) translateY(10px) rotate(${-(rotation || 0)}deg)`, zIndex: 60 }}>
                                         Pin {p.num}: {p.name} ({p.desc}){isPowered && p.isOut ? ` - ${simState?.outputs?.[p.num] ? "HIGH (5V)" : "LOW (0V)"}` : ""}
                                     </div>
                                 )}
