@@ -353,13 +353,14 @@
     background: rgba(239, 68, 68, 0.15);
 }
 
-/* Common Metallic Terminal Contact Eyelet / Pin */
+/* Common Metallic Terminal Contact Eyelet / Pin - 100% Mathematically Centered */
 .terminal-pin {
     position: absolute;
     width: 9px;
     height: 9px;
-    margin-top: -4.5px;
-    margin-left: -4.5px;
+    margin: 0 !important;
+    transform: translate(-50%, -50%) !important;
+    transform-origin: center center !important;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 45%, #64748b 100%);
     border: 1.5px solid #1e293b;
@@ -382,7 +383,7 @@
     background: radial-gradient(circle at 40% 40%, #ffedd5 0%, #FF8A00 70%, #c2410c 100%);
     border-color: #ffffff;
     box-shadow: 0 0 0 2.5px rgba(255, 138, 0, 0.45), 0 0 12px #FF8A00;
-    transform: scale(1.35);
+    transform: translate(-50%, -50%) scale(1.35) !important;
     z-index: 70;
 }
 
@@ -3324,37 +3325,6 @@
     box-shadow: none;
 }
 
-/* DIP IC (74HC Series / L293D / 555) Terminal Contacts - Clean Metallic Leads */
-.pin-ic-top,
-.pin-ic-bot {
-    width: 12px !important;
-    height: 12px !important;
-    margin: 0 !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    border-radius: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    pointer-events: auto !important;
-    cursor: crosshair !important;
-}
-
-.pin-ic-top::after,
-.pin-ic-bot::after {
-    display: none !important;
-}
-
-.pin-ic-top:hover,
-.pin-ic-bot:hover,
-.pin-ic-top.targeted,
-.pin-ic-bot.targeted {
-    background: rgba(255, 138, 0, 0.25) !important;
-    border: 1.5px solid #FF8A00 !important;
-    box-shadow: 0 0 8px rgba(255, 138, 0, 0.75), 0 0 0 2px rgba(255, 138, 0, 0.35) !important;
-    transform: translate(-50%, -50%) scale(1.2) !important;
-    z-index: 70 !important;
-}
-
 /* ============================================================
    22. HC-SR04 ULTRASONIC & PIR SENSORS (HUGE FULL-SCALE PCB)
 ============================================================ */
@@ -3412,7 +3382,7 @@
 .pin-sw-1.targeted, .pin-sw-2.targeted,
 .pin-ldr-1.targeted, .pin-ldr-2.targeted,
 .capacitor-container .pin-1.targeted, .capacitor-container .pin-2.targeted {
-    transform: translate(-50%, -50%) scale(1.25) !important;
+    transform: translate(-50%, -50%) scale(1.35) !important;
 }
 
 /* ============================================================

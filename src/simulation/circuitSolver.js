@@ -776,13 +776,68 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         return { connected: false, totalR: 0 };
     }
 
+    // Resolves both direct and series-connected power sources (e.g. 1.5V battery in series with 9V battery -> 10.5V composite source)
+    function getAllActivePowerSources() {
+        const resolved = [...powerSources];
+        let changed = true;
+        let iter = 0;
+        while (changed && iter < 6) {
+            changed = false;
+            iter++;
+            const currentCount = resolved.length;
+            for (let i = 0; i < currentCount; i++) {
+                const s1 = resolved[i];
+                if (!s1.voltage || s1.voltage <= 0) continue;
+                const s1Pos = dsu.find(s1.posNode);
+                const s1Gnd = dsu.find(s1.gndNode);
+                if (s1Pos === s1Gnd) continue;
+
+                for (let j = 0; j < currentCount; j++) {
+                    if (i === j) continue;
+                    const s2 = resolved[j];
+                    if (!s2.voltage || s2.voltage <= 0) continue;
+
+                    const s1Ids = s1.sourceIds || [s1.id];
+                    const s2Ids = s2.sourceIds || [s2.id];
+                    // Avoid self-cycles or reusing same physical component in chain
+                    if (s1Ids.some(id => s2Ids.includes(id))) continue;
+
+                    const s2Pos = dsu.find(s2.posNode);
+                    const s2Gnd = dsu.find(s2.gndNode);
+                    if (s2Pos === s2Gnd) continue;
+
+                    // Series connection: s1(+) is connected to s2(-)
+                    if (s1Pos === s2Gnd) {
+                        const compositeId = `series_${s1Ids.join("_")}_${s2Ids.join("_")}`;
+                        if (!resolved.some(r => r.id === compositeId)) {
+                            resolved.push({
+                                id: compositeId,
+                                sourceType: "series",
+                                sourceIds: [...s1Ids, ...s2Ids],
+                                name: `${s1.name} + ${s2.name}`,
+                                posNode: s2Pos,
+                                gndNode: s1Gnd,
+                                voltage: s1.voltage + s2.voltage
+                            });
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        }
+        return resolved;
+    }
+
     // Helper to find any active power source forming a closed circuit across nodeA and nodeB
     function findActivePowerSourceForLoad(nodeA, nodeB) {
         const rootA = dsu.find(nodeA);
         const rootB = dsu.find(nodeB);
         if (rootA === rootB) return null;
 
-        for (const ps of powerSources) {
+        const allSources = getAllActivePowerSources();
+        let bestConn = null;
+
+        for (const ps of allSources) {
             if (!ps.voltage || ps.voltage <= 0) continue;
             const pPos = dsu.find(ps.posNode);
             const pGnd = dsu.find(ps.gndNode);
@@ -792,27 +847,33 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const pathFwdPos = findPathToNode(pPos, rootA);
             const pathFwdGnd = findPathToNode(rootB, pGnd);
             if (pathFwdPos.connected && pathFwdGnd.connected) {
-                return {
+                const conn = {
                     powerSource: ps,
                     polarity: "forward",
                     voltage: ps.voltage,
                     seriesR: pathFwdPos.totalR + pathFwdGnd.totalR
                 };
+                if (!bestConn || conn.voltage > bestConn.voltage) {
+                    bestConn = conn;
+                }
             }
 
             // Reverse polarity: (+) connected to nodeB, (-) connected to nodeA
             const pathRevPos = findPathToNode(pPos, rootB);
             const pathRevGnd = findPathToNode(rootA, pGnd);
             if (pathRevPos.connected && pathRevGnd.connected) {
-                return {
+                const conn = {
                     powerSource: ps,
                     polarity: "reverse",
                     voltage: ps.voltage,
                     seriesR: pathRevPos.totalR + pathRevGnd.totalR
                 };
+                if (!bestConn || conn.voltage > bestConn.voltage) {
+                    bestConn = conn;
+                }
             }
         }
-        return null;
+        return bestConn;
     }
 
     // 3e. Add Powered PIR Sensors with Active Motion as 3.3V Logic Output Sources
