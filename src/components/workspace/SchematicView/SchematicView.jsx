@@ -781,21 +781,27 @@ function SchematicView({
                                         </g>
                                     )}
 
-                                    {/* R. DIP-14 LOGIC ICs (74HCxx, 555, L293D) */}
-                                    {c.type?.startsWith("ic-") && (
-                                        <g className="symbol-dip-ic">
-                                            <rect x="-8" y="-6" width="112" height="44" rx="4" fill="rgba(15, 23, 42, 0.9)" stroke="#38bdf8" strokeWidth="2" />
-                                            <path d="M -8 12 C -4 12, -4 20, -8 20" fill="none" stroke="#38bdf8" strokeWidth="1.5" />
-                                            {[0, 16, 32, 48, 64, 80, 96].map(px => (
-                                                <g key={px}>
-                                                    <circle cx={px} cy="0" r="3" fill="#38bdf8" />
-                                                    <circle cx={px} cy="32" r="3" fill="#38bdf8" />
-                                                </g>
-                                            ))}
-                                            <text x="48" y="19" textAnchor="middle" fontSize="8" fill="#38bdf8" fontWeight="bold">{c.name || c.type.toUpperCase()}</text>
-                                            <text x="48" y="-12" textAnchor="middle" className="sch-ref-des">{des}</text>
-                                        </g>
-                                    )}
+                                    {/* R. DIP-14 & DIP-16 LOGIC ICs (74HCxx, 555, L293D) */}
+                                    {c.type?.startsWith("ic-") && (() => {
+                                        const is16 = c.type === "ic-l293d" || (c.modelNumber || "").includes("L293") || (c.name || "").includes("L293");
+                                        const pinPositions = is16 ? [0, 16, 32, 48, 64, 80, 96, 112] : [0, 16, 32, 48, 64, 80, 96];
+                                        const chipWidth = is16 ? 128 : 112;
+                                        const centerPinX = is16 ? 56 : 48;
+                                        return (
+                                            <g className="symbol-dip-ic">
+                                                <rect x="-8" y="-6" width={chipWidth} height="44" rx="4" fill="rgba(15, 23, 42, 0.9)" stroke="#38bdf8" strokeWidth="2" />
+                                                <path d="M -8 12 C -4 12, -4 20, -8 20" fill="none" stroke="#38bdf8" strokeWidth="1.5" />
+                                                {pinPositions.map(px => (
+                                                    <g key={px}>
+                                                        <circle cx={px} cy="0" r="3" fill="#38bdf8" />
+                                                        <circle cx={px} cy="32" r="3" fill="#38bdf8" />
+                                                    </g>
+                                                ))}
+                                                <text x={centerPinX} y="19" textAnchor="middle" fontSize="8" fill="#38bdf8" fontWeight="bold">{c.name || c.type.toUpperCase()}</text>
+                                                <text x={centerPinX} y="-12" textAnchor="middle" className="sch-ref-des">{des}</text>
+                                            </g>
+                                        );
+                                    })()}
 
                                     {/* S. CHARACTER LCD MODULES (1602 / 2004) */}
                                     {c.type?.startsWith("lcd") && (

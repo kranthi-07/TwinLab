@@ -180,7 +180,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             for (const pin of allArdPins) {
                 const wx = b.x + pin.x * cos - pin.y * sin;
                 const wy = b.y + pin.x * sin + pin.y * cos;
-                if (Math.hypot(x - wx, y - wy) <= 12) {
+                if (Math.hypot(x - wx, y - wy) <= 16) {
                     let pinId;
                     if (pin.isGnd) {
                         pinId = `POWER_SOURCE_GND_ard_${b.id}`;
@@ -190,11 +190,17 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                         pinId = `POWER_SOURCE_POS_ard3V3_${b.id}`;
                     } else if (pin.isD13 || pin.pinNum === 13) {
                         const isD13High = mcuStates?.[b.id]?.d13High ?? true;
-                        pinId = isD13High ? `POWER_SOURCE_POS_ardD13_${b.id}` : `ARD_PIN_${b.id}_13_LOW`;
+                        pinId = isD13High ? `POWER_SOURCE_POS_ardD13_${b.id}` : `POWER_SOURCE_GND_ard_${b.id}`;
                     } else if (pin.isGpio) {
                         const pinNum = String(pin.pinNum);
-                        const isPinHigh = mcuStates?.[b.id]?.pins?.[pinNum] === 1;
-                        pinId = isPinHigh ? `POWER_SOURCE_POS_ard_${b.id}_${pinNum}` : `ARD_PIN_${b.id}_${pinNum}`;
+                        const pinVal = mcuStates?.[b.id]?.pins?.[pinNum];
+                        if (pinVal === 1) {
+                            pinId = `POWER_SOURCE_POS_ard_${b.id}_${pinNum}`;
+                        } else if (pinVal === 0) {
+                            pinId = `POWER_SOURCE_GND_ard_${b.id}`;
+                        } else {
+                            pinId = `ARD_PIN_${b.id}_${pinNum}`;
+                        }
                     } else {
                         pinId = `ARD_PIN_${b.id}_${pin.name}`;
                     }
@@ -219,7 +225,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             for (const pin of allEspPins) {
                 const wx = b.x + pin.x * cos - pin.y * sin;
                 const wy = b.y + pin.x * sin + pin.y * cos;
-                if (Math.hypot(x - wx, y - wy) <= 12) {
+                if (Math.hypot(x - wx, y - wy) <= 16) {
                     let pinId;
                     if (pin.isGnd) {
                         pinId = `POWER_SOURCE_GND_esp_${b.id}`;
@@ -229,11 +235,17 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                         pinId = `POWER_SOURCE_POS_esp3V3_${b.id}`;
                     } else if (pin.isD2 || pin.pinNum === 2) {
                         const isD2High = mcuStates?.[b.id]?.d2High ?? true;
-                        pinId = isD2High ? `POWER_SOURCE_POS_espD2_${b.id}` : `ESP_PIN_${b.id}_2_LOW`;
+                        pinId = isD2High ? `POWER_SOURCE_POS_espD2_${b.id}` : `POWER_SOURCE_GND_esp_${b.id}`;
                     } else if (pin.isGpio) {
                         const pinNum = String(pin.pinNum);
-                        const isPinHigh = mcuStates?.[b.id]?.pins?.[pinNum] === 1;
-                        pinId = isPinHigh ? `POWER_SOURCE_POS_esp_${b.id}_${pinNum}` : `ESP_PIN_${b.id}_${pinNum}`;
+                        const pinVal = mcuStates?.[b.id]?.pins?.[pinNum];
+                        if (pinVal === 1) {
+                            pinId = `POWER_SOURCE_POS_esp_${b.id}_${pinNum}`;
+                        } else if (pinVal === 0) {
+                            pinId = `POWER_SOURCE_GND_esp_${b.id}`;
+                        } else {
+                            pinId = `ESP_PIN_${b.id}_${pinNum}`;
+                        }
                     } else {
                         pinId = `ESP_PIN_${b.id}_${pin.name}`;
                     }
@@ -258,7 +270,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             for (const pin of allPicoPins) {
                 const wx = b.x + pin.x * cos - pin.y * sin;
                 const wy = b.y + pin.x * sin + pin.y * cos;
-                if (Math.hypot(x - wx, y - wy) <= 12) {
+                if (Math.hypot(x - wx, y - wy) <= 16) {
                     let pinId;
                     if (pin.isGnd) {
                         pinId = `POWER_SOURCE_GND_pico_${b.id}`;
@@ -269,7 +281,14 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                     } else if (pin.isGpio) {
                         const pinNum = String(pin.pinNum);
                         const isPinHigh = mcuStates?.[b.id]?.pins?.[pinNum] === 1 || (pinNum === "25" && mcuStates?.[b.id]?.gp25High);
-                        pinId = isPinHigh ? `POWER_SOURCE_POS_pico_${b.id}_${pinNum}` : `PICO_PIN_${b.id}_${pinNum}`;
+                        const isPinLow = mcuStates?.[b.id]?.pins?.[pinNum] === 0;
+                        if (isPinHigh) {
+                            pinId = `POWER_SOURCE_POS_pico_${b.id}_${pinNum}`;
+                        } else if (isPinLow) {
+                            pinId = `POWER_SOURCE_GND_pico_${b.id}`;
+                        } else {
+                            pinId = `PICO_PIN_${b.id}_${pinNum}`;
+                        }
                     } else {
                         pinId = `PICO_PIN_${b.id}_${pin.name}`;
                     }
@@ -283,18 +302,208 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         return pointToNode({ x, y });
     };
 
-    // 1. Connect Wire Endpoints & Register Wire End IDs
+    // 1. Connect Wire Endpoints, Waypoints & Multi-Wire Node Junctions
     wires.forEach((w) => {
         if (!w.points || w.points.length < 2) return;
         const pStart = w.points[0];
-        const pEnd = w.points[w.points.length - 1];
+        const baseNode = getElectricalNode(pStart.x, pStart.y);
 
-        const nodeStart = getElectricalNode(pStart.x, pStart.y);
-        const nodeEnd = getElectricalNode(pEnd.x, pEnd.y);
-        dsu.union(nodeStart, nodeEnd);
-        dsu.union(`WIRE_${w.id}_START`, nodeStart);
-        dsu.union(`WIRE_${w.id}_END`, nodeEnd);
+        // Union ALL points and intermediate waypoints on this wire so branch wires connect anywhere along the wire
+        w.points.forEach(pt => {
+            const ptNode = getElectricalNode(pt.x, pt.y);
+            dsu.union(baseNode, ptNode);
+        });
+
+        dsu.union(`WIRE_${w.id}_START`, baseNode);
+        dsu.union(`WIRE_${w.id}_END`, baseNode);
     });
+
+    // Multi-Wire Node Junction Snapping: Any wire endpoints or waypoints meeting at a junction node (<= 16px) connect!
+    for (let i = 0; i < wires.length; i++) {
+        const w1 = wires[i];
+        if (!w1.points) continue;
+        for (let j = i + 1; j < wires.length; j++) {
+            const w2 = wires[j];
+            if (!w2.points) continue;
+            for (const p1 of w1.points) {
+                for (const p2 of w2.points) {
+                    if (Math.hypot(p1.x - p2.x, p1.y - p2.y) <= 16) {
+                        dsu.union(getElectricalNode(p1.x, p1.y), getElectricalNode(p2.x, p2.y));
+                    }
+                }
+            }
+        }
+    }
+
+    // 1b. Direct Component-to-Component & Component-to-Board Pin Contact (No wires needed!)
+    // When any component terminal touches another component terminal or MCU header pin (<= 16px snap), union their electrical nodes!
+    const allTerminalContacts = [];
+
+    // Arduino / MCU header pins
+    arduinoBoards.forEach(b => {
+        const rot = ((b.rotation || 0) * Math.PI) / 180;
+        const cos = Math.cos(rot);
+        const sin = Math.sin(rot);
+        const allArdPins = b.type === "arduino-mega" ? [
+            ...ARDUINO_MEGA_PINS.digitalHigh, ...ARDUINO_MEGA_PINS.digitalLow, ...ARDUINO_MEGA_PINS.power, ...ARDUINO_MEGA_PINS.analog
+        ] : b.type === "arduino-nano" ? [
+            ...ARDUINO_NANO_PINS.topRow, ...ARDUINO_NANO_PINS.botRow
+        ] : [
+            ...ARDUINO_PINS.digitalHigh, ...ARDUINO_PINS.digitalLow, ...ARDUINO_PINS.power, ...ARDUINO_PINS.analog
+        ];
+        allArdPins.forEach(pin => {
+            allTerminalContacts.push({
+                x: Math.round(b.x + pin.x * cos - pin.y * sin),
+                y: Math.round(b.y + pin.x * sin + pin.y * cos),
+                compId: b.id,
+                term: `ard_${pin.name}`
+            });
+        });
+    });
+
+    // ESP32 header pins
+    esp32Boards.forEach(b => {
+        const rot = ((b.rotation || 0) * Math.PI) / 180;
+        const cos = Math.cos(rot);
+        const sin = Math.sin(rot);
+        [...ESP32_PINS.leftCol, ...ESP32_PINS.rightCol].forEach(pin => {
+            allTerminalContacts.push({
+                x: Math.round(b.x + pin.x * cos - pin.y * sin),
+                y: Math.round(b.y + pin.x * sin + pin.y * cos),
+                compId: b.id,
+                term: `esp_${pin.name}`
+            });
+        });
+    });
+
+    // Pico header pins
+    rpiPicoBoards.forEach(b => {
+        const rot = ((b.rotation || 0) * Math.PI) / 180;
+        const cos = Math.cos(rot);
+        const sin = Math.sin(rot);
+        [...RPI_PICO_PINS.leftCol, ...RPI_PICO_PINS.rightCol].forEach(pin => {
+            allTerminalContacts.push({
+                x: Math.round(b.x + pin.x * cos - pin.y * sin),
+                y: Math.round(b.y + pin.x * sin + pin.y * cos),
+                compId: b.id,
+                term: `pico_${pin.name}`
+            });
+        });
+    });
+
+    // Passive & discrete components
+    components.forEach(c => {
+        const rot = ((c.rotation || 0) * Math.PI) / 180;
+        const cos = Math.cos(rot);
+        const sin = Math.sin(rot);
+
+        if (c.type === "resistor") {
+            allTerminalContacts.push(
+                { x: c.x, y: c.y, compId: c.id, term: "r1" },
+                { x: Math.round(c.x + 64 * cos), y: Math.round(c.y + 64 * sin), compId: c.id, term: "r2" }
+            );
+        } else if (c.type === "led") {
+            allTerminalContacts.push(
+                { x: c.x, y: c.y, compId: c.id, term: "anode" },
+                { x: Math.round(c.x + 16 * cos), y: Math.round(c.y + 16 * sin), compId: c.id, term: "cathode" }
+            );
+        } else if (c.type === "capacitor" || c.type === "capacitor-ceramic" || c.type === "capacitor-elec") {
+            allTerminalContacts.push(
+                { x: c.x, y: c.y, compId: c.id, term: "c1" },
+                { x: Math.round(c.x + 16 * cos), y: Math.round(c.y + 16 * sin), compId: c.id, term: "c2" }
+            );
+        } else if (c.type === "buzzer") {
+            allTerminalContacts.push(
+                { x: Math.round(c.x - 32 * sin), y: Math.round(c.y + 32 * cos), compId: c.id, term: "pos" },
+                { x: Math.round(c.x + 16 * cos - 32 * sin), y: Math.round(c.y + 16 * sin + 32 * cos), compId: c.id, term: "neg" }
+            );
+        } else if (c.type === "motor-dc" || c.type === "motor-geared" || c.type === "motor-bo") {
+            allTerminalContacts.push(
+                { x: c.x, y: c.y, compId: c.id, term: "motPos" },
+                { x: Math.round(c.x + 48 * cos), y: Math.round(c.y + 48 * sin), compId: c.id, term: "motNeg" }
+            );
+        } else if (c.type === "pushbutton") {
+            allTerminalContacts.push(
+                { x: c.x, y: c.y, compId: c.id, term: "btn1" },
+                { x: Math.round(c.x + 48 * cos), y: Math.round(c.y + 48 * sin), compId: c.id, term: "btn2" },
+                { x: Math.round(c.x - 32 * sin), y: Math.round(c.y + 32 * cos), compId: c.id, term: "btn3" },
+                { x: Math.round(c.x + 48 * cos - 32 * sin), y: Math.round(c.y + 48 * sin + 32 * cos), compId: c.id, term: "btn4" }
+            );
+        } else if (c.type === "switch-slide") {
+            allTerminalContacts.push(
+                { x: c.x, y: c.y, compId: c.id, term: "sw1" },
+                { x: Math.round(c.x + 16 * cos), y: Math.round(c.y + 16 * sin), compId: c.id, term: "com" },
+                { x: Math.round(c.x + 32 * cos), y: Math.round(c.y + 32 * sin), compId: c.id, term: "sw2" }
+            );
+        } else if (c.type === "potentiometer") {
+            allTerminalContacts.push(
+                { x: c.x, y: c.y, compId: c.id, term: "t1" },
+                { x: Math.round(c.x + 16 * cos), y: Math.round(c.y + 16 * sin), compId: c.id, term: "wiper" },
+                { x: Math.round(c.x + 32 * cos), y: Math.round(c.y + 32 * sin), compId: c.id, term: "t2" }
+            );
+        } else if (c.type === "transistor" || c.type === "transistor-npn" || c.type === "transistor-pnp") {
+            allTerminalContacts.push(
+                { x: c.x, y: c.y, compId: c.id, term: "trE" },
+                { x: Math.round(c.x + 16 * cos), y: Math.round(c.y + 16 * sin), compId: c.id, term: "trB" },
+                { x: Math.round(c.x + 32 * cos), y: Math.round(c.y + 32 * sin), compId: c.id, term: "trC" }
+            );
+        } else if (isBattery(c)) {
+            let posLocalX = 72, posLocalY = -14;
+            let negLocalX = 24, negLocalY = -14;
+            if (c.type === "battery-aa" || c.type === "battery-aaa") {
+                const cellCount = c.cells || (c.voltage === 1.5 ? 1 : c.voltage === 6 ? 4 : c.voltage === 4.5 ? 3 : 2);
+                const totalWidth = cellCount === 1 ? 64 : cellCount === 4 ? 176 : cellCount === 3 ? 140 : 96;
+                posLocalX = totalWidth - 20;
+                negLocalX = 20;
+            } else if (c.type === "battery-coin") {
+                posLocalX = 48; posLocalY = 32;
+                negLocalX = 16; negLocalY = 32;
+            }
+            allTerminalContacts.push(
+                { x: Math.round(c.x + posLocalX * cos - posLocalY * sin), y: Math.round(c.y + posLocalX * sin + posLocalY * cos), compId: c.id, term: "batPos" },
+                { x: Math.round(c.x + negLocalX * cos - negLocalY * sin), y: Math.round(c.y + negLocalX * sin + negLocalY * cos), compId: c.id, term: "batNeg" }
+            );
+        } else if (c.type?.startsWith("ic-")) {
+            const is16 = c.type === "ic-l293d" || (c.modelNumber || "").includes("L293") || (c.name || "").includes("L293");
+            const pinOffsets = is16 ? {
+                1: { lx: 0, ly: 32 }, 2: { lx: 16, ly: 32 }, 3: { lx: 32, ly: 32 }, 4: { lx: 48, ly: 32 },
+                5: { lx: 64, ly: 32 }, 6: { lx: 80, ly: 32 }, 7: { lx: 96, ly: 32 }, 8: { lx: 112, ly: 32 },
+                9: { lx: 112, ly: 0 }, 10: { lx: 96, ly: 0 }, 11: { lx: 80, ly: 0 }, 12: { lx: 64, ly: 0 },
+                13: { lx: 48, ly: 0 }, 14: { lx: 32, ly: 0 }, 15: { lx: 16, ly: 0 }, 16: { lx: 0, ly: 0 }
+            } : {
+                1: { lx: 0, ly: 32 }, 2: { lx: 16, ly: 32 }, 3: { lx: 32, ly: 32 }, 4: { lx: 48, ly: 32 },
+                5: { lx: 64, ly: 32 }, 6: { lx: 80, ly: 32 }, 7: { lx: 96, ly: 32 }, 8: { lx: 96, ly: 0 },
+                9: { lx: 80, ly: 0 }, 10: { lx: 64, ly: 0 }, 11: { lx: 48, ly: 0 }, 12: { lx: 32, ly: 0 },
+                13: { lx: 16, ly: 0 }, 14: { lx: 0, ly: 0 }
+            };
+            const pinCount = is16 ? 16 : 14;
+            for (let pinNum = 1; pinNum <= pinCount; pinNum++) {
+                const off = pinOffsets[pinNum];
+                if (off) {
+                    allTerminalContacts.push({
+                        x: Math.round(c.x + off.lx * cos - off.ly * sin),
+                        y: Math.round(c.y + off.lx * sin + off.ly * cos),
+                        compId: c.id,
+                        term: `ic_${pinNum}`
+                    });
+                }
+            }
+        }
+    });
+
+    // Union all overlapping or touching component terminals (<= 16px)
+    for (let i = 0; i < allTerminalContacts.length; i++) {
+        const t1 = allTerminalContacts[i];
+        const n1 = getElectricalNode(t1.x, t1.y);
+        for (let j = i + 1; j < allTerminalContacts.length; j++) {
+            const t2 = allTerminalContacts[j];
+            if (t1.compId === t2.compId) continue; // Don't short internal terminals of same component
+            if (Math.hypot(t1.x - t2.x, t1.y - t2.y) <= 16) {
+                const n2 = getElectricalNode(t2.x, t2.y);
+                dsu.union(n1, n2);
+            }
+        }
+    }
 
     // 2. Identify Power Sources (Batteries, Arduino Uno, ESP32 DevKit)
     let posNodes = [];
@@ -935,8 +1144,8 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         }
     });
 
-    // 3f. Solve DIP Logic ICs (74HC08, 74HC00, 74HC32, 74HC04, 74HC02, 74HC86, 74HC132, 555)
-    // Runs before LEDs and passive loads so that gate logic outputs act as active power sources
+    // 3f. Solve DIP Logic ICs (74HC08, 74HC00, 74HC32, 74HC04, 74HC02, 74HC86, 74HC132, L293D, 555)
+    // Runs before LEDs and passive loads so that gate logic and H-Bridge outputs act as active power sources
     const icStates = {};
     const dipIcs = components.filter(c => c.type?.startsWith("ic-"));
 
@@ -957,6 +1166,26 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         14: { lx: 0, ly: 0 }    // VCC
     };
 
+    // Standard L293D DIP-16 Pin Layout (Exact breadboard pitch across center trough)
+    const pinOffsets16 = {
+        1: { lx: 0, ly: 32 },   // 1,2EN (Enable 1,2)
+        2: { lx: 16, ly: 32 },  // 1A (Input 1)
+        3: { lx: 32, ly: 32 },  // 1Y (Output 1)
+        4: { lx: 48, ly: 32 },  // GND (Ground)
+        5: { lx: 64, ly: 32 },  // GND (Ground)
+        6: { lx: 80, ly: 32 },  // 2Y (Output 2)
+        7: { lx: 96, ly: 32 },  // 2A (Input 2)
+        8: { lx: 112, ly: 32 }, // VCC2 (Motor Power Vs, 4.5V - 36V)
+        9: { lx: 112, ly: 0 },  // 3,4EN (Enable 3,4)
+        10: { lx: 96, ly: 0 },  // 3A (Input 3)
+        11: { lx: 80, ly: 0 },  // 3Y (Output 3)
+        12: { lx: 64, ly: 0 },  // GND (Ground)
+        13: { lx: 48, ly: 0 },  // GND (Ground)
+        14: { lx: 32, ly: 0 },  // 4Y (Output 4)
+        15: { lx: 16, ly: 0 },  // 4A (Input 4)
+        16: { lx: 0, ly: 0 }    // VCC1 (Logic Power Vss, +5V)
+    };
+
     // First map all physical pin electrical nodes for every IC and union with breadboard & wires
     const icPinNodesMap = {};
     dipIcs.forEach(c => {
@@ -965,8 +1194,13 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         const sin = Math.sin(rot);
         const pNodes = {};
 
-        for (let pinNum = 1; pinNum <= 14; pinNum++) {
-            const off = pinOffsets14[pinNum];
+        const is16 = c.type === "ic-l293d" || (c.modelNumber || c.icCode || "").toUpperCase().includes("L293");
+        const pinCount = is16 ? 16 : 14;
+        const offsets = is16 ? pinOffsets16 : pinOffsets14;
+
+        for (let pinNum = 1; pinNum <= pinCount; pinNum++) {
+            const off = offsets[pinNum];
+            if (!off) continue;
             const wx = Math.round(c.x + off.lx * cos - off.ly * sin);
             const wy = Math.round(c.y + off.lx * sin + off.ly * cos);
             const pNode = getElectricalNode(wx, wy);
@@ -982,6 +1216,14 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                 });
             });
         }
+
+        // Internally connect all 4 common Ground pins (Pins 4, 5, 12, 13) for L293D
+        if (is16) {
+            dsu.union(pNodes[4], pNodes[5]);
+            dsu.union(pNodes[4], pNodes[12]);
+            dsu.union(pNodes[4], pNodes[13]);
+        }
+
         icPinNodesMap[c.id] = pNodes;
     });
 
@@ -991,6 +1233,161 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const pNodes = icPinNodesMap[c.id];
             if (!pNodes) return;
 
+            const icType = (c.type?.replace("ic-", "") || "").toLowerCase();
+            const icCode = (c.modelNumber || c.icCode || icType).toUpperCase();
+            const is16 = c.type === "ic-l293d" || icCode.includes("L293") || icType.includes("l293");
+
+            if (is16) {
+                // ============================================================
+                // L293D DUAL H-BRIDGE MOTOR DRIVER (DIP-16 SPECIFICATION)
+                // ============================================================
+                const vcc1Node = dsu.find(pNodes[16]); // Pin 16: Vcc 1 (Logic +5V)
+                const gndNode = dsu.find(pNodes[4]);   // Pins 4, 5, 12, 13: GND
+                const vcc2Node = dsu.find(pNodes[8]);  // Pin 8: Vcc 2 (Motor Supply, up to 36V)
+
+                if (vcc1Node === gndNode) {
+                    icStates[c.id] = { isPowered: false, voltage: 0, currentMa: 0, outputs: {} };
+                    return;
+                }
+
+                // Logic Power check on Pin 16
+                const logicPower = findActivePowerSourceForLoad(vcc1Node, gndNode);
+                const isLogicPowered = logicPower && logicPower.polarity === "forward" && logicPower.voltage >= 2.0;
+
+                if (!isLogicPowered) {
+                    icStates[c.id] = { isPowered: false, voltage: 0, currentMa: 0, outputs: {} };
+                    return;
+                }
+
+                // Motor Power check on Pin 8 (Vs)
+                const motorPower = findActivePowerSourceForLoad(vcc2Node, gndNode);
+                const vMotor = (motorPower && motorPower.polarity === "forward")
+                    ? motorPower.voltage
+                    : (vcc2Node === vcc1Node ? logicPower.voltage : logicPower.voltage);
+
+                const isPinHigh = (pinNum) => {
+                    const node = dsu.find(pNodes[pinNum]);
+                    if (node === vcc1Node || node === vcc2Node) return true;
+                    if (node === gndNode) return false;
+                    if (posNodes.some(pn => dsu.find(pn) === node)) return true;
+                    const pSrc = findActivePowerSourceForLoad(node, gndNode);
+                    return Boolean(pSrc && pSrc.polarity === "forward" && pSrc.voltage >= 2.0);
+                };
+
+                // Enable 1,2 (Pin 1): Active HIGH. If pulled high or unconnected, defaults enabled
+                const en12Node = dsu.find(pNodes[1]);
+                const en12 = (en12Node === gndNode) ? false : (isPinHigh(1) || en12Node === pNodes[1]);
+
+                // Enable 3,4 (Pin 9): Active HIGH
+                const en34Node = dsu.find(pNodes[9]);
+                const en34 = (en34Node === gndNode) ? false : (isPinHigh(9) || en34Node === pNodes[9]);
+
+                const gateOutputs = {};
+
+                // Channel 1: In 1 (Pin 2) -> Out 1 (Pin 3)
+                const in1 = isPinHigh(2);
+                const out1 = en12 && in1;
+                gateOutputs[3] = out1 ? 1 : 0;
+                if (out1) {
+                    const outNode = dsu.find(pNodes[3]);
+                    posNodes.push(outNode);
+                    const srcId = `l293d_${c.id}_out1`;
+                    if (!powerSources.some(ps => ps.id === srcId)) {
+                        powerSources.push({
+                            id: srcId,
+                            sourceType: "ic-l293d",
+                            sourceId: c.id,
+                            name: `L293D Output 1 (${vMotor.toFixed(1)}V)`,
+                            posNode: outNode,
+                            gndNode,
+                            voltage: vMotor
+                        });
+                    }
+                } else if (en12) {
+                    // Sinks to ground when enabled and input is LOW
+                    dsu.union(dsu.find(pNodes[3]), gndNode);
+                }
+
+                // Channel 2: In 2 (Pin 7) -> Out 2 (Pin 6)
+                const in2 = isPinHigh(7);
+                const out2 = en12 && in2;
+                gateOutputs[6] = out2 ? 1 : 0;
+                if (out2) {
+                    const outNode = dsu.find(pNodes[6]);
+                    posNodes.push(outNode);
+                    const srcId = `l293d_${c.id}_out2`;
+                    if (!powerSources.some(ps => ps.id === srcId)) {
+                        powerSources.push({
+                            id: srcId,
+                            sourceType: "ic-l293d",
+                            sourceId: c.id,
+                            name: `L293D Output 2 (${vMotor.toFixed(1)}V)`,
+                            posNode: outNode,
+                            gndNode,
+                            voltage: vMotor
+                        });
+                    }
+                } else if (en12) {
+                    dsu.union(dsu.find(pNodes[6]), gndNode);
+                }
+
+                // Channel 3: In 3 (Pin 10) -> Out 3 (Pin 11)
+                const in3 = isPinHigh(10);
+                const out3 = en34 && in3;
+                gateOutputs[11] = out3 ? 1 : 0;
+                if (out3) {
+                    const outNode = dsu.find(pNodes[11]);
+                    posNodes.push(outNode);
+                    const srcId = `l293d_${c.id}_out3`;
+                    if (!powerSources.some(ps => ps.id === srcId)) {
+                        powerSources.push({
+                            id: srcId,
+                            sourceType: "ic-l293d",
+                            sourceId: c.id,
+                            name: `L293D Output 3 (${vMotor.toFixed(1)}V)`,
+                            posNode: outNode,
+                            gndNode,
+                            voltage: vMotor
+                        });
+                    }
+                } else if (en34) {
+                    dsu.union(dsu.find(pNodes[11]), gndNode);
+                }
+
+                // Channel 4: In 4 (Pin 15) -> Out 4 (Pin 14)
+                const in4 = isPinHigh(15);
+                const out4 = en34 && in4;
+                gateOutputs[14] = out4 ? 1 : 0;
+                if (out4) {
+                    const outNode = dsu.find(pNodes[14]);
+                    posNodes.push(outNode);
+                    const srcId = `l293d_${c.id}_out4`;
+                    if (!powerSources.some(ps => ps.id === srcId)) {
+                        powerSources.push({
+                            id: srcId,
+                            sourceType: "ic-l293d",
+                            sourceId: c.id,
+                            name: `L293D Output 4 (${vMotor.toFixed(1)}V)`,
+                            posNode: outNode,
+                            gndNode,
+                            voltage: vMotor
+                        });
+                    }
+                } else if (en34) {
+                    dsu.union(dsu.find(pNodes[14]), gndNode);
+                }
+
+                icStates[c.id] = {
+                    isPowered: true,
+                    voltage: logicPower.voltage,
+                    vMotor,
+                    currentMa: 15,
+                    outputs: gateOutputs
+                };
+                return;
+            }
+
+            // DIP-14 Logic Gates Evaluation
             const vccNode = dsu.find(pNodes[14]);
             const gndNode = dsu.find(pNodes[7]);
 
@@ -1008,9 +1405,6 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const vSupply = powerConn.voltage;
             const vccRoot = dsu.find(vccNode);
             const gndRoot = dsu.find(gndNode);
-
-            const icType = (c.type?.replace("ic-", "") || "").toLowerCase();
-            const icCode = (c.modelNumber || c.icCode || icType).toUpperCase();
 
             let gates = [];
             if (icCode.includes("74HC08") || icType.includes("74hc08")) {
@@ -1062,16 +1456,6 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                     { in: [9], out: 8, fn: ([a]) => !a },
                     { in: [11], out: 10, fn: ([a]) => !a },
                     { in: [13], out: 12, fn: ([a]) => !a }
-                ];
-            } else if (icCode.includes("L293D") || icType.includes("l293d")) {
-                // L293D Dual H-Bridge Motor Driver:
-                // Channel 1: In 1 (Pin 2), In 2 (Pin 7) -> Out 1 (Pin 3), Out 2 (Pin 6)
-                // Channel 2: In 3 (Pin 10), In 4 (Pin 12) -> Out 3 (Pin 8), Out 4 (Pin 11)
-                gates = [
-                    { in: [1, 2], out: 3, fn: ([en, in1]) => (en !== false) && in1 },
-                    { in: [1, 7], out: 6, fn: ([en, in2]) => (en !== false) && in2 },
-                    { in: [9, 10], out: 8, fn: ([en, in3]) => (en !== false) && in3 },
-                    { in: [9, 12], out: 11, fn: ([en, in4]) => (en !== false) && in4 }
                 ];
             } else if (icCode.includes("555") || icType.includes("555")) {
                 // 555 Precision Timer: Pin 3 OUT generates HIGH logic when powered
@@ -2362,6 +2746,13 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         if (resolvedMcuStates[b.id]?.d13High) {
             conductingNodes.add(dsu.find(`POWER_SOURCE_POS_ardD13_${b.id}`));
         }
+        if (resolvedMcuStates[b.id]?.pins) {
+            for (const pinNum in resolvedMcuStates[b.id].pins) {
+                if (resolvedMcuStates[b.id].pins[pinNum] === 1) {
+                    conductingNodes.add(dsu.find(`POWER_SOURCE_POS_ard_${b.id}_${pinNum}`));
+                }
+            }
+        }
     });
 
     esp32Boards.forEach(b => {
@@ -2370,6 +2761,13 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         conductingNodes.add(dsu.find(`POWER_SOURCE_POS_esp5V_${b.id}`));
         if (resolvedMcuStates[b.id]?.d2High) {
             conductingNodes.add(dsu.find(`POWER_SOURCE_POS_espD2_${b.id}`));
+        }
+        if (resolvedMcuStates[b.id]?.pins) {
+            for (const pinNum in resolvedMcuStates[b.id].pins) {
+                if (resolvedMcuStates[b.id].pins[pinNum] === 1) {
+                    conductingNodes.add(dsu.find(`POWER_SOURCE_POS_esp_${b.id}_${pinNum}`));
+                }
+            }
         }
     });
 
@@ -2457,7 +2855,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         }
     });
 
-    // D4. Active DIP Logic ICs
+    // D4. Active DIP Logic ICs & Motor Drivers
     Object.entries(icStates).forEach(([icId, state]) => {
         if (state.isPowered) {
             const comp = components.find(c => c.id === icId);
@@ -2465,13 +2863,37 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                 const rotRad = ((comp.rotation || 0) * Math.PI) / 180;
                 const cos = Math.cos(rotRad);
                 const sin = Math.sin(rotRad);
+                const is16 = comp.type === "ic-l293d" || (comp.modelNumber || "").includes("L293") || (comp.name || "").includes("L293");
+
+                // Logic VCC pin is at Pin 14 (lx=0, ly=0) for DIP-14 or Pin 16 (lx=0, ly=0) for DIP-16
                 conductingNodes.add(dsu.find(getElectricalNode(comp.x, comp.y)));
-                const gndX = Math.round(comp.x + 96 * cos - 32 * sin);
-                const gndY = Math.round(comp.y + 96 * sin + 32 * cos);
-                conductingNodes.add(dsu.find(getElectricalNode(gndX, gndY)));
+
+                // GND pins
+                if (is16) {
+                    // Pins 4, 5 at Y=32; Pins 12, 13 at Y=0
+                    const gndPins = [{ lx: 48, ly: 32 }, { lx: 64, ly: 32 }, { lx: 64, ly: 0 }, { lx: 48, ly: 0 }];
+                    gndPins.forEach(gp => {
+                        const gx = Math.round(comp.x + gp.lx * cos - gp.ly * sin);
+                        const gy = Math.round(comp.y + gp.lx * sin + gp.ly * cos);
+                        conductingNodes.add(dsu.find(getElectricalNode(gx, gy)));
+                    });
+                    // Motor VCC2 at Pin 8 (112, 32)
+                    const vcc2X = Math.round(comp.x + 112 * cos - 32 * sin);
+                    const vcc2Y = Math.round(comp.y + 112 * sin + 32 * cos);
+                    conductingNodes.add(dsu.find(getElectricalNode(vcc2X, vcc2Y)));
+                } else {
+                    const gndX = Math.round(comp.x + 96 * cos - 32 * sin);
+                    const gndY = Math.round(comp.y + 96 * sin + 32 * cos);
+                    conductingNodes.add(dsu.find(getElectricalNode(gndX, gndY)));
+                }
 
                 if (state.outputs) {
-                    const pinOffsets14 = {
+                    const pinOffsetsMap = is16 ? {
+                        1: { lx: 0, ly: 32 }, 2: { lx: 16, ly: 32 }, 3: { lx: 32, ly: 32 }, 4: { lx: 48, ly: 32 },
+                        5: { lx: 64, ly: 32 }, 6: { lx: 80, ly: 32 }, 7: { lx: 96, ly: 32 }, 8: { lx: 112, ly: 32 },
+                        9: { lx: 112, ly: 0 }, 10: { lx: 96, ly: 0 }, 11: { lx: 80, ly: 0 }, 12: { lx: 64, ly: 0 },
+                        13: { lx: 48, ly: 0 }, 14: { lx: 32, ly: 0 }, 15: { lx: 16, ly: 0 }, 16: { lx: 0, ly: 0 }
+                    } : {
                         1: { lx: 0, ly: 32 }, 2: { lx: 16, ly: 32 }, 3: { lx: 32, ly: 32 },
                         4: { lx: 48, ly: 32 }, 5: { lx: 64, ly: 32 }, 6: { lx: 80, ly: 32 },
                         7: { lx: 96, ly: 32 }, 8: { lx: 96, ly: 0 }, 9: { lx: 80, ly: 0 },
@@ -2480,7 +2902,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                     };
                     Object.entries(state.outputs).forEach(([pNum, val]) => {
                         if (val) {
-                            const off = pinOffsets14[Number(pNum)];
+                            const off = pinOffsetsMap[Number(pNum)];
                             if (off) {
                                 const px = Math.round(comp.x + off.lx * cos - off.ly * sin);
                                 const py = Math.round(comp.y + off.lx * sin + off.ly * cos);

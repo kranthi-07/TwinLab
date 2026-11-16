@@ -2592,9 +2592,10 @@
 ============================================================ */
 .dc-motor-container {
     width: 48px;
-    height: 56px;
+    height: 0;
     position: relative;
     user-select: none;
+    pointer-events: none;
 }
 
 .dc-motor-dynamic-leads-svg {
@@ -3108,9 +3109,10 @@
 ============================================================ */
 .geared-motor-container {
     width: 48px;
-    height: 56px;
+    height: 0;
     position: relative;
     user-select: none;
+    pointer-events: none;
 }
 
 /* 3D TT Geared Motor Chassis */
@@ -3303,13 +3305,17 @@
 }
 
 /* ============================================================
-   21. DIP-14 LOGIC GATES (TINKERCAD SPEC - ROW E TO ROW F = 32px)
+   21. DIP-14 & DIP-16 LOGIC GATES & MOTOR DRIVERS (TINKERCAD SPEC - ROW E TO ROW F = 32px)
 ============================================================ */
 .dip14-ic-container {
     width: 96px;
     height: 32px;
     position: relative;
     user-select: none;
+}
+
+.dip14-ic-container.is-dip16 {
+    width: 112px;
 }
 
 .dip14-chip-body {
@@ -3323,6 +3329,10 @@
     background: transparent;
     border: none;
     box-shadow: none;
+}
+
+.dip14-ic-container.is-dip16 .dip14-chip-body {
+    width: 128px;
 }
 
 /* ============================================================

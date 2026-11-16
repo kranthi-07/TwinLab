@@ -36,7 +36,18 @@ function getLedColors(hex = "#ef4444") {
     };
 }
 
-// Calculate 4 standard color code bands for axial resistor
+// Helper to parse resistor string to numeric Ohms (e.g., 220, "220", "1k", "4.7k", "10k", "1M")
+function parseResistanceNum(val) {
+    if (typeof val === "number") return val > 0 ? val : 220;
+    if (!val) return 220;
+    const str = String(val).trim().toLowerCase();
+    if (str.endsWith("m") || str.endsWith("meg")) return parseFloat(str) * 1000000;
+    if (str.endsWith("k")) return parseFloat(str) * 1000;
+    const n = parseFloat(str);
+    return !isNaN(n) && n > 0 ? n : 220;
+}
+
+// Calculate 4 standard EIA color code bands for axial resistor
 function getResistorColorBands(resistance = 220) {
     const colorHexMap = {
         black: "#09090b",
@@ -49,21 +60,41 @@ function getResistorColorBands(resistance = 220) {
         violet: "#7c3aed",
         gray: "#64748b",
         white: "#f8fafc",
-        gold: "#d97706"
+        gold: "#d97706",
+        silver: "#94a3b8"
     };
 
-    const r = Math.round(Number(resistance) || 220);
-    const s = r.toString();
-    const d1 = parseInt(s[0], 10) || 2;
-    const d2 = parseInt(s[1] || "0", 10);
-    const zeroes = s.length - 2;
+    const r = parseResistanceNum(resistance);
+    if (r <= 0) return [colorHexMap.black, colorHexMap.black, colorHexMap.black, colorHexMap.gold];
 
-    const colorNames = ["black", "brown", "red", "orange", "yellow", "green", "blue", "violet", "gray", "white"];
-    const band1 = colorHexMap[colorNames[d1]] || colorHexMap.red;
-    const band2 = colorHexMap[colorNames[d2]] || colorHexMap.red;
-    const band3 = zeroes >= 0 && zeroes < colorNames.length ? colorHexMap[colorNames[zeroes]] : colorHexMap.brown;
+    // Find significant digits and exponent
+    // e.g. 220 -> 2.2 * 10^2 -> d1=2, d2=2, mult=1 (Brown, x10)
+    // e.g. 1000 -> 1.0 * 10^3 -> d1=1, d2=0, mult=2 (Red, x100)
+    const exp = Math.floor(Math.log10(r));
+    const normalized = r / Math.pow(10, exp);
+    const twoDigits = Math.round(normalized * 10);
+    let d1 = Math.floor(twoDigits / 10);
+    let d2 = twoDigits % 10;
+    let mult = exp - 1;
+
+    if (d1 >= 10) {
+        d1 = 1;
+        d2 = 0;
+        mult += 1;
+    }
+
+    const digits = ["black", "brown", "red", "orange", "yellow", "green", "blue", "violet", "gray", "white"];
+
+    const band1 = colorHexMap[digits[d1]] || colorHexMap.brown;
+    const band2 = colorHexMap[digits[d2]] || colorHexMap.black;
+
+    let band3;
+    if (mult === -2) band3 = colorHexMap.silver; // x0.01
+    else if (mult === -1) band3 = colorHexMap.gold; // x0.1
+    else if (mult >= 0 && mult <= 9) band3 = colorHexMap[digits[mult]];
+    else band3 = colorHexMap.black;
+
     const band4 = colorHexMap.gold; // 5% tolerance
-
     return [band1, band2, band3, band4];
 }
 
@@ -2848,29 +2879,39 @@ function SmallComponent({
                 const partTitle = icTitles[icCode] || `${icCode} Logic Gate`;
                 const subtitle = icSubtitles[icCode] || "LOGIC GATE";
 
-                // 14 Pins strictly snapped across breadboard center trough (Row e at Y=0, Row f at Y=32):
-                // Top row 14-8 at Y=0 (Plugs into breadboard Row e)
-                // Bottom row 1-7 at Y=32 (Plugs into breadboard Row f)
-                let topPins = [
-                    { num: 14, name: "VCC", x: 0, is5V: true, desc: "Power +5V" },
-                    { num: 13, name: "4B", x: 16, desc: "Input 4B" },
-                    { num: 12, name: "4A", x: 32, desc: "Input 4A" },
-                    { num: 11, name: "4Y", x: 48, isOut: true, desc: "Output 4Y" },
-                    { num: 10, name: "3B", x: 64, desc: "Input 3B" },
-                    { num: 9, name: "3A", x: 80, desc: "Input 3A" },
-                    { num: 8, name: "3Y", x: 96, isOut: true, desc: "Output 3Y" }
-                ];
-                let bottomPins = [
-                    { num: 1, name: "1A", x: 0, desc: "Input 1A" },
-                    { num: 2, name: "1B", x: 16, desc: "Input 1B" },
-                    { num: 3, name: "1Y", x: 32, isOut: true, desc: "Output 1Y" },
-                    { num: 4, name: "2A", x: 48, desc: "Input 2A" },
-                    { num: 5, name: "2B", x: 64, desc: "Input 2B" },
-                    { num: 6, name: "2Y", x: 80, isOut: true, desc: "Output 2Y" },
-                    { num: 7, name: "GND", x: 96, isGnd: true, desc: "Ground 0V" }
-                ];
+                // 14 or 16 Pins strictly snapped across breadboard center trough (Row e at Y=0, Row f at Y=32):
+                // Top row at Y=0 (Plugs into breadboard Row e)
+                // Bottom row at Y=32 (Plugs into breadboard Row f)
+                const is16Pin = icCode.includes("L293") || type?.includes("l293");
 
-                if (icCode.includes("74HC04")) {
+                let topPins = [];
+                let bottomPins = [];
+
+                if (is16Pin) {
+                    // Standard L293D DIP-16 Pinout
+                    // Top Row: 16 down to 9 (Left to Right at Y=0)
+                    topPins = [
+                        { num: 16, name: "VCC1", x: 0, is5V: true, desc: "Logic Supply +5V (Vcc 1)" },
+                        { num: 15, name: "4A", x: 16, desc: "Input 4 (4A)" },
+                        { num: 14, name: "4Y", x: 32, isOut: true, desc: "Output 4 (4Y)" },
+                        { num: 13, name: "GND", x: 48, isGnd: true, desc: "Ground (Heat Sink)" },
+                        { num: 12, name: "GND", x: 64, isGnd: true, desc: "Ground (Heat Sink)" },
+                        { num: 11, name: "3Y", x: 80, isOut: true, desc: "Output 3 (3Y)" },
+                        { num: 10, name: "3A", x: 96, desc: "Input 3 (3A)" },
+                        { num: 9, name: "3,4EN", x: 112, desc: "Enable 3,4" }
+                    ];
+                    // Bottom Row: 1 to 8 (Left to Right at Y=32)
+                    bottomPins = [
+                        { num: 1, name: "1,2EN", x: 0, desc: "Enable 1,2" },
+                        { num: 2, name: "1A", x: 16, desc: "Input 1 (1A)" },
+                        { num: 3, name: "1Y", x: 32, isOut: true, desc: "Output 1 (1Y)" },
+                        { num: 4, name: "GND", x: 48, isGnd: true, desc: "Ground (Heat Sink)" },
+                        { num: 5, name: "GND", x: 64, isGnd: true, desc: "Ground (Heat Sink)" },
+                        { num: 6, name: "2Y", x: 80, isOut: true, desc: "Output 2 (2Y)" },
+                        { num: 7, name: "2A", x: 96, desc: "Input 2 (2A)" },
+                        { num: 8, name: "VCC2", x: 112, is5V: true, desc: "Motor Supply (Vcc 2, 4.5V - 36V)" }
+                    ];
+                } else if (icCode.includes("74HC04")) {
                     topPins = [
                         { num: 14, name: "VCC", x: 0, is5V: true, desc: "Power +5V" },
                         { num: 13, name: "6A", x: 16, desc: "Input 6A" },
@@ -2908,16 +2949,44 @@ function SmallComponent({
                         { num: 6, name: "2B", x: 80, desc: "Input 2B" },
                         { num: 7, name: "GND", x: 96, isGnd: true, desc: "Ground 0V" }
                     ];
+                } else {
+                    // Default Quad 2-input DIP-14 (74HC08 AND, 74HC00 NAND, 74HC32 OR, 74HC86 XOR, 74HC132)
+                    topPins = [
+                        { num: 14, name: "VCC", x: 0, is5V: true, desc: "Power +5V" },
+                        { num: 13, name: "4B", x: 16, desc: "Input 4B" },
+                        { num: 12, name: "4A", x: 32, desc: "Input 4A" },
+                        { num: 11, name: "4Y", x: 48, isOut: true, desc: "Output 4Y" },
+                        { num: 10, name: "3B", x: 64, desc: "Input 3B" },
+                        { num: 9, name: "3A", x: 80, desc: "Input 3A" },
+                        { num: 8, name: "3Y", x: 96, isOut: true, desc: "Output 3Y" }
+                    ];
+                    bottomPins = [
+                        { num: 1, name: "1A", x: 0, desc: "Input 1A" },
+                        { num: 2, name: "1B", x: 16, desc: "Input 1B" },
+                        { num: 3, name: "1Y", x: 32, isOut: true, desc: "Output 1Y" },
+                        { num: 4, name: "2A", x: 48, desc: "Input 2A" },
+                        { num: 5, name: "2B", x: 64, desc: "Input 2B" },
+                        { num: 6, name: "2Y", x: 80, isOut: true, desc: "Output 2Y" },
+                        { num: 7, name: "GND", x: 96, isGnd: true, desc: "Ground 0V" }
+                    ];
                 }
                 const isPowered = Boolean(isSimulating && simState?.isPowered);
 
+                const leadXPositions = is16Pin ? [0, 16, 32, 48, 64, 80, 96, 112] : [0, 16, 32, 48, 64, 80, 96];
+                const pkgBodyWidth = is16Pin ? 128 : 112;
+                const pkgBevelWidth = is16Pin ? 126.4 : 110.4;
+                const svgViewBox = is16Pin ? "-14 -6 140 44" : "-14 -6 124 44";
+                const svgWidth = is16Pin ? 140 : 124;
+                const textCenterX = is16Pin ? 56 : 48;
+                const powerLedX = is16Pin ? 114 : 98;
+
                 return (
-                    <div className={`dip14-ic-container ${isPowered ? "is-powered" : ""}`}>
+                    <div className={`dip14-ic-container ${is16Pin ? "is-dip16" : ""} ${isPowered ? "is-powered" : ""}`} style={{ width: is16Pin ? 112 : 96, height: 32 }}>
                         {/* High-Fidelity SVG DIP Package with Metallic Lead Legs & Laser Silkscreen */}
                         <svg
                             className="dip-leads-svg"
-                            viewBox="-14 -6 124 44"
-                            width="124"
+                            viewBox={svgViewBox}
+                            width={svgWidth}
                             height="44"
                             style={{ position: "absolute", top: -6, left: -14, pointerEvents: "none", zIndex: 1 }}
                         >
@@ -2940,8 +3009,8 @@ function SmallComponent({
                                 </linearGradient>
                             </defs>
 
-                            {/* 14 Metallic Lead Frame Legs (Plugging into Row e at Y=0 and Row f at Y=32) */}
-                            {[0, 16, 32, 48, 64, 80, 96].map(px => (
+                            {/* Metallic Lead Frame Legs (Plugging into Row e at Y=0 and Row f at Y=32) */}
+                            {leadXPositions.map(px => (
                                 <g key={`leads-${px}`}>
                                     {/* Top Pin Leg (Row e, Y=0) */}
                                     <rect x={px - 2.6} y="4.5" width="5.2" height="2.2" rx="0.5" fill={`url(#dip-lead-metal-${id})`} stroke="#475569" strokeWidth="0.5" />
@@ -2957,11 +3026,11 @@ function SmallComponent({
                                 </g>
                             ))}
 
-                            {/* Molded Plastic DIP-14 Package Body */}
+                            {/* Molded Plastic DIP Package Body */}
                             <rect
                                 x="-8"
                                 y="5.5"
-                                width="112"
+                                width={pkgBodyWidth}
                                 height="21"
                                 rx="2.5"
                                 fill={`url(#dip-body-grad-${id})`}
@@ -2973,7 +3042,7 @@ function SmallComponent({
                             <rect
                                 x="-7.2"
                                 y="6.3"
-                                width="110.4"
+                                width={pkgBevelWidth}
                                 height="19.4"
                                 rx="2"
                                 fill="none"
@@ -2988,9 +3057,9 @@ function SmallComponent({
                             <circle cx="-2" cy="22.5" r="1.5" fill="#09090b" stroke="#3f3f46" strokeWidth="0.5" />
 
                             {/* Laser Silkscreen Typography (3 Clean Rows) */}
-                            <text x="48" y="11.2" fill="#71717a" fontSize="3.8" fontWeight="800" fontFamily="sans-serif" textAnchor="middle" letterSpacing="0.12em">TWINLAB</text>
-                            <text x="48" y="17.8" fill="#f8fafc" fontSize="7.2" fontWeight="900" fontFamily="'JetBrains Mono', 'Courier New', monospace" textAnchor="middle" letterSpacing="0.08em">{icCode}</text>
-                            <text x="48" y="23.2" fill="#a1a1aa" fontSize="3.6" fontWeight="600" fontFamily="sans-serif" textAnchor="middle" letterSpacing="0.04em">{subtitle}</text>
+                            <text x={textCenterX} y="11.2" fill="#71717a" fontSize="3.8" fontWeight="800" fontFamily="sans-serif" textAnchor="middle" letterSpacing="0.12em">TWINLAB</text>
+                            <text x={textCenterX} y="17.8" fill="#f8fafc" fontSize="7.2" fontWeight="900" fontFamily="'JetBrains Mono', 'Courier New', monospace" textAnchor="middle" letterSpacing="0.08em">{icCode}</text>
+                            <text x={textCenterX} y="23.2" fill="#a1a1aa" fontSize="3.6" fontWeight="600" fontFamily="sans-serif" textAnchor="middle" letterSpacing="0.04em">{subtitle}</text>
 
                             {/* Subtle Pin Numbers along the Body Edges */}
                             {topPins.map(p => (
@@ -3002,12 +3071,12 @@ function SmallComponent({
 
                             {/* Active Silicon Power Indicator LED */}
                             {isPowered && (
-                                <circle cx="98" cy="16" r="1.4" fill="#22c55e" filter="drop-shadow(0 0 2.5px #22c55e)" />
+                                <circle cx={powerLedX} cy="16" r="1.4" fill="#22c55e" filter="drop-shadow(0 0 2.5px #22c55e)" />
                             )}
                         </svg>
 
                         {/* Transparent Body Overlay for Project Accent Selection */}
-                        <div className={`dip14-chip-body ${isPowered ? "active-silicon" : ""}`}></div>
+                        <div className={`dip14-chip-body ${isPowered ? "active-silicon" : ""}`} style={{ width: pkgBodyWidth }}></div>
 
                         {/* Top Pins (14 down to 8 at Y=0) with Interactive Tooltips */}
                         {topPins.map((p) => (

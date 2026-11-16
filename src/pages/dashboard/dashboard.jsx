@@ -624,21 +624,25 @@ function renderMiniComponent(c, id) {
         );
     }
 
-    // 19. DIP IC Logic Gates (74HC08, 74HC00, L293D)
+    // 19. DIP IC Logic Gates & Motor Drivers (74HC08, 74HC00, L293D)
     if (c.type?.startsWith("ic-")) {
+        const is16 = c.type === "ic-l293d" || (c.name || "").includes("L293");
+        const pinIndices = is16 ? [0, 1, 2, 3, 4, 5, 6, 7] : [0, 1, 2, 3, 4, 5, 6];
+        const bodyW = is16 ? 76 : 68;
+        const textMidX = is16 ? 40 : 36;
         return (
             <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
-                <rect width="68" height="26" rx="2" fill="#09090b" stroke="#27272a" strokeWidth="1" />
+                <rect width={bodyW} height="26" rx="2" fill="#09090b" stroke="#27272a" strokeWidth="1" />
                 <path d="M 0 9 A 4 4 0 0 1 0 17" fill="none" stroke="#27272a" strokeWidth="1" />
                 <circle cx="6" cy="6" r="1.5" fill="#3f3f46" />
-                {[0, 1, 2, 3, 4, 5, 6].map(i => (
+                {pinIndices.map(i => (
                     <g key={i}>
                         <rect x={10 + i * 8} y="-4" width="3.5" height="4" fill="#cbd5e1" />
                         <rect x={10 + i * 8} y="26" width="3.5" height="4" fill="#cbd5e1" />
                     </g>
                 ))}
-                <text x="36" y="16" fill="#ffffff" fontSize="5.5" fontWeight="bold" textAnchor="middle" letterSpacing="0.05em">
-                    {c.name?.slice(0, 7) || "74HC08"}
+                <text x={textMidX} y="16" fill="#ffffff" fontSize="5.5" fontWeight="bold" textAnchor="middle" letterSpacing="0.05em">
+                    {c.name?.slice(0, 7) || (is16 ? "L293D" : "74HC08")}
                 </text>
             </g>
         );

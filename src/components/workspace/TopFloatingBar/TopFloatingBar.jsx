@@ -789,8 +789,11 @@ function IcLogicGateControl({ component, onUpdate }) {
         { code: "74HC04", name: "Hex NOT" },
         { code: "74HC02", name: "Quad NOR" },
         { code: "74HC86", name: "Quad XOR" },
-        { code: "74HC132", name: "Schmitt NAND" }
+        { code: "74HC132", name: "Schmitt NAND" },
+        { code: "L293D", name: "Motor Driver" }
     ];
+
+    const is16 = currentCode.includes("L293") || component.type?.includes("l293");
 
     return (
         <div className="inspector-ic-controls" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, width: "100%", flexWrap: "wrap" }}>
@@ -817,7 +820,7 @@ function IcLogicGateControl({ component, onUpdate }) {
                     ))}
                 </div>
             </div>
-            <span className="specs-subtext" style={{ fontSize: "10px", color: "#94a3b8" }}>DIP-14 • 5V</span>
+            <span className="specs-subtext" style={{ fontSize: "10px", color: "#94a3b8" }}>{is16 ? "DIP-16 • 4.5V-36V" : "DIP-14 • 5V"}</span>
         </div>
     );
 }

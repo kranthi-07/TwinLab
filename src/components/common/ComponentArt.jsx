@@ -747,6 +747,7 @@ export function ComponentArt({ type, color = "#ef4444", className = "", size = "
 
     // 36. LOGIC GATES & MOTOR DRIVER (DIP-14 & DIP-16: 74HC08, 74HC00, 74HC32, 74HC04, L293D)
     if (t.startsWith("ic-") || t.includes("74hc") || t.includes("l293d") || t.includes("logic")) {
+        const is16 = t.includes("l293");
         const icName = t.includes("74hc08") ? "74HC08 AND" :
                        t.includes("74hc00") ? "74HC00 NAND" :
                        t.includes("74hc32") ? "74HC32 OR" :
@@ -754,23 +755,28 @@ export function ComponentArt({ type, color = "#ef4444", className = "", size = "
                        t.includes("74hc02") ? "74HC02 NOR" :
                        t.includes("74hc86") ? "74HC86 XOR" :
                        t.includes("74hc132") ? "74HC132 SCHMITT" :
-                       t.includes("l293d") ? "L293D MOTOR" : "74HC LOGIC";
+                       t.includes("l293") ? "L293D MOTOR" : "74HC LOGIC";
+        const pinCount = is16 ? 8 : 7;
+        const bodyX = is16 ? 9 : 12;
+        const bodyWidth = is16 ? 82 : 76;
+        const pinSpacing = is16 ? 10.2 : 11;
+        const pinStartX = is16 ? 14 : 16;
         return (
             <svg viewBox="0 0 100 68" className={`comp-art-svg ${className}`}>
-                {/* 14 Pins */}
-                {[...Array(7)].map((_, i) => (
+                {/* Pins: 14 Pins for standard 74HC or 16 Pins for L293D */}
+                {[...Array(pinCount)].map((_, i) => (
                     <g key={i}>
-                        <line x1={16 + i * 11} y1="12" x2={16 + i * 11} y2="18" stroke="#cbd5e1" strokeWidth="2.5" />
-                        <line x1={16 + i * 11} y1="50" x2={16 + i * 11} y2="56" stroke="#cbd5e1" strokeWidth="2.5" />
+                        <line x1={pinStartX + i * pinSpacing} y1="12" x2={pinStartX + i * pinSpacing} y2="18" stroke="#cbd5e1" strokeWidth="2.4" />
+                        <line x1={pinStartX + i * pinSpacing} y1="50" x2={pinStartX + i * pinSpacing} y2="56" stroke="#cbd5e1" strokeWidth="2.4" />
                     </g>
                 ))}
                 {/* Black Epoxy Body */}
-                <rect x="12" y="18" width="76" height="32" rx="3" fill="#09090b" stroke="#27272a" strokeWidth="1.5" />
+                <rect x={bodyX} y="18" width={bodyWidth} height="32" rx="3" fill="#09090b" stroke="#27272a" strokeWidth="1.5" />
                 {/* Notch */}
-                <circle cx="12" cy="34" r="3.5" fill="#27272a" />
-                <circle cx="20" cy="44" r="1.5" fill="#52525b" />
-                <text x="50" y="32" fill="#e2e8f0" fontSize="5.5" fontFamily="monospace" fontWeight="bold" textAnchor="middle">{icName}</text>
-                <text x="50" y="42" fill="#71717a" fontSize="4.2" fontFamily="monospace" textAnchor="middle">TWINLAB X</text>
+                <circle cx={bodyX} cy="34" r="3.5" fill="#27272a" />
+                <circle cx={bodyX + 7} cy="44" r="1.5" fill="#52525b" />
+                <text x="50" y="32" fill="#e2e8f0" fontSize={is16 ? "5.0" : "5.5"} fontFamily="monospace" fontWeight="bold" textAnchor="middle">{icName}</text>
+                <text x="50" y="42" fill="#71717a" fontSize="4.2" fontFamily="monospace" textAnchor="middle">{is16 ? "16-PIN DIP" : "TWINLAB X"}</text>
             </svg>
         );
     }
