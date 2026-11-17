@@ -6,17 +6,53 @@ import Multimeter from "../components/Multimeter";
 import McuBoard, { ARDUINO_PINS, ARDUINO_MEGA_PINS, ARDUINO_NANO_PINS, ESP32_PINS, RPI_PICO_PINS } from "../components/McuBoard";
 import WireLayer from "../components/WireLayer";
 import { ECE_MOTIVATIONAL_QUOTES } from "../../../data/motivationalQuotes";
+import { getComponentTerminalPoints } from "../../../utils/componentGeometry";
+
+export { getComponentTerminalPoints };
 
 const GRID_STEP = 16;
 const snapToGrid = (val) => Math.round(val / GRID_STEP) * GRID_STEP;
 
-// Smart Breadboard Hole Snapper: Locks small components & ICs to valid breadboard hole coordinates
-export function getSmartComponentPlacementPos(compType, rawWorldX, rawWorldY, rotation = 0, breadboards = []) {
+// Smart Breadboard Hole & Terminal Snapper: Locks small components & ICs to valid breadboard hole coordinates or snaps terminals to adjacent components
+export function getSmartComponentPlacementPos(compType, rawWorldX, rawWorldY, rotation = 0, breadboards = [], otherComponents = [], movingCompId = null) {
     const targetX = snapToGrid(rawWorldX);
     const targetY = snapToGrid(rawWorldY);
 
     if (!compType || compType.startsWith("breadboard")) {
         return { x: targetX, y: targetY, targetBB: null };
+    }
+
+    // 1. Check for Magnetic Terminal-to-Terminal Snapping against any placed components
+    // (Resistor-to-LED, Resistor-to-Arduino pin, Sensor-to-Breadboard pin, etc.)
+    let terminalSnapResult = null;
+    if (otherComponents && otherComponents.length > 0) {
+        const dummyComp = {
+            id: movingCompId || "temp_moving",
+            type: compType,
+            x: targetX,
+            y: targetY,
+            rotation
+        };
+        const movingTerms = getComponentTerminalPoints(dummyComp);
+        let bestDist = 24; // 24px magnetic capture radius
+
+        for (const targetComp of otherComponents) {
+            if (targetComp.id === movingCompId || targetComp.type?.startsWith("breadboard")) continue;
+            const targetTerms = getComponentTerminalPoints(targetComp);
+            for (const mt of movingTerms) {
+                for (const tt of targetTerms) {
+                    const dist = Math.hypot(mt.x - tt.x, mt.y - tt.y);
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        terminalSnapResult = {
+                            x: targetX + (tt.x - mt.x),
+                            y: targetY + (tt.y - mt.y),
+                            targetBB: null
+                        };
+                    }
+                }
+            }
+        }
     }
 
     // Check if target is over or near any placed breadboard
@@ -129,178 +165,128 @@ export function getSmartComponentPlacementPos(compType, rawWorldX, rawWorldY, ro
         }
     }
 
+    if (terminalSnapResult) {
+        return terminalSnapResult;
+    }
+
     return { x: targetX, y: targetY, targetBB: null };
 }
 
-// Precise World Terminal Coordinates for ANY Component (Batteries, LEDs, Motors, ICs, Sensors, MCUs, etc.)
-export function getComponentTerminalPoints(c) {
-    if (!c) return [];
-    const rotRad = ((c.rotation || 0) * Math.PI) / 180;
-    const cos = Math.cos(rotRad);
-    const sin = Math.sin(rotRad);
-    const toWorld = (lx, ly) => ({
-        x: Math.round(c.x + lx * cos - ly * sin),
-        y: Math.round(c.y + lx * sin + ly * cos)
+// Rotates any connected wire endpoints and mounted components with the rotating component
+export function calculateRotatedWiresAndComponents(comp, newRot, currentWires = [], currentComps = []) {
+    const oldRot = comp.rotation || 0;
+    const deltaAngle = (newRot - oldRot);
+    if (deltaAngle === 0) return { updatedWires: currentWires, updatedComps: currentComps };
+
+    const rad = (deltaAngle * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+
+    const rotatePointAroundOrigin = (pt) => {
+        const dx = pt.x - comp.x;
+        const dy = pt.y - comp.y;
+        return {
+            x: Math.round(comp.x + dx * cos - dy * sin),
+            y: Math.round(comp.y + dx * sin + dy * cos)
+        };
+    };
+
+    const isBreadboard = comp.type?.startsWith("breadboard");
+
+    if (isBreadboard) {
+        const bbWidth = comp.width || (comp.type === "breadboard-full" ? 960 : comp.type === "breadboard-mini" ? 272 : 560);
+        const bbHeight = comp.height || (comp.type === "breadboard-mini" ? 192 : 288);
+        const radOld = (-oldRot * Math.PI) / 180;
+        const cosOld = Math.cos(radOld);
+        const sinOld = Math.sin(radOld);
+
+        const isPointInBreadboard = (pt) => {
+            const lx = (pt.x - comp.x) * cosOld - (pt.y - comp.y) * sinOld;
+            const ly = (pt.x - comp.x) * sinOld + (pt.y - comp.y) * cosOld;
+            return lx >= -16 && lx <= bbWidth + 16 && ly >= -16 && ly <= bbHeight + 16;
+        };
+
+        // Any wire points located on this breadboard
+        const updatedWires = currentWires.map(w => {
+            if (!w.points || w.points.length === 0) return w;
+            let wireChanged = false;
+            const newPoints = w.points.map(pt => {
+                if (isPointInBreadboard(pt)) {
+                    wireChanged = true;
+                    return rotatePointAroundOrigin(pt);
+                }
+                return pt;
+            });
+            return wireChanged ? { ...w, points: newPoints } : w;
+        });
+
+        // Any components mounted on this breadboard
+        const updatedComps = currentComps.map(c => {
+            if (c.id === comp.id) {
+                return { ...c, rotation: newRot };
+            }
+            const isMounted = c.mountedBoardId === comp.id || (
+                !c.type?.startsWith("breadboard") &&
+                isPointInBreadboard({ x: c.x, y: c.y })
+            );
+            if (isMounted) {
+                const newPos = rotatePointAroundOrigin({ x: c.x, y: c.y });
+                return {
+                    ...c,
+                    x: newPos.x,
+                    y: newPos.y,
+                    rotation: (((c.rotation || 0) + deltaAngle) % 360 + 360) % 360
+                };
+            }
+            return c;
+        });
+
+        return { updatedWires, updatedComps };
+    }
+
+    // Standard component (Battery, Resistor, LED, Pushbutton, IC, MCU, etc.)
+    const termPtsOld = getComponentTerminalPoints({ ...comp, rotation: oldRot });
+    const termPtsNew = getComponentTerminalPoints({ ...comp, rotation: newRot });
+
+    const updatedWires = currentWires.map(w => {
+        if (!w.points || w.points.length === 0) return w;
+        let wireChanged = false;
+        const newPoints = w.points.map(pt => {
+            // Find if this point was attached to one of the component's terminals
+            let matchedIdx = -1;
+            let minDistance = 36; // Snap tolerance threshold
+
+            termPtsOld.forEach((tp, idx) => {
+                const dist = Math.hypot(pt.x - tp.x, pt.y - tp.y);
+                if (dist <= minDistance) {
+                    minDistance = dist;
+                    matchedIdx = idx;
+                }
+            });
+
+            if (matchedIdx !== -1 && termPtsNew[matchedIdx]) {
+                wireChanged = true;
+                const tpOld = termPtsOld[matchedIdx];
+                const tpNew = termPtsNew[matchedIdx];
+                const offX = pt.x - tpOld.x;
+                const offY = pt.y - tpOld.y;
+                const rotOffX = offX * cos - offY * sin;
+                const rotOffY = offX * sin + offY * cos;
+                return {
+                    x: Math.round(tpNew.x + rotOffX),
+                    y: Math.round(tpNew.y + rotOffY)
+                };
+            }
+
+            return pt;
+        });
+
+        return wireChanged ? { ...w, points: newPoints } : w;
     });
 
-    const pts = [];
+    const updatedComps = currentComps.map(c => c.id === comp.id ? { ...c, rotation: newRot } : c);
 
-    // Battery 9V (Terminals at (24, -14) and (72, -14))
-    if (c.type === "battery-9v") {
-        pts.push(toWorld(24, -14), toWorld(72, -14));
-    }
-    // AA and AAA Battery Packs (Negative 20,-14 and Positive posLeadX,-14)
-    else if (c.type === "battery-aa" || c.type === "battery-aaa") {
-        const cellCount = c.cells || (c.voltage === 1.5 ? 1 : c.voltage === 6 ? 4 : c.voltage === 4.5 ? 3 : 2);
-        const totalWidth = cellCount === 1 ? 64 : cellCount === 4 ? 176 : cellCount === 3 ? 140 : 96;
-        const posLeadX = totalWidth - 20;
-        pts.push(toWorld(20, -14), toWorld(posLeadX, -14));
-    }
-    // Coin Cell Battery CR2032 3V (Negative 16,32 and Positive 48,32)
-    else if (c.type === "battery-coin") {
-        pts.push(toWorld(16, 32), toWorld(48, 32));
-    }
-    // 5mm LED (Anode 0,0 and Cathode 16,0)
-    else if (c.type === "led") {
-        pts.push(toWorld(0, 0), toWorld(16, 0));
-    }
-    // Axial Resistor (0,0 and 64,0)
-    else if (c.type === "resistor") {
-        pts.push(toWorld(0, 0), toWorld(64, 0));
-    }
-    // Ceramic Capacitor
-    else if (c.type === "capacitor-ceramic") {
-        pts.push(toWorld(0, 0), toWorld(16, 0), toWorld(0, 16), toWorld(16, 16));
-    }
-    // Electrolytic Capacitor (Anode 0,0 and Cathode 16,0)
-    else if (c.type === "capacitor-electrolytic") {
-        pts.push(toWorld(0, 0), toWorld(16, 0));
-    }
-    // Pushbutton (0,0, 32,0, 0,32, 32,32)
-    else if (c.type === "button") {
-        pts.push(toWorld(0, 0), toWorld(32, 0), toWorld(0, 32), toWorld(32, 32));
-    }
-    // Potentiometer (0,48, 16,48, 32,48)
-    else if (c.type === "potentiometer") {
-        pts.push(toWorld(0, 48), toWorld(16, 48), toWorld(32, 48));
-    }
-    // Slide Switch & SPDT Switch (0,16, 16,16, 32,16)
-    else if (c.type === "slide-switch" || c.type === "switch-spdt") {
-        pts.push(toWorld(0, 16), toWorld(16, 16), toWorld(32, 16));
-    }
-    // SPST Toggle Switch (0,16 and 32,16)
-    else if (c.type === "switch-spst") {
-        pts.push(toWorld(0, 16), toWorld(32, 16));
-    }
-    // Buzzer (0,32 and 16,32)
-    else if (c.type === "buzzer") {
-        pts.push(toWorld(0, 32), toWorld(16, 32));
-    }
-    // Photoresistor / LDR (0,16 and 32,16)
-    else if (c.type === "photoresistor") {
-        pts.push(toWorld(0, 16), toWorld(32, 16));
-    }
-    // NPN Transistor 2N2222 (0,0, 16,0, 32,0 and 0,16, 16,16, 32,16)
-    else if (c.type === "transistor" || c.type === "transistor-npn") {
-        pts.push(toWorld(0, 0), toWorld(16, 0), toWorld(32, 0), toWorld(0, 16), toWorld(16, 16), toWorld(32, 16));
-    }
-    // Power MOSFET TO-220 (0,0, 16,0, 32,0)
-    else if (c.type === "mosfet-n" || c.type === "mosfet-p") {
-        pts.push(toWorld(0, 0), toWorld(16, 0), toWorld(32, 0));
-    }
-    // TMP36 Precision Temperature Sensor (0,0, 16,0, 32,0)
-    else if (c.type === "sensor-temp" || c.type === "sensor-temperature") {
-        pts.push(toWorld(0, 0), toWorld(16, 0), toWorld(32, 0));
-    }
-    // DC Hobby Motor & Yellow Geared BO Motor (Pos: 0,0, Neg: 48,0, plus alternate pins 16,-6, 32,-6)
-    else if (c.type === "motor-dc" || c.type === "motor-geared" || c.type === "motor-bo") {
-        pts.push(toWorld(0, 0), toWorld(48, 0), toWorld(16, -6), toWorld(32, -6));
-    }
-    // Micro Servo SG90 (GND: 0,0, 5V: 16,0, PWM: 32,0)
-    else if (c.type === "servo-sg90") {
-        pts.push(toWorld(0, 0), toWorld(16, 0), toWorld(32, 0));
-    }
-    // HC-SR04 Ultrasonic Distance Sensor (VCC: 0,0, Trig: 16,0, Echo: 32,0, GND: 48,0)
-    else if (c.type === "sensor-ultrasonic") {
-        pts.push(toWorld(0, 0), toWorld(16, 0), toWorld(32, 0), toWorld(48, 0));
-    }
-    // PIR Motion Sensor (VCC: 0,0, OUT: 16,0, GND: 32,0)
-    else if (c.type === "sensor-pir") {
-        pts.push(toWorld(0, 0), toWorld(16, 0), toWorld(32, 0));
-    }
-    // 16x2 / 20x4 Character LCD (16 Pins along top edge: 24 + i*16 at y=0, plus legacy 16,-10 .. 64,-10)
-    else if (c.type === "lcd-1602" || c.type === "lcd-2004") {
-        for (let i = 0; i < 16; i++) {
-            pts.push(toWorld(24 + i * 16, 0));
-        }
-        pts.push(toWorld(16, -10), toWorld(32, -10), toWorld(48, -10), toWorld(64, -10));
-    }
-    // DIP Logic ICs (Dual-in-line 14/16 pins: top row 0..96 at Y=0, bot row 0..96 at Y=32)
-    else if (c.type?.startsWith("ic-")) {
-        const dipCols = [0, 16, 32, 48, 64, 80, 96];
-        dipCols.forEach(px => {
-            pts.push(toWorld(px, 0));
-            pts.push(toWorld(px, 32));
-        });
-    }
-    // Arduino Uno R3 Header Pins
-    else if (c.type === "arduino-uno") {
-        const allArdPins = [
-            ...(ARDUINO_PINS?.digitalHigh || []),
-            ...(ARDUINO_PINS?.digitalLow || []),
-            ...(ARDUINO_PINS?.power || []),
-            ...(ARDUINO_PINS?.analog || [])
-        ];
-        allArdPins.forEach(p => pts.push(toWorld(p.x, p.y)));
-    }
-    // Arduino Mega 2560 Header Pins
-    else if (c.type === "arduino-mega") {
-        const allMegaPins = [
-            ...(ARDUINO_MEGA_PINS?.digitalHigh || []),
-            ...(ARDUINO_MEGA_PINS?.digitalLow || []),
-            ...(ARDUINO_MEGA_PINS?.communication || []),
-            ...(ARDUINO_MEGA_PINS?.power || []),
-            ...(ARDUINO_MEGA_PINS?.analog || []),
-            ...(ARDUINO_MEGA_PINS?.dualDigital || [])
-        ];
-        allMegaPins.forEach(p => pts.push(toWorld(p.x, p.y)));
-    }
-    // Arduino Nano Header Pins
-    else if (c.type === "arduino-nano") {
-        const allNanoPins = [
-            ...(ARDUINO_NANO_PINS?.topRow || []),
-            ...(ARDUINO_NANO_PINS?.botRow || [])
-        ];
-        allNanoPins.forEach(p => pts.push(toWorld(p.x, p.y)));
-    }
-    // ESP32 DevKit Header Pins
-    else if (c.type === "esp32" || c.type === "esp32-devkit" || c.type === "esp32-s3") {
-        const allEspPins = [
-            ...(ESP32_PINS?.leftCol || []),
-            ...(ESP32_PINS?.rightCol || [])
-        ];
-        allEspPins.forEach(p => pts.push(toWorld(p.x, p.y)));
-    }
-    // Raspberry Pi Pico Header Pins
-    else if (c.type === "rpi-pico" || c.type === "raspberry-pi") {
-        const allPicoPins = [
-            ...(RPI_PICO_PINS?.leftCol || []),
-            ...(RPI_PICO_PINS?.rightCol || [])
-        ];
-        allPicoPins.forEach(p => pts.push(toWorld(p.x, p.y)));
-    }
-    // Multimeter Probes
-    else if (c.type === "multimeter") {
-        const pRed = c.probeRed || { x: c.x + 160, y: c.y + 48 };
-        const pBlack = c.probeBlack || { x: c.x + 160, y: c.y + 112 };
-        pts.push(pRed, pBlack);
-    }
-
-    if (pts.length === 0) {
-        pts.push({ x: c.x, y: c.y });
-    }
-
-    return pts;
+    return { updatedWires, updatedComps };
 }
 
 function Canvas({ 
@@ -308,6 +294,7 @@ function Canvas({
     wires = [],
     onAddComponent, 
     onUpdateComponent, 
+    onRotateComponent,
     onDeleteComponent,
     onAddWire,
     onDeleteWire,
@@ -427,8 +414,9 @@ function Canvas({
             rafId = requestAnimationFrame(() => {
                 const { worldX, worldY } = screenToWorld(e.clientX, e.clientY);
                 const bbs = (componentsRef.current || []).filter(c => c.type?.startsWith("breadboard"));
+                const otherComps = (componentsRef.current || []).filter(c => !c.type?.startsWith("breadboard"));
                 const { x: snappedX, y: snappedY } = getSmartComponentPlacementPos(
-                    placingComponent?.type, worldX, worldY, placingRotation, bbs
+                    placingComponent?.type, worldX, worldY, placingRotation, bbs, otherComps
                 );
 
                 if (snappedX !== lastX || snappedY !== lastY) {
@@ -461,8 +449,9 @@ function Canvas({
 
             const { worldX, worldY } = screenToWorld(e.clientX, e.clientY);
             const bbs = (componentsRef.current || []).filter(c => c.type?.startsWith("breadboard"));
+            const otherComps = (componentsRef.current || []).filter(c => !c.type?.startsWith("breadboard"));
             const { x: targetX, y: targetY, targetBB } = getSmartComponentPlacementPos(
-                placingComponent?.type, worldX, worldY, placingRotation, bbs
+                placingComponent?.type, worldX, worldY, placingRotation, bbs, otherComps
             );
 
             onCommitPlacingComponent && onCommitPlacingComponent({
@@ -885,8 +874,9 @@ function Canvas({
                 const rawY = dragData.initialCompY + dy;
                 const comp = componentsRef.current?.find(c => c.id === dragData.id);
                 const bbs = (componentsRef.current || []).filter(c => c.type?.startsWith("breadboard") && c.id !== dragData.id);
+                const otherComps = (componentsRef.current || []).filter(c => c.id !== dragData.id);
                 const { x: finalCompX, y: finalCompY, targetBB } = getSmartComponentPlacementPos(
-                    comp?.type, rawX, rawY, comp?.rotation || 0, bbs
+                    comp?.type, rawX, rawY, comp?.rotation || 0, bbs, otherComps, dragData.id
                 );
 
                 onUpdateComponent(dragData.id, { x: finalCompX, y: finalCompY, mountedBoardId: targetBB ? targetBB.id : null });
@@ -980,13 +970,6 @@ function Canvas({
                 if (placingComponentRef.current) {
                     setPlacingRotation(prev => (prev + 90) % 360);
                     return;
-                }
-                if (selectedId) {
-                    const comp = components.find(c => c.id === selectedId);
-                    if (comp) {
-                        onUpdateComponent(selectedId, { rotation: ((comp.rotation || 0) + 90) % 360 });
-                        onNotifyChange && onNotifyChange();
-                    }
                 }
             }
 
@@ -1202,8 +1185,9 @@ function Canvas({
             const isBreadboard = componentData.type?.startsWith("breadboard");
 
             const bbs = (componentsRef.current || components || []).filter(c => c.type?.startsWith("breadboard"));
+            const otherComps = (componentsRef.current || components || []).filter(c => !c.type?.startsWith("breadboard"));
             const { x: finalDropX, y: finalDropY, targetBB } = getSmartComponentPlacementPos(
-                componentData.type, worldX, worldY, 0, bbs
+                componentData.type, worldX, worldY, 0, bbs, otherComps
             );
 
             const uniqueId = `${componentData.type}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
@@ -1530,10 +1514,14 @@ function Canvas({
                                     }}
                                     onDelete={onDeleteComponent}
                                     onRotate={(id) => {
-                                        onUpdateComponent(id, { 
-                                            rotation: ((comp.rotation || 0) + 90) % 360 
-                                        });
-                                        onNotifyChange && onNotifyChange();
+                                        if (onRotateComponent) {
+                                            onRotateComponent(id);
+                                        } else {
+                                            onUpdateComponent(id, { 
+                                                rotation: ((comp.rotation || 0) + 90) % 360 
+                                            });
+                                            onNotifyChange && onNotifyChange();
+                                        }
                                     }}
                                     onMouseDown={handleStartDragPlaced}
                                 />
@@ -1563,10 +1551,14 @@ function Canvas({
                                     }}
                                     onDelete={onDeleteComponent}
                                     onRotate={(id) => {
-                                        onUpdateComponent(id, { 
-                                            rotation: ((comp.rotation || 0) + 90) % 360 
-                                        });
-                                        onNotifyChange && onNotifyChange();
+                                        if (onRotateComponent) {
+                                            onRotateComponent(id);
+                                        } else {
+                                            onUpdateComponent(id, { 
+                                                rotation: ((comp.rotation || 0) + 90) % 360 
+                                            });
+                                            onNotifyChange && onNotifyChange();
+                                        }
                                     }}
                                     onMouseDown={handleStartDragPlaced}
                                     isWireMode={isWireMode}
@@ -1695,10 +1687,14 @@ function Canvas({
                                 }}
                                 onDelete={onDeleteComponent}
                                 onRotate={(id) => {
-                                    onUpdateComponent(id, { 
-                                        rotation: ((comp.rotation || 0) + 90) % 360 
-                                    });
-                                    onNotifyChange && onNotifyChange();
+                                    if (onRotateComponent) {
+                                        onRotateComponent(id);
+                                    } else {
+                                        onUpdateComponent(id, { 
+                                            rotation: ((comp.rotation || 0) + 90) % 360 
+                                        });
+                                        onNotifyChange && onNotifyChange();
+                                    }
                                 }}
                                 onMouseDown={handleStartDragPlaced}
                             />

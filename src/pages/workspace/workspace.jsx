@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { solveCircuit } from "../../simulation/circuitSolver";
 import { getNextComponentDesignator, formatComponentName } from "../../utils/componentNaming";
 import { motion, AnimatePresence } from "framer-motion";
-import Canvas from "../../components/workspace/Canvas/Canvas";
+import Canvas, { calculateRotatedWiresAndComponents } from "../../components/workspace/Canvas/Canvas";
 import TopFloatingBar from "../../components/workspace/TopFloatingBar/TopFloatingBar";
 import LeftSidebar from "../../components/workspace/LeftSidebar/LeftSidebar";
 import RightSidebar from "../../components/workspace/RightSidebar/RightSidebar";
@@ -1188,14 +1188,7 @@ function Workspace({ onBackToHome }) {
             if (!isCtrl && (e.key === "r" || e.key === "R")) {
                 if (selectedId && selectedComponent) {
                     e.preventDefault();
-                    recordSnapshot();
-                    setComponents(prev => prev.map(c => c.id === selectedId ? {
-                        ...c,
-                        rotation: ((c.rotation || 0) + 90) % 360
-                    } : c));
-                    setIsUnsaved(true);
-                    setToastMessage("Rotated 90° (R)");
-                    setTimeout(() => setToastMessage(""), 1400);
+                    handleRotateSelected(selectedId);
                     return;
                 }
             }
@@ -1392,6 +1385,26 @@ function Workspace({ onBackToHome }) {
 
     const handleUpdateComponent = (id, updates, record = false) => {
         if (record) recordSnapshot();
+        if (updates.rotation !== undefined) {
+            const currentComps = componentsRef.current || components;
+            const comp = currentComps.find(c => c.id === id);
+            if (comp && comp.rotation !== updates.rotation) {
+                const currentWires = wiresRef.current || wires;
+                const { updatedWires, updatedComps } = calculateRotatedWiresAndComponents(
+                    comp,
+                    updates.rotation,
+                    currentWires,
+                    currentComps
+                );
+                const finalComps = updatedComps.map(c => c.id === id ? { ...c, ...updates } : c);
+                setWires(updatedWires);
+                wiresRef.current = updatedWires;
+                setComponents(finalComps);
+                componentsRef.current = finalComps;
+                setIsUnsaved(true);
+                return;
+            }
+        }
         updateComponentDirect(id, updates);
     };
 
@@ -1424,12 +1437,42 @@ function Workspace({ onBackToHome }) {
         setTimeout(() => setToastMessage(""), 1600);
     };
 
-    const handleRotateSelected = () => {
-        if (!selectedId || !selectedComponent) return;
-        handleUpdateComponent(selectedId, {
-            rotation: ((selectedComponent.rotation || 0) + 90) % 360
+    const handleRotateSelected = (targetId) => {
+        const id = (typeof targetId === "string" || Array.isArray(targetId)) ? targetId : selectedId;
+        if (!id) return;
+
+        recordSnapshot();
+        const currentWires = wiresRef.current || wires;
+        const currentComps = componentsRef.current || components;
+
+        const idsToRotate = id === "all"
+            ? currentComps.map(c => c.id)
+            : (Array.isArray(id) ? id : [id]);
+        let runningWires = currentWires;
+        let runningComps = currentComps;
+
+        idsToRotate.forEach(singleId => {
+            const comp = runningComps.find(c => c.id === singleId);
+            if (comp) {
+                const newRot = ((comp.rotation || 0) + 90) % 360;
+                const result = calculateRotatedWiresAndComponents(
+                    comp, 
+                    newRot, 
+                    runningWires, 
+                    runningComps
+                );
+                runningWires = result.updatedWires;
+                runningComps = result.updatedComps;
+            }
         });
+
+        setWires(runningWires);
+        wiresRef.current = runningWires;
+        setComponents(runningComps);
+        componentsRef.current = runningComps;
         setIsUnsaved(true);
+        setToastMessage("Rotated 90° (R)");
+        setTimeout(() => setToastMessage(""), 1400);
     };
 
     // Wire handlers
@@ -1565,6 +1608,7 @@ function Workspace({ onBackToHome }) {
                     isSimulating={isSimulating}
                     onAddComponent={handleAddComponent}
                     onUpdateComponent={handleUpdateComponent}
+                    onRotateComponent={handleRotateSelected}
                     onDeleteComponent={handleDeleteComponent}
                     onAddWire={handleAddWire}
                     onDeleteWire={handleDeleteWire}

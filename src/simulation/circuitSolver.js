@@ -2,7 +2,8 @@
  * Real-Time Physics-Accurate SPICE/EDA Circuit Solver
  * Evaluates breadboard tracks, jumper wires, 9V batteries, resistors, and LEDs in real time.
  */
-import { ARDUINO_PINS, ARDUINO_MEGA_PINS, ARDUINO_NANO_PINS, ESP32_PINS, RPI_PICO_PINS } from "../components/workspace/components/McuBoard";
+import { ARDUINO_PINS, ARDUINO_MEGA_PINS, ARDUINO_NANO_PINS, ESP32_PINS, RPI_PICO_PINS } from "../components/workspace/components/mcuPins.js";
+import { getComponentTerminalPoints } from "../utils/componentGeometry.js";
 
 // Breadboard geometry constants (matching Breadboard.jsx 1:1)
 const COLUMNS = 30;
@@ -138,11 +139,10 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
 
             if (b.type === "battery-aa" || b.type === "battery-aaa") {
                 const cellCount = b.cells || (b.voltage === 1.5 ? 1 : b.voltage === 6 ? 4 : 2);
-                const isAAA = b.type === "battery-aaa";
-                const totalWidth = cellCount === 1 ? 56 : cellCount === 4 ? 144 : 84;
-                posLocalX = totalWidth - 18;
+                const totalWidth = cellCount === 1 ? 64 : cellCount === 4 ? 176 : cellCount === 3 ? 140 : 96;
+                posLocalX = totalWidth - 20;
                 posLocalY = -14;
-                negLocalX = 18;
+                negLocalX = 20;
                 negLocalY = -14;
             } else if (b.type === "battery-coin") {
                 posLocalX = 48;
@@ -151,7 +151,23 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                 negLocalY = 32;
             }
 
-            // 2. Battery terminals are connected specifically via wires or breadboard holes (no direct proximity auto-shorting)
+            const posWx = b.x + posLocalX * cos - posLocalY * sin;
+            const posWy = b.y + posLocalX * sin + posLocalY * cos;
+            const negWx = b.x + negLocalX * cos - negLocalY * sin;
+            const negWy = b.y + negLocalX * sin + negLocalY * cos;
+
+            if (Math.hypot(x - posWx, y - posWy) <= 24) {
+                const posNodeId = `POWER_SOURCE_POS_${b.id}`;
+                const ptKey = `pt_${Math.round(x / 4) * 4}_${Math.round(y / 4) * 4}`;
+                dsu.union(ptKey, posNodeId);
+                return dsu.find(posNodeId);
+            }
+            if (Math.hypot(x - negWx, y - negWy) <= 24) {
+                const gndNodeId = `POWER_SOURCE_GND_${b.id}`;
+                const ptKey = `pt_${Math.round(x / 4) * 4}_${Math.round(y / 4) * 4}`;
+                dsu.union(ptKey, gndNodeId);
+                return dsu.find(gndNodeId);
+            }
         }
 
         // 3. Check if touches Arduino Uno pins (Digital High, Digital Low, Power, Analog)
@@ -177,37 +193,45 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                 ...ARDUINO_PINS.analog
             ];
 
+            let closestPin = null;
+            let minDist = 11; // Must be strictly < 16px to prevent adjacent pin bridging
             for (const pin of allArdPins) {
                 const wx = b.x + pin.x * cos - pin.y * sin;
                 const wy = b.y + pin.x * sin + pin.y * cos;
-                if (Math.hypot(x - wx, y - wy) <= 16) {
-                    let pinId;
-                    if (pin.isGnd) {
-                        pinId = `POWER_SOURCE_GND_ard_${b.id}`;
-                    } else if (pin.is5V || pin.name === "5V" || pin.name === "IOREF" || pin.name === "VIN") {
-                        pinId = `POWER_SOURCE_POS_ard5V_${b.id}`;
-                    } else if (pin.is3V3 || pin.name === "3.3V") {
-                        pinId = `POWER_SOURCE_POS_ard3V3_${b.id}`;
-                    } else if (pin.isD13 || pin.pinNum === 13) {
-                        const isD13High = mcuStates?.[b.id]?.d13High ?? true;
-                        pinId = isD13High ? `POWER_SOURCE_POS_ardD13_${b.id}` : `POWER_SOURCE_GND_ard_${b.id}`;
-                    } else if (pin.isGpio) {
-                        const pinNum = String(pin.pinNum);
-                        const pinVal = mcuStates?.[b.id]?.pins?.[pinNum];
-                        if (pinVal === 1) {
-                            pinId = `POWER_SOURCE_POS_ard_${b.id}_${pinNum}`;
-                        } else if (pinVal === 0) {
-                            pinId = `POWER_SOURCE_GND_ard_${b.id}`;
-                        } else {
-                            pinId = `ARD_PIN_${b.id}_${pinNum}`;
-                        }
-                    } else {
-                        pinId = `ARD_PIN_${b.id}_${pin.name}`;
-                    }
-                    const ptKey = `pt_${Math.round(x / 4) * 4}_${Math.round(y / 4) * 4}`;
-                    dsu.union(ptKey, pinId);
-                    return dsu.find(pinId);
+                const d = Math.hypot(x - wx, y - wy);
+                if (d <= minDist) {
+                    minDist = d;
+                    closestPin = pin;
                 }
+            }
+            if (closestPin) {
+                const pin = closestPin;
+                let pinId;
+                if (pin.isGnd) {
+                    pinId = `POWER_SOURCE_GND_ard_${b.id}`;
+                } else if (pin.is5V || pin.name === "5V" || pin.name === "IOREF" || pin.name === "VIN") {
+                    pinId = `POWER_SOURCE_POS_ard5V_${b.id}`;
+                } else if (pin.is3V3 || pin.name === "3.3V") {
+                    pinId = `POWER_SOURCE_POS_ard3V3_${b.id}`;
+                } else if (pin.isD13 || pin.pinNum === 13) {
+                    const isD13High = mcuStates?.[b.id]?.d13High ?? true;
+                    pinId = isD13High ? `POWER_SOURCE_POS_ardD13_${b.id}` : `POWER_SOURCE_GND_ard_${b.id}`;
+                } else if (pin.isGpio) {
+                    const pinNum = String(pin.pinNum);
+                    const pinVal = mcuStates?.[b.id]?.pins?.[pinNum];
+                    if (pinVal === 1) {
+                        pinId = `POWER_SOURCE_POS_ard_${b.id}_${pinNum}`;
+                    } else if (pinVal === 0) {
+                        pinId = `POWER_SOURCE_GND_ard_${b.id}`;
+                    } else {
+                        pinId = `ARD_PIN_${b.id}_${pinNum}`;
+                    }
+                } else {
+                    pinId = `ARD_PIN_${b.id}_${pin.name}`;
+                }
+                const ptKey = `pt_${Math.round(x / 4) * 4}_${Math.round(y / 4) * 4}`;
+                dsu.union(ptKey, pinId);
+                return dsu.find(pinId);
             }
         }
 
@@ -222,37 +246,45 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                 ...ESP32_PINS.rightCol
             ];
 
+            let closestPin = null;
+            let minDist = 11;
             for (const pin of allEspPins) {
                 const wx = b.x + pin.x * cos - pin.y * sin;
                 const wy = b.y + pin.x * sin + pin.y * cos;
-                if (Math.hypot(x - wx, y - wy) <= 16) {
-                    let pinId;
-                    if (pin.isGnd) {
-                        pinId = `POWER_SOURCE_GND_esp_${b.id}`;
-                    } else if (pin.name === "VIN" || pin.is5V) {
-                        pinId = `POWER_SOURCE_POS_esp5V_${b.id}`;
-                    } else if (pin.name === "3V3" || pin.is3V3) {
-                        pinId = `POWER_SOURCE_POS_esp3V3_${b.id}`;
-                    } else if (pin.isD2 || pin.pinNum === 2) {
-                        const isD2High = mcuStates?.[b.id]?.d2High ?? true;
-                        pinId = isD2High ? `POWER_SOURCE_POS_espD2_${b.id}` : `POWER_SOURCE_GND_esp_${b.id}`;
-                    } else if (pin.isGpio) {
-                        const pinNum = String(pin.pinNum);
-                        const pinVal = mcuStates?.[b.id]?.pins?.[pinNum];
-                        if (pinVal === 1) {
-                            pinId = `POWER_SOURCE_POS_esp_${b.id}_${pinNum}`;
-                        } else if (pinVal === 0) {
-                            pinId = `POWER_SOURCE_GND_esp_${b.id}`;
-                        } else {
-                            pinId = `ESP_PIN_${b.id}_${pinNum}`;
-                        }
-                    } else {
-                        pinId = `ESP_PIN_${b.id}_${pin.name}`;
-                    }
-                    const ptKey = `pt_${Math.round(x / 4) * 4}_${Math.round(y / 4) * 4}`;
-                    dsu.union(ptKey, pinId);
-                    return dsu.find(pinId);
+                const d = Math.hypot(x - wx, y - wy);
+                if (d <= minDist) {
+                    minDist = d;
+                    closestPin = pin;
                 }
+            }
+            if (closestPin) {
+                const pin = closestPin;
+                let pinId;
+                if (pin.isGnd) {
+                    pinId = `POWER_SOURCE_GND_esp_${b.id}`;
+                } else if (pin.name === "VIN" || pin.is5V) {
+                    pinId = `POWER_SOURCE_POS_esp5V_${b.id}`;
+                } else if (pin.name === "3V3" || pin.is3V3) {
+                    pinId = `POWER_SOURCE_POS_esp3V3_${b.id}`;
+                } else if (pin.isD2 || pin.pinNum === 2) {
+                    const isD2High = mcuStates?.[b.id]?.d2High ?? true;
+                    pinId = isD2High ? `POWER_SOURCE_POS_espD2_${b.id}` : `POWER_SOURCE_GND_esp_${b.id}`;
+                } else if (pin.isGpio) {
+                    const pinNum = String(pin.pinNum);
+                    const pinVal = mcuStates?.[b.id]?.pins?.[pinNum];
+                    if (pinVal === 1) {
+                        pinId = `POWER_SOURCE_POS_esp_${b.id}_${pinNum}`;
+                    } else if (pinVal === 0) {
+                        pinId = `POWER_SOURCE_GND_esp_${b.id}`;
+                    } else {
+                        pinId = `ESP_PIN_${b.id}_${pinNum}`;
+                    }
+                } else {
+                    pinId = `ESP_PIN_${b.id}_${pin.name}`;
+                }
+                const ptKey = `pt_${Math.round(x / 4) * 4}_${Math.round(y / 4) * 4}`;
+                dsu.union(ptKey, pinId);
+                return dsu.find(pinId);
             }
         }
 
@@ -267,35 +299,43 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                 ...RPI_PICO_PINS.rightCol
             ];
 
+            let closestPin = null;
+            let minDist = 11;
             for (const pin of allPicoPins) {
                 const wx = b.x + pin.x * cos - pin.y * sin;
                 const wy = b.y + pin.x * sin + pin.y * cos;
-                if (Math.hypot(x - wx, y - wy) <= 16) {
-                    let pinId;
-                    if (pin.isGnd) {
-                        pinId = `POWER_SOURCE_GND_pico_${b.id}`;
-                    } else if (pin.name === "VBUS" || pin.name === "VSYS") {
-                        pinId = `POWER_SOURCE_POS_pico5V_${b.id}`;
-                    } else if (pin.name === "3V3" || pin.is3V3) {
-                        pinId = `POWER_SOURCE_POS_pico3V3_${b.id}`;
-                    } else if (pin.isGpio) {
-                        const pinNum = String(pin.pinNum);
-                        const isPinHigh = mcuStates?.[b.id]?.pins?.[pinNum] === 1 || (pinNum === "25" && mcuStates?.[b.id]?.gp25High);
-                        const isPinLow = mcuStates?.[b.id]?.pins?.[pinNum] === 0;
-                        if (isPinHigh) {
-                            pinId = `POWER_SOURCE_POS_pico_${b.id}_${pinNum}`;
-                        } else if (isPinLow) {
-                            pinId = `POWER_SOURCE_GND_pico_${b.id}`;
-                        } else {
-                            pinId = `PICO_PIN_${b.id}_${pinNum}`;
-                        }
-                    } else {
-                        pinId = `PICO_PIN_${b.id}_${pin.name}`;
-                    }
-                    const ptKey = `pt_${Math.round(x / 4) * 4}_${Math.round(y / 4) * 4}`;
-                    dsu.union(ptKey, pinId);
-                    return dsu.find(pinId);
+                const d = Math.hypot(x - wx, y - wy);
+                if (d <= minDist) {
+                    minDist = d;
+                    closestPin = pin;
                 }
+            }
+            if (closestPin) {
+                const pin = closestPin;
+                let pinId;
+                if (pin.isGnd) {
+                    pinId = `POWER_SOURCE_GND_pico_${b.id}`;
+                } else if (pin.name === "VBUS" || pin.name === "VSYS") {
+                    pinId = `POWER_SOURCE_POS_pico5V_${b.id}`;
+                } else if (pin.name === "3V3" || pin.is3V3) {
+                    pinId = `POWER_SOURCE_POS_pico3V3_${b.id}`;
+                } else if (pin.isGpio) {
+                    const pinNum = String(pin.pinNum);
+                    const isPinHigh = mcuStates?.[b.id]?.pins?.[pinNum] === 1 || (pinNum === "25" && mcuStates?.[b.id]?.gp25High);
+                    const isPinLow = mcuStates?.[b.id]?.pins?.[pinNum] === 0;
+                    if (isPinHigh) {
+                        pinId = `POWER_SOURCE_POS_pico_${b.id}_${pinNum}`;
+                    } else if (isPinLow) {
+                        pinId = `POWER_SOURCE_GND_pico_${b.id}`;
+                    } else {
+                        pinId = `PICO_PIN_${b.id}_${pinNum}`;
+                    }
+                } else {
+                    pinId = `PICO_PIN_${b.id}_${pin.name}`;
+                }
+                const ptKey = `pt_${Math.round(x / 4) * 4}_${Math.round(y / 4) * 4}`;
+                dsu.union(ptKey, pinId);
+                return dsu.find(pinId);
             }
         }
 
@@ -336,170 +376,43 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
     }
 
     // 1b. Direct Component-to-Component & Component-to-Board Pin Contact (No wires needed!)
-    // When any component terminal touches another component terminal or MCU header pin (<= 16px snap), union their electrical nodes!
+    // When any component terminal touches another component terminal or MCU header pin, union their electrical nodes!
     const allTerminalContacts = [];
 
-    // Arduino / MCU header pins
-    arduinoBoards.forEach(b => {
-        const rot = ((b.rotation || 0) * Math.PI) / 180;
-        const cos = Math.cos(rot);
-        const sin = Math.sin(rot);
-        const allArdPins = b.type === "arduino-mega" ? [
-            ...ARDUINO_MEGA_PINS.digitalHigh, ...ARDUINO_MEGA_PINS.digitalLow, ...ARDUINO_MEGA_PINS.power, ...ARDUINO_MEGA_PINS.analog
-        ] : b.type === "arduino-nano" ? [
-            ...ARDUINO_NANO_PINS.topRow, ...ARDUINO_NANO_PINS.botRow
-        ] : [
-            ...ARDUINO_PINS.digitalHigh, ...ARDUINO_PINS.digitalLow, ...ARDUINO_PINS.power, ...ARDUINO_PINS.analog
-        ];
-        allArdPins.forEach(pin => {
-            allTerminalContacts.push({
-                x: Math.round(b.x + pin.x * cos - pin.y * sin),
-                y: Math.round(b.y + pin.x * sin + pin.y * cos),
-                compId: b.id,
-                term: `ard_${pin.name}`
-            });
-        });
-    });
-
-    // ESP32 header pins
-    esp32Boards.forEach(b => {
-        const rot = ((b.rotation || 0) * Math.PI) / 180;
-        const cos = Math.cos(rot);
-        const sin = Math.sin(rot);
-        [...ESP32_PINS.leftCol, ...ESP32_PINS.rightCol].forEach(pin => {
-            allTerminalContacts.push({
-                x: Math.round(b.x + pin.x * cos - pin.y * sin),
-                y: Math.round(b.y + pin.x * sin + pin.y * cos),
-                compId: b.id,
-                term: `esp_${pin.name}`
-            });
-        });
-    });
-
-    // Pico header pins
-    rpiPicoBoards.forEach(b => {
-        const rot = ((b.rotation || 0) * Math.PI) / 180;
-        const cos = Math.cos(rot);
-        const sin = Math.sin(rot);
-        [...RPI_PICO_PINS.leftCol, ...RPI_PICO_PINS.rightCol].forEach(pin => {
-            allTerminalContacts.push({
-                x: Math.round(b.x + pin.x * cos - pin.y * sin),
-                y: Math.round(b.y + pin.x * sin + pin.y * cos),
-                compId: b.id,
-                term: `pico_${pin.name}`
-            });
-        });
-    });
-
-    // Passive & discrete components
+    // Collect all physical terminal contacts from every component (Batteries, Passives, Sensors, Displays, ICs, MCUs)
     components.forEach(c => {
-        const rot = ((c.rotation || 0) * Math.PI) / 180;
-        const cos = Math.cos(rot);
-        const sin = Math.sin(rot);
-
-        if (c.type === "resistor") {
-            allTerminalContacts.push(
-                { x: c.x, y: c.y, compId: c.id, term: "r1" },
-                { x: Math.round(c.x + 64 * cos), y: Math.round(c.y + 64 * sin), compId: c.id, term: "r2" }
-            );
-        } else if (c.type === "led") {
-            allTerminalContacts.push(
-                { x: c.x, y: c.y, compId: c.id, term: "anode" },
-                { x: Math.round(c.x + 16 * cos), y: Math.round(c.y + 16 * sin), compId: c.id, term: "cathode" }
-            );
-        } else if (c.type === "capacitor" || c.type === "capacitor-ceramic" || c.type === "capacitor-elec") {
-            allTerminalContacts.push(
-                { x: c.x, y: c.y, compId: c.id, term: "c1" },
-                { x: Math.round(c.x + 16 * cos), y: Math.round(c.y + 16 * sin), compId: c.id, term: "c2" }
-            );
-        } else if (c.type === "buzzer") {
-            allTerminalContacts.push(
-                { x: Math.round(c.x - 32 * sin), y: Math.round(c.y + 32 * cos), compId: c.id, term: "pos" },
-                { x: Math.round(c.x + 16 * cos - 32 * sin), y: Math.round(c.y + 16 * sin + 32 * cos), compId: c.id, term: "neg" }
-            );
-        } else if (c.type === "motor-dc" || c.type === "motor-geared" || c.type === "motor-bo") {
-            allTerminalContacts.push(
-                { x: c.x, y: c.y, compId: c.id, term: "motPos" },
-                { x: Math.round(c.x + 48 * cos), y: Math.round(c.y + 48 * sin), compId: c.id, term: "motNeg" }
-            );
-        } else if (c.type === "pushbutton") {
-            allTerminalContacts.push(
-                { x: c.x, y: c.y, compId: c.id, term: "btn1" },
-                { x: Math.round(c.x + 48 * cos), y: Math.round(c.y + 48 * sin), compId: c.id, term: "btn2" },
-                { x: Math.round(c.x - 32 * sin), y: Math.round(c.y + 32 * cos), compId: c.id, term: "btn3" },
-                { x: Math.round(c.x + 48 * cos - 32 * sin), y: Math.round(c.y + 48 * sin + 32 * cos), compId: c.id, term: "btn4" }
-            );
-        } else if (c.type === "switch-slide") {
-            allTerminalContacts.push(
-                { x: c.x, y: c.y, compId: c.id, term: "sw1" },
-                { x: Math.round(c.x + 16 * cos), y: Math.round(c.y + 16 * sin), compId: c.id, term: "com" },
-                { x: Math.round(c.x + 32 * cos), y: Math.round(c.y + 32 * sin), compId: c.id, term: "sw2" }
-            );
-        } else if (c.type === "potentiometer") {
-            allTerminalContacts.push(
-                { x: c.x, y: c.y, compId: c.id, term: "t1" },
-                { x: Math.round(c.x + 16 * cos), y: Math.round(c.y + 16 * sin), compId: c.id, term: "wiper" },
-                { x: Math.round(c.x + 32 * cos), y: Math.round(c.y + 32 * sin), compId: c.id, term: "t2" }
-            );
-        } else if (c.type === "transistor" || c.type === "transistor-npn" || c.type === "transistor-pnp") {
-            allTerminalContacts.push(
-                { x: c.x, y: c.y, compId: c.id, term: "trE" },
-                { x: Math.round(c.x + 16 * cos), y: Math.round(c.y + 16 * sin), compId: c.id, term: "trB" },
-                { x: Math.round(c.x + 32 * cos), y: Math.round(c.y + 32 * sin), compId: c.id, term: "trC" }
-            );
-        } else if (isBattery(c)) {
-            let posLocalX = 72, posLocalY = -14;
-            let negLocalX = 24, negLocalY = -14;
-            if (c.type === "battery-aa" || c.type === "battery-aaa") {
-                const cellCount = c.cells || (c.voltage === 1.5 ? 1 : c.voltage === 6 ? 4 : c.voltage === 4.5 ? 3 : 2);
-                const totalWidth = cellCount === 1 ? 64 : cellCount === 4 ? 176 : cellCount === 3 ? 140 : 96;
-                posLocalX = totalWidth - 20;
-                negLocalX = 20;
-            } else if (c.type === "battery-coin") {
-                posLocalX = 48; posLocalY = 32;
-                negLocalX = 16; negLocalY = 32;
-            }
-            allTerminalContacts.push(
-                { x: Math.round(c.x + posLocalX * cos - posLocalY * sin), y: Math.round(c.y + posLocalX * sin + posLocalY * cos), compId: c.id, term: "batPos" },
-                { x: Math.round(c.x + negLocalX * cos - negLocalY * sin), y: Math.round(c.y + negLocalX * sin + negLocalY * cos), compId: c.id, term: "batNeg" }
-            );
-        } else if (c.type?.startsWith("ic-")) {
-            const is16 = c.type === "ic-l293d" || (c.modelNumber || "").includes("L293") || (c.name || "").includes("L293");
-            const pinOffsets = is16 ? {
-                1: { lx: 0, ly: 32 }, 2: { lx: 16, ly: 32 }, 3: { lx: 32, ly: 32 }, 4: { lx: 48, ly: 32 },
-                5: { lx: 64, ly: 32 }, 6: { lx: 80, ly: 32 }, 7: { lx: 96, ly: 32 }, 8: { lx: 112, ly: 32 },
-                9: { lx: 112, ly: 0 }, 10: { lx: 96, ly: 0 }, 11: { lx: 80, ly: 0 }, 12: { lx: 64, ly: 0 },
-                13: { lx: 48, ly: 0 }, 14: { lx: 32, ly: 0 }, 15: { lx: 16, ly: 0 }, 16: { lx: 0, ly: 0 }
-            } : {
-                1: { lx: 0, ly: 32 }, 2: { lx: 16, ly: 32 }, 3: { lx: 32, ly: 32 }, 4: { lx: 48, ly: 32 },
-                5: { lx: 64, ly: 32 }, 6: { lx: 80, ly: 32 }, 7: { lx: 96, ly: 32 }, 8: { lx: 96, ly: 0 },
-                9: { lx: 80, ly: 0 }, 10: { lx: 64, ly: 0 }, 11: { lx: 48, ly: 0 }, 12: { lx: 32, ly: 0 },
-                13: { lx: 16, ly: 0 }, 14: { lx: 0, ly: 0 }
-            };
-            const pinCount = is16 ? 16 : 14;
-            for (let pinNum = 1; pinNum <= pinCount; pinNum++) {
-                const off = pinOffsets[pinNum];
-                if (off) {
-                    allTerminalContacts.push({
-                        x: Math.round(c.x + off.lx * cos - off.ly * sin),
-                        y: Math.round(c.y + off.lx * sin + off.ly * cos),
-                        compId: c.id,
-                        term: `ic_${pinNum}`
-                    });
-                }
-            }
+        if (!c.type?.startsWith("breadboard")) {
+            const terms = getComponentTerminalPoints(c);
+            terms.forEach(t => allTerminalContacts.push(t));
         }
     });
 
-    // Union all overlapping or touching component terminals (<= 16px)
+    // Helper to get active electrical node for a terminal contact
+    const getContactElectricalNode = (t) => {
+        if (t.term === "batPos") {
+            const posNode = dsu.find(`POWER_SOURCE_POS_${t.compId}`);
+            const ptKey = `pt_${Math.round(t.x / 4) * 4}_${Math.round(t.y / 4) * 4}`;
+            dsu.union(ptKey, posNode);
+            return posNode;
+        }
+        if (t.term === "batNeg") {
+            const gndNode = dsu.find(`POWER_SOURCE_GND_${t.compId}`);
+            const ptKey = `pt_${Math.round(t.x / 4) * 4}_${Math.round(t.y / 4) * 4}`;
+            dsu.union(ptKey, gndNode);
+            return gndNode;
+        }
+        return getElectricalNode(t.x, t.y);
+    };
+
+    // Union overlapping or touching component terminals (<= 10px snap, strictly less than 16px pin pitch to prevent adjacent pin bridging)
     for (let i = 0; i < allTerminalContacts.length; i++) {
         const t1 = allTerminalContacts[i];
-        const n1 = getElectricalNode(t1.x, t1.y);
+        const n1 = getContactElectricalNode(t1);
         for (let j = i + 1; j < allTerminalContacts.length; j++) {
             const t2 = allTerminalContacts[j];
             if (t1.compId === t2.compId) continue; // Don't short internal terminals of same component
-            if (Math.hypot(t1.x - t2.x, t1.y - t2.y) <= 16) {
-                const n2 = getElectricalNode(t2.x, t2.y);
+            if (Math.hypot(t1.x - t2.x, t1.y - t2.y) <= 10) {
+                const n2 = getContactElectricalNode(t2);
                 dsu.union(n1, n2);
             }
         }
@@ -763,12 +676,14 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const n1 = getElectricalNode(c.x, c.y);
             const n2 = getElectricalNode(c.x + dx, c.y + dy);
 
-            // Connect nearby wire endpoints (up to 20px snap directly on terminal leads)
+            // Connect nearby wire endpoints (up to 12px snap directly on terminal leads, strictly < 16px to avoid bridging adjacent pins)
             wires.forEach(w => {
                 if (!w.points || w.points.length < 2) return;
                 [w.points[0], w.points[w.points.length - 1]].forEach(p => {
-                    if (Math.hypot(p.x - c.x, p.y - c.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), n1);
-                    if (Math.hypot(p.x - (c.x + dx), p.y - (c.y + dy)) <= 20) dsu.union(getElectricalNode(p.x, p.y), n2);
+                    const d1 = Math.hypot(p.x - c.x, p.y - c.y);
+                    const d2 = Math.hypot(p.x - (c.x + dx), p.y - (c.y + dy));
+                    if (d1 <= 12 && d1 < d2) dsu.union(getElectricalNode(p.x, p.y), n1);
+                    if (d2 <= 12 && d2 < d1) dsu.union(getElectricalNode(p.x, p.y), n2);
                 });
             });
 
@@ -836,7 +751,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
 
     // 3b. Map Pushbuttons (Tactile Switch: 4 pins)
     components.forEach((c) => {
-        if (c.type === "button") {
+        if (c.type === "button" || c.type === "pushbutton") {
             const rotRad = ((c.rotation || 0) * Math.PI) / 180;
             const cos = Math.cos(rotRad);
             const sin = Math.sin(rotRad);
@@ -1620,6 +1535,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                 } else {
                     let currentMa;
                     let isDim = false;
+                    let isOverloaded = false;
                     let brightness = 0;
 
                     if (vSupply <= vForward + 0.1 && totalSeriesR < 40) {
@@ -1631,7 +1547,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                         const currentAmps = Math.max(0, (vSupply - effectiveDrop) / rTotal);
                         currentMa = currentAmps * 1000;
 
-                        if (currentMa > 28) {
+                        if (currentMa > 80 && totalSeriesR < 35) {
                             ledStates[c.id] = {
                                 isOn: false,
                                 isDim: false,
@@ -1643,6 +1559,10 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                                 powerSourceId: powerConn.powerSource.id
                             };
                             return;
+                        } else if (currentMa > 25) {
+                            // High current with resistor (e.g. 9V with 220 ohm resistor -> ~32.4mA): bright glowing!
+                            isOverloaded = false;
+                            brightness = 1.0;
                         } else if (currentMa < 5.0 && currentMa >= 0.4) {
                             isDim = true;
                             brightness = Math.min(0.45, 0.20 + (currentMa / 5.0) * 0.22);
@@ -1659,11 +1579,11 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                         ledStates[c.id] = {
                             isOn: true,
                             isDim,
-                            isOverloaded: false,
+                            isOverloaded,
                             voltage: vSupply <= vForward ? vSupply : vForward,
                             currentMa: Math.round(currentMa * 10) / 10,
                             brightness: Math.round(brightness * 100) / 100,
-                            status: isDim ? "dim" : "bright",
+                            status: isOverloaded ? "overloaded_high" : (isDim ? "dim" : "bright"),
                             powerSourceId: powerConn.powerSource.id
                         };
                     } else {

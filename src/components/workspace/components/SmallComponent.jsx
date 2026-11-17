@@ -615,7 +615,8 @@ function SmallComponent({
             {/* REALISTIC 5mm THROUGH-HOLE LED WITH ANVIL, DIE, BOND WIRE, BULLET DOME & BLAST BURNOUT */}
             {type === "led" && (() => {
                 const ledShades = getLedColors(color);
-                const isLit = Boolean(simState?.isOn && !simState?.isOverloaded);
+                const isBurned = simState?.status === "burned" || (!simState?.isOn && simState?.isOverloaded);
+                const isLit = Boolean(simState?.isOn && !isBurned);
                 const isDim = Boolean(isLit && (simState?.isDim || (simState?.brightness != null && simState.brightness < 0.5)));
                 const brightness = simState?.brightness || (isDim ? 0.35 : (isLit ? 0.9 : 0));
 
@@ -880,7 +881,7 @@ function SmallComponent({
             })()}
 
             {/* TACTILE PUSHBUTTON: 32px x 32px span. 4 Pins */}
-            {type === "button" && (
+            {(type === "button" || type === "pushbutton") && (
                 <div className={`button-tactile-container ${isPressed ? "is-pressed" : ""}`}>
                     <div className="tactile-case-body">
                         <div 

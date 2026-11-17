@@ -1,9 +1,44 @@
 // Embedded MCU Firmware Execution Engine & C++ Transpiler
 // Supports Arduino Uno R3 (ATmega328P) & ESP32 DevKit V1 (ESP-WROOM-32)
 import { soundManager } from "../utils/audioManager.js";
+import { ARDUINO_PINS, ARDUINO_MEGA_PINS, ARDUINO_NANO_PINS, ESP32_PINS, RPI_PICO_PINS } from "../components/workspace/components/McuBoard.jsx";
 
 export const DEFAULT_SKETCHES = {
     blank: `// Clean Empty Arduino Sketch\nvoid setup() {\n  // put your setup code here, to run once:\n\n}\n\nvoid loop() {\n  // put your main code here, to run repeatedly:\n\n}`,
+
+    button_led: `// TwinLab X Pushbutton + LED Sketch
+// Pushbutton -> Pin 19 (ESP32) or Pin 2 (Arduino) to GND
+// LED -> Pin 18 (ESP32) or Pin 13 (Arduino) through 220Ω resistor
+
+#if defined(ESP32) || defined(ARDUINO_ARCH_ESP32)
+  const int BUTTON_PIN = 19;
+  const int LED_PIN = 18;
+#else
+  const int BUTTON_PIN = 2;
+  const int LED_PIN = 13;
+#endif
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);
+  // Internal pullup: Pin reads HIGH when released, LOW when pressed
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  Serial.begin(9600);
+  Serial.println("Pushbutton Controller Online");
+}
+
+void loop() {
+  int buttonState = digitalRead(BUTTON_PIN);
+
+  if (buttonState == LOW) {
+    // Button pressed (closed to GND)
+    digitalWrite(LED_PIN, HIGH);
+    Serial.println("Button: PRESSED -> LED ON");
+  } else {
+    // Button released (pulled to HIGH)
+    digitalWrite(LED_PIN, LOW);
+  }
+  delay(50);
+}`,
 
     blink: `// TwinLab X Arduino / ESP32 Blink Sketch
 // Onboard LED is Pin 13 (Arduino Uno) or Pin 2 (ESP32 DevKit)
@@ -317,6 +352,7 @@ export class McuExecutionSession {
         this.isRunning = false;
         this.runningRef = { current: false };
         this.pinStates = {}; // { 13: 1, 2: 0, ... }
+        this.pinModes = {};  // { 19: "INPUT_PULLUP", 18: "OUTPUT", ... }
         this.activeTimeouts = new Set();
         this.simStartTime = Date.now();
     }
@@ -332,9 +368,273 @@ export class McuExecutionSession {
         this.activeTimeouts.forEach(t => clearTimeout(t));
         this.activeTimeouts.clear();
         this.pinStates = {};
+        this.pinModes = {};
         if (this.callbacks.onPinStateChange) {
             this.callbacks.onPinStateChange(this.boardId, this.pinStates, false, false, false);
         }
+    }
+
+    readPinHardwareLevel(pin) {
+        let p = String(pin).trim();
+        if (/^GP/i.test(p)) p = p.replace(/^GP/i, "");
+        if (/^D/i.test(p)) p = p.replace(/^D/i, "");
+
+        const mode = this.pinModes[p];
+        if (mode === "OUTPUT") {
+            return this.pinStates[p] != null ? this.pinStates[p] : 0;
+        }
+
+        const comps = this.callbacks.getComponents ? this.callbacks.getComponents() : [];
+        const wires = this.callbacks.getWires ? this.callbacks.getWires() : [];
+        const board = comps.find(c => c.id === this.boardId);
+        if (!board) {
+            return (mode === "INPUT_PULLUP") ? 1 : (this.pinStates[p] != null ? this.pinStates[p] : 0);
+        }
+
+        const rotRad = ((board.rotation || 0) * Math.PI) / 180;
+        const cos = Math.cos(rotRad);
+        const sin = Math.sin(rotRad);
+
+        // Find pin physical location on this MCU board
+        let pinDef = null;
+        if (this.boardType === "esp32" || this.boardType === "esp32-devkit" || this.boardType === "esp32-s3") {
+            const allPins = [...(ESP32_PINS.leftCol || []), ...(ESP32_PINS.rightCol || [])];
+            pinDef = allPins.find(pt => String(pt.pinNum) === p || pt.name === p || pt.name === `D${p}`);
+        } else if (this.boardType === "arduino-mega") {
+            const allPins = [
+                ...(ARDUINO_MEGA_PINS.digitalTop || []),
+                ...(ARDUINO_MEGA_PINS.digitalEnd || []),
+                ...(ARDUINO_MEGA_PINS.analog || []),
+                ...(ARDUINO_MEGA_PINS.power || [])
+            ];
+            pinDef = allPins.find(pt => String(pt.pinNum) === p || pt.name === p || pt.name === `D${p}`);
+        } else if (this.boardType === "arduino-nano") {
+            const allPins = [...(ARDUINO_NANO_PINS.leftCol || []), ...(ARDUINO_NANO_PINS.rightCol || [])];
+            pinDef = allPins.find(pt => String(pt.pinNum) === p || pt.name === p || pt.name === `D${p}`);
+        } else if (this.boardType?.includes("pico") || this.boardType === "raspberry-pi") {
+            const allPins = [...(RPI_PICO_PINS.leftCol || []), ...(RPI_PICO_PINS.rightCol || [])];
+            pinDef = allPins.find(pt => String(pt.pinNum) === p || pt.name === p || pt.name === `GP${p}`);
+        } else {
+            // Arduino Uno
+            const allPins = [
+                ...(ARDUINO_PINS.digital || []),
+                ...(ARDUINO_PINS.analog || []),
+                ...(ARDUINO_PINS.power || [])
+            ];
+            pinDef = allPins.find(pt => String(pt.pinNum) === p || pt.name === p || pt.name === `D${p}`);
+        }
+
+        if (!pinDef) {
+            return (mode === "INPUT_PULLUP") ? 1 : (this.pinStates[p] != null ? this.pinStates[p] : 0);
+        }
+
+        const pinWx = Math.round(board.x + pinDef.x * cos - pinDef.y * sin);
+        const pinWy = Math.round(board.y + pinDef.x * sin + pinDef.y * cos);
+
+        // Find all connected wire endpoints connected to this pin (net traversal)
+        const connectedPoints = [{ x: pinWx, y: pinWy }];
+        const visitedWires = new Set();
+        let changed = true;
+
+        while (changed) {
+            changed = false;
+            wires.forEach(w => {
+                if (visitedWires.has(w.id || w)) return;
+                if (!w.points || w.points.length < 2) return;
+                const p1 = w.points[0];
+                const p2 = w.points[w.points.length - 1];
+
+                const touches1 = connectedPoints.some(pt => Math.hypot(pt.x - p1.x, pt.y - p1.y) <= 20);
+                const touches2 = connectedPoints.some(pt => Math.hypot(pt.x - p2.x, pt.y - p2.y) <= 20);
+
+                if (touches1 || touches2) {
+                    visitedWires.add(w.id || w);
+                    if (touches1 && !connectedPoints.some(pt => Math.hypot(pt.x - p2.x, pt.y - p2.y) <= 8)) {
+                        connectedPoints.push(p2);
+                    }
+                    if (touches2 && !connectedPoints.some(pt => Math.hypot(pt.x - p1.x, pt.y - p1.y) <= 8)) {
+                        connectedPoints.push(p1);
+                    }
+                    changed = true;
+                }
+            });
+        }
+
+        // Trace board GND net
+        let gndDef = null;
+        if (this.boardType === "esp32" || this.boardType === "esp32-devkit" || this.boardType === "esp32-s3") {
+            gndDef = (ESP32_PINS.leftCol || []).find(pt => pt.isGnd);
+        } else if (this.boardType === "arduino-mega") {
+            gndDef = (ARDUINO_MEGA_PINS.power || []).find(pt => pt.isGnd);
+        } else if (this.boardType?.includes("pico")) {
+            gndDef = (RPI_PICO_PINS.leftCol || []).find(pt => pt.isGnd);
+        } else {
+            gndDef = (ARDUINO_PINS.power || []).find(pt => pt.isGnd);
+        }
+
+        const gndPoints = [];
+        if (gndDef) {
+            const gWx = Math.round(board.x + gndDef.x * cos - gndDef.y * sin);
+            const gWy = Math.round(board.y + gndDef.x * sin + gndDef.y * cos);
+            gndPoints.push({ x: gWx, y: gWy });
+            const visitedGndWires = new Set();
+            let gChanged = true;
+            while (gChanged) {
+                gChanged = false;
+                wires.forEach(w => {
+                    if (visitedGndWires.has(w.id || w)) return;
+                    if (!w.points || w.points.length < 2) return;
+                    const p1 = w.points[0];
+                    const p2 = w.points[w.points.length - 1];
+
+                    const t1 = gndPoints.some(pt => Math.hypot(pt.x - p1.x, pt.y - p1.y) <= 20);
+                    const t2 = gndPoints.some(pt => Math.hypot(pt.x - p2.x, pt.y - p2.y) <= 20);
+
+                    if (t1 || t2) {
+                        visitedGndWires.add(w.id || w);
+                        if (t1) gndPoints.push(p2);
+                        if (t2) gndPoints.push(p1);
+                        gChanged = true;
+                    }
+                });
+            }
+        }
+
+        // Trace VCC (3.3V / 5V) net
+        let vccDef = null;
+        if (this.boardType === "esp32" || this.boardType === "esp32-devkit" || this.boardType === "esp32-s3") {
+            vccDef = (ESP32_PINS.rightCol || []).find(pt => pt.is3V3) || (ESP32_PINS.leftCol || []).find(pt => pt.is5V);
+        } else if (this.boardType?.includes("pico")) {
+            vccDef = (RPI_PICO_PINS.rightCol || []).find(pt => pt.is3V3);
+        } else {
+            vccDef = (ARDUINO_PINS.power || []).find(pt => pt.is5V);
+        }
+
+        const vccPoints = [];
+        if (vccDef) {
+            const vWx = Math.round(board.x + vccDef.x * cos - vccDef.y * sin);
+            const vWy = Math.round(board.y + vccDef.x * sin + vccDef.y * cos);
+            vccPoints.push({ x: vWx, y: vWy });
+            const visitedVccWires = new Set();
+            let vChanged = true;
+            while (vChanged) {
+                vChanged = false;
+                wires.forEach(w => {
+                    if (visitedVccWires.has(w.id || w)) return;
+                    if (!w.points || w.points.length < 2) return;
+                    const p1 = w.points[0];
+                    const p2 = w.points[w.points.length - 1];
+                    const t1 = vccPoints.some(pt => Math.hypot(pt.x - p1.x, pt.y - p1.y) <= 20);
+                    const t2 = vccPoints.some(pt => Math.hypot(pt.x - p2.x, pt.y - p2.y) <= 20);
+                    if (t1 || t2) {
+                        visitedVccWires.add(w.id || w);
+                        if (t1) vccPoints.push(p2);
+                        if (t2) vccPoints.push(p1);
+                        vChanged = true;
+                    }
+                });
+            }
+        }
+
+        // 1. Check Pushbuttons
+        const buttons = comps.filter(c => c.type === "button" || c.type === "pushbutton");
+        for (const btn of buttons) {
+            const bRot = ((btn.rotation || 0) * Math.PI) / 180;
+            const bCos = Math.cos(bRot);
+            const bSin = Math.sin(bRot);
+
+            // Side 1: Top pins (1a at 0,0 and 1b at 32,0)
+            const p1a = { x: Math.round(btn.x), y: Math.round(btn.y) };
+            const p1b = { x: Math.round(btn.x + 32 * bCos), y: Math.round(btn.y + 32 * bSin) };
+            // Side 2: Bottom pins (2a at 0,32 and 2b at 32,32)
+            const p2a = { x: Math.round(btn.x - 32 * bSin), y: Math.round(btn.y + 32 * bCos) };
+            const p2b = { x: Math.round(btn.x + 32 * bCos - 32 * bSin), y: Math.round(btn.y + 32 * bSin + 32 * bCos) };
+
+            const netTouchesSide1 = connectedPoints.some(pt => Math.hypot(pt.x - p1a.x, pt.y - p1a.y) <= 20 || Math.hypot(pt.x - p1b.x, pt.y - p1b.y) <= 20);
+            const netTouchesSide2 = connectedPoints.some(pt => Math.hypot(pt.x - p2a.x, pt.y - p2a.y) <= 20 || Math.hypot(pt.x - p2b.x, pt.y - p2b.y) <= 20);
+
+            if (netTouchesSide1 || netTouchesSide2) {
+                const gndTouchesSide1 = gndPoints.some(pt => Math.hypot(pt.x - p1a.x, pt.y - p1a.y) <= 20 || Math.hypot(pt.x - p1b.x, pt.y - p1b.y) <= 20);
+                const gndTouchesSide2 = gndPoints.some(pt => Math.hypot(pt.x - p2a.x, pt.y - p2a.y) <= 20 || Math.hypot(pt.x - p2b.x, pt.y - p2b.y) <= 20);
+
+                const vccTouchesSide1 = vccPoints.some(pt => Math.hypot(pt.x - p1a.x, pt.y - p1a.y) <= 20 || Math.hypot(pt.x - p1b.x, pt.y - p1b.y) <= 20);
+                const vccTouchesSide2 = vccPoints.some(pt => Math.hypot(pt.x - p2a.x, pt.y - p2a.y) <= 20 || Math.hypot(pt.x - p2b.x, pt.y - p2b.y) <= 20);
+
+                // Shorted case: User connected BOTH MCU pin and GND to the same side of the button!
+                if ((netTouchesSide1 && gndTouchesSide1) || (netTouchesSide2 && gndTouchesSide2)) {
+                    return 0; // Shorted directly to GND!
+                }
+                if ((netTouchesSide1 && vccTouchesSide1) || (netTouchesSide2 && vccTouchesSide2)) {
+                    return 1; // Shorted directly to VCC!
+                }
+
+                // Standard Active-LOW (MCU pin on one side, GND on the opposite side)
+                const isGndOpposite = (netTouchesSide1 && gndTouchesSide2) || (netTouchesSide2 && gndTouchesSide1);
+                if (isGndOpposite) {
+                    return btn.isPressed ? 0 : 1;
+                }
+
+                // Active-HIGH (MCU pin on one side, VCC on the opposite side)
+                const isVccOpposite = (netTouchesSide1 && vccTouchesSide2) || (netTouchesSide2 && vccTouchesSide1);
+                if (isVccOpposite) {
+                    return btn.isPressed ? 1 : 0;
+                }
+
+                return btn.isPressed ? 0 : 1;
+            }
+        }
+
+        // 2. Check Slide switch
+        const switches = comps.filter(c => c.type === "switch-slide");
+        for (const sw of switches) {
+            const sRot = ((sw.rotation || 0) * Math.PI) / 180;
+            const sCos = Math.cos(sRot);
+            const sSin = Math.sin(sRot);
+
+            const p1 = { x: Math.round(sw.x), y: Math.round(sw.y) };
+            const pCom = { x: Math.round(sw.x + 16 * sCos), y: Math.round(sw.y + 16 * sSin) };
+            const p2 = { x: Math.round(sw.x + 32 * sCos), y: Math.round(sw.y + 32 * sSin) };
+
+            const touchesCom = connectedPoints.some(pt => Math.hypot(pt.x - pCom.x, pt.y - pCom.y) <= 20);
+            const touches1 = connectedPoints.some(pt => Math.hypot(pt.x - p1.x, pt.y - p1.y) <= 20);
+            const touches2 = connectedPoints.some(pt => Math.hypot(pt.x - p2.x, pt.y - p2.y) <= 20);
+
+            const swPos = sw.switchState ?? sw.state ?? 0;
+            if (touchesCom || touches1 || touches2) {
+                const isClosedToGnd = (touchesCom && ((swPos === 0 && gndPoints.some(pt => Math.hypot(pt.x - p1.x, pt.y - p1.y) <= 20)) || (swPos === 1 && gndPoints.some(pt => Math.hypot(pt.x - p2.x, pt.y - p2.y) <= 20)))) ||
+                                      (touches1 && swPos === 0 && gndPoints.some(pt => Math.hypot(pt.x - pCom.x, pt.y - pCom.y) <= 20)) ||
+                                      (touches2 && swPos === 1 && gndPoints.some(pt => Math.hypot(pt.x - pCom.x, pt.y - pCom.y) <= 20));
+                if (isClosedToGnd) return 0;
+
+                const isClosedToVcc = (touchesCom && ((swPos === 0 && vccPoints.some(pt => Math.hypot(pt.x - p1.x, pt.y - p1.y) <= 20)) || (swPos === 1 && vccPoints.some(pt => Math.hypot(pt.x - p2.x, pt.y - p2.y) <= 20)))) ||
+                                      (touches1 && swPos === 0 && vccPoints.some(pt => Math.hypot(pt.x - pCom.x, pt.y - pCom.y) <= 20)) ||
+                                      (touches2 && swPos === 1 && vccPoints.some(pt => Math.hypot(pt.x - pCom.x, pt.y - pCom.y) <= 20));
+                if (isClosedToVcc) return 1;
+
+                return mode === "INPUT_PULLUP" ? 1 : 0;
+            }
+        }
+
+        // 3. Check PIR Motion Sensor
+        const pirs = comps.filter(c => c.type === "sensor-pir" || c.type === "pir");
+        for (const pir of pirs) {
+            const pRot = ((pir.rotation || 0) * Math.PI) / 180;
+            const pOut = { x: Math.round(pir.x + 16 * Math.cos(pRot)), y: Math.round(pir.y + 16 * Math.sin(pRot)) };
+            if (connectedPoints.some(pt => Math.hypot(pt.x - pOut.x, pt.y - pOut.y) <= 20)) {
+                return (pir.motionActive || pir.isTriggered) ? 1 : 0;
+            }
+        }
+
+        // Default Pullup / direct wire logic
+        if (mode === "INPUT_PULLUP" || !mode) {
+            const isDirectGnd = connectedPoints.some(pt => gndPoints.some(gpt => Math.hypot(pt.x - gpt.x, pt.y - gpt.y) <= 20));
+            return isDirectGnd ? 0 : 1;
+        }
+
+        const isDirectVcc = connectedPoints.some(pt => vccPoints.some(vpt => Math.hypot(pt.x - vpt.x, pt.y - vpt.y) <= 20));
+        if (isDirectVcc) return 1;
+
+        return this.pinStates[p] != null ? this.pinStates[p] : 0;
     }
 
     startDefaultBlink() {
@@ -824,11 +1124,7 @@ export class McuExecutionSession {
                 }
             },
             __digitalRead: (pin) => {
-                let p = String(pin).trim();
-                if (/^GP/i.test(p)) {
-                    p = p.replace(/^GP/i, "");
-                }
-                return this.pinStates[p] != null ? this.pinStates[p] : 0;
+                return this.readPinHardwareLevel(pin);
             },
             __analogRead: (pin) => {
                 const pStr = String(pin).trim();
@@ -858,7 +1154,10 @@ export class McuExecutionSession {
                 return 512;
             },
             __pinMode: (pin, mode) => {
-                // Pin mode registry
+                let p = String(pin).trim();
+                if (/^GP/i.test(p)) p = p.replace(/^GP/i, "");
+                if (/^D/i.test(p)) p = p.replace(/^D/i, "");
+                this.pinModes[p] = mode;
             },
             __serialBegin: (baud) => {
                 const elapsed = ((Date.now() - this.simStartTime) / 1000).toFixed(2);
