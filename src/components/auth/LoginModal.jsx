@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import authService from "../../services/authService";
+import authService, { formatAuthError } from "../../services/authService";
+import { isFirebaseConfigured } from "../../services/firebase";
 import { TwinLabLogo } from "../common/TwinLabLogo";
 import "./LoginModal.css";
 
@@ -9,10 +10,13 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
     const [tab, setTab] = useState("signin"); // "signin" | "signup" | "guest"
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [name, setName] = useState("");
     const [role, setRole] = useState("Embedded Systems Dev");
+    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
+    const [successMsg, setSuccessMsg] = useState("");
 
     // Close on Escape key
     useEffect(() => {
@@ -27,52 +31,96 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
 
     if (!isOpen) return null;
 
+    const resetForm = () => {
+        setEmail("");
+        setPassword("");
+        setConfirmPassword("");
+        setName("");
+        setErrorMsg("");
+        setSuccessMsg("");
+    };
+
     const handleSignIn = async (e) => {
         e && e.preventDefault();
         setErrorMsg("");
-        if (!email) {
-            setErrorMsg("Please enter your email address");
+        setSuccessMsg("");
+
+        if (!email.trim() || !password) {
+            setErrorMsg("Please enter both your email and password.");
             return;
         }
+
         setIsLoading(true);
-        setTimeout(() => {
-            const user = authService.login(email, password);
+        try {
+            const user = await authService.login(email, password);
             setIsLoading(false);
             onLoginSuccess && onLoginSuccess(user);
             onClose && onClose();
-        }, 200);
+        } catch (err) {
+            setIsLoading(false);
+            setErrorMsg(formatAuthError(err));
+        }
     };
 
     const handleSignUp = async (e) => {
         e && e.preventDefault();
         setErrorMsg("");
-        if (!email || !name) {
-            setErrorMsg("Please enter your name and email");
+        setSuccessMsg("");
+
+        if (!name.trim() || !email.trim() || !password) {
+            setErrorMsg("Please fill in your name, email, and password.");
             return;
         }
+
+        if (password.length < 6) {
+            setErrorMsg("Password must be at least 6 characters long.");
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setErrorMsg("Passwords do not match. Please re-enter.");
+            return;
+        }
+
         setIsLoading(true);
-        setTimeout(() => {
-            const user = authService.signup({ name, email, password, role });
+        try {
+            const user = await authService.signup({ name, email, password, role });
             setIsLoading(false);
             onLoginSuccess && onLoginSuccess(user);
             onClose && onClose();
-        }, 200);
+        } catch (err) {
+            setIsLoading(false);
+            setErrorMsg(formatAuthError(err));
+        }
     };
 
-    const handleDemoLogin = () => {
+    const handleGoogleLogin = async () => {
+        setErrorMsg("");
+        setSuccessMsg("");
         setIsLoading(true);
-        setTimeout(() => {
-            const user = authService.loginDemo();
+        try {
+            const user = await authService.loginWithGoogle();
             setIsLoading(false);
             onLoginSuccess && onLoginSuccess(user);
             onClose && onClose();
-        }, 200);
+        } catch (err) {
+            setIsLoading(false);
+            setErrorMsg(formatAuthError(err));
+        }
     };
 
-    const handleGuestLogin = () => {
-        const user = authService.loginAsGuest();
-        onLoginSuccess && onLoginSuccess(user);
-        onClose && onClose();
+    const handleGuestLogin = async () => {
+        setErrorMsg("");
+        setIsLoading(true);
+        try {
+            const user = await authService.loginAsGuest();
+            setIsLoading(false);
+            onLoginSuccess && onLoginSuccess(user);
+            onClose && onClose();
+        } catch (err) {
+            setIsLoading(false);
+            setErrorMsg("Failed to initialize guest session.");
+        }
     };
 
     return createPortal(
@@ -81,22 +129,34 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                 <motion.div 
                     className="login-modal-card compact-clean-card"
                     onClick={(e) => e.stopPropagation()}
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.96 }}
-                    transition={{ duration: 0.18 }}
+                    initial={{ opacity: 0, scale: 0.95, y: 12 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 12 }}
+                    transition={{ duration: 0.2 }}
                 >
                     {/* Header */}
                     <div className="login-modal-header">
                         <TwinLabLogo size={32} showSubtitle={false} />
-                        <button 
-                            className="login-close-btn" 
-                            onClick={onClose} 
-                            type="button"
-                            title="Close"
-                        >
-                            <i className="ri-close-line" />
-                        </button>
+                        <div className="login-header-right">
+                            {isFirebaseConfigured ? (
+                                <span className="db-badge online" title="Cloud Firestore & Auth Active">
+                                    <span className="db-pulse" />
+                                    Cloud DB
+                                </span>
+                            ) : (
+                                <span className="db-badge local" title="Running in Local Offline Mode">
+                                    Local
+                                </span>
+                            )}
+                            <button 
+                                className="login-close-btn" 
+                                onClick={onClose} 
+                                type="button"
+                                title="Close"
+                            >
+                                <i className="ri-close-line" />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Tabs */}
@@ -104,30 +164,40 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                         <button 
                             type="button"
                             className={`login-tab ${tab === "signin" ? "active" : ""}`}
-                            onClick={() => { setTab("signin"); setErrorMsg(""); }}
+                            onClick={() => { setTab("signin"); resetForm(); }}
                         >
+                            <i className="ri-login-box-line" />
                             Sign In
                         </button>
                         <button 
                             type="button"
                             className={`login-tab ${tab === "signup" ? "active" : ""}`}
-                            onClick={() => { setTab("signup"); setErrorMsg(""); }}
+                            onClick={() => { setTab("signup"); resetForm(); }}
                         >
+                            <i className="ri-user-add-line" />
                             Create Account
                         </button>
                         <button 
                             type="button"
                             className={`login-tab ${tab === "guest" ? "active" : ""}`}
-                            onClick={() => { setTab("guest"); setErrorMsg(""); }}
+                            onClick={() => { setTab("guest"); resetForm(); }}
                         >
-                            Guest Mode
+                            <i className="ri-user-smile-line" />
+                            Guest Account
                         </button>
                     </div>
 
+                    {/* Feedback Messages */}
                     {errorMsg && (
-                        <div className="login-error-banner">
+                        <div className="login-feedback-banner error">
                             <i className="ri-error-warning-line" />
                             <span>{errorMsg}</span>
+                        </div>
+                    )}
+                    {successMsg && (
+                        <div className="login-feedback-banner success">
+                            <i className="ri-checkbox-circle-line" />
+                            <span>{successMsg}</span>
                         </div>
                     )}
 
@@ -135,32 +205,39 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                     {tab === "signin" && (
                         <form className="login-form" onSubmit={handleSignIn}>
                             <div className="login-field">
-                                <label>Email</label>
+                                <label>Email Address</label>
                                 <div className="login-input-wrap">
                                     <i className="ri-mail-line" />
                                     <input 
                                         type="email"
-                                        placeholder="engineer@twinlab.io"
+                                        placeholder="engineer@domain.com"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
+                                        required
                                         autoFocus
                                     />
                                 </div>
                             </div>
 
                             <div className="login-field">
-                                <div className="login-label-row">
-                                    <label>Password</label>
-                                    <span className="login-hint">Optional for demo</span>
-                                </div>
+                                <label>Password</label>
                                 <div className="login-input-wrap">
                                     <i className="ri-lock-2-line" />
                                     <input 
-                                        type="password"
-                                        placeholder="••••••••"
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Enter your password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
+                                        required
                                     />
+                                    <button 
+                                        type="button" 
+                                        className="login-eye-btn"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        title={showPassword ? "Hide password" : "Show password"}
+                                    >
+                                        <i className={showPassword ? "ri-eye-off-line" : "ri-eye-line"} />
+                                    </button>
                                 </div>
                             </div>
 
@@ -169,23 +246,43 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                                 type="submit" 
                                 disabled={isLoading}
                             >
-                                <span>{isLoading ? "Signing In..." : "Sign In with Cloud"}</span>
-                                <i className="ri-arrow-right-line" />
+                                {isLoading ? (
+                                    <>
+                                        <i className="ri-loader-4-line spin" />
+                                        <span>Signing In...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>Sign In to TwinLab</span>
+                                        <i className="ri-arrow-right-line" />
+                                    </>
+                                )}
                             </button>
 
-                            <div className="login-divider">
-                                <span>OR</span>
+                            {isFirebaseConfigured && (
+                                <>
+                                    <div className="login-divider">
+                                        <span>OR</span>
+                                    </div>
+
+                                    <button 
+                                        className="google-auth-btn"
+                                        type="button"
+                                        onClick={handleGoogleLogin}
+                                        disabled={isLoading}
+                                    >
+                                        <i className="ri-google-fill" />
+                                        <span>Continue with Google</span>
+                                    </button>
+                                </>
+                            )}
+
+                            <div className="login-switch-prompt">
+                                <span>Don't have an account?</span>
+                                <button type="button" onClick={() => { setTab("signup"); resetForm(); }}>
+                                    Create Account
+                                </button>
                             </div>
-
-                            <button 
-                                className="demo-account-btn"
-                                type="button"
-                                onClick={handleDemoLogin}
-                                disabled={isLoading}
-                            >
-                                <i className="ri-flashlight-line" />
-                                <span>⚡ Quick Demo Account Login (Alex Rivera)</span>
-                            </button>
                         </form>
                     )}
 
@@ -193,34 +290,36 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                     {tab === "signup" && (
                         <form className="login-form" onSubmit={handleSignUp}>
                             <div className="login-field">
-                                <label>Your Name</label>
+                                <label>Full Name</label>
                                 <div className="login-input-wrap">
                                     <i className="ri-user-line" />
                                     <input 
                                         type="text"
-                                        placeholder="Alex Rivera"
+                                        placeholder="Your Name"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
+                                        required
                                         autoFocus
                                     />
                                 </div>
                             </div>
 
                             <div className="login-field">
-                                <label>Work Email</label>
+                                <label>Email Address</label>
                                 <div className="login-input-wrap">
                                     <i className="ri-mail-line" />
                                     <input 
                                         type="email"
-                                        placeholder="alex@twinlab.io"
+                                        placeholder="engineer@domain.com"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
+                                        required
                                     />
                                 </div>
                             </div>
 
                             <div className="login-field">
-                                <label>Role</label>
+                                <label>Role / Specialization</label>
                                 <div className="login-input-wrap select-wrap">
                                     <i className="ri-shield-user-line" />
                                     <select value={role} onChange={(e) => setRole(e.target.value)}>
@@ -228,7 +327,44 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                                         <option value="IoT Firmware Engineer">IoT Firmware Engineer</option>
                                         <option value="Robotics Engineer">Robotics Engineer</option>
                                         <option value="Student / Hobbyist Maker">Student / Hobbyist Maker</option>
+                                        <option value="Hardware Designer">Hardware Designer</option>
                                     </select>
+                                </div>
+                            </div>
+
+                            <div className="login-field">
+                                <label>Create Password</label>
+                                <div className="login-input-wrap">
+                                    <i className="ri-lock-2-line" />
+                                    <input 
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="At least 6 characters"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                        minLength={6}
+                                    />
+                                    <button 
+                                        type="button" 
+                                        className="login-eye-btn"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        <i className={showPassword ? "ri-eye-off-line" : "ri-eye-line"} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="login-field">
+                                <label>Confirm Password</label>
+                                <div className="login-input-wrap">
+                                    <i className="ri-lock-password-line" />
+                                    <input 
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Re-enter password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        required
+                                    />
                                 </div>
                             </div>
 
@@ -237,13 +373,29 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                                 type="submit" 
                                 disabled={isLoading}
                             >
-                                <span>{isLoading ? "Creating..." : "Create Free Account"}</span>
-                                <i className="ri-user-add-line" />
+                                {isLoading ? (
+                                    <>
+                                        <i className="ri-loader-4-line spin" />
+                                        <span>Creating Account...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>Create Account & Connect DB</span>
+                                        <i className="ri-user-add-line" />
+                                    </>
+                                )}
                             </button>
+
+                            <div className="login-switch-prompt">
+                                <span>Already have an account?</span>
+                                <button type="button" onClick={() => { setTab("signin"); resetForm(); }}>
+                                    Sign In
+                                </button>
+                            </div>
                         </form>
                     )}
 
-                    {/* Tab 3: Guest Mode */}
+                    {/* Tab 3: Guest Account */}
                     {tab === "guest" && (
                         <div className="guest-mode-pane">
                             <div className="guest-icon-badge">
@@ -251,14 +403,29 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                             </div>
                             <h4>Continue as Guest</h4>
                             <p>
-                                Access all breadboards, microcontrollers, and real-time simulation without an account.
+                                Access all breadboards, microcontrollers, components, and real-time physics simulations immediately. No registration or credentials required.
                             </p>
+                            <div className="guest-feature-list">
+                                <div className="guest-feature-item">
+                                    <i className="ri-check-line" />
+                                    <span>Full interactive hardware simulation</span>
+                                </div>
+                                <div className="guest-feature-item">
+                                    <i className="ri-check-line" />
+                                    <span>All MCUs (Arduino, ESP32, Pico) & Sensors</span>
+                                </div>
+                                <div className="guest-feature-item">
+                                    <i className="ri-check-line" />
+                                    <span>Export projects locally anytime</span>
+                                </div>
+                            </div>
                             <button 
                                 className="login-submit-btn guest-btn" 
                                 type="button" 
                                 onClick={handleGuestLogin}
+                                disabled={isLoading}
                             >
-                                <span>Continue in Guest Mode</span>
+                                <span>Enter Workspace as Guest</span>
                                 <i className="ri-arrow-right-line" />
                             </button>
                         </div>

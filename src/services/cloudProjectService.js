@@ -1,5 +1,16 @@
-// TwinLab X Cloud Project Persistence & Synchronization Service
+// TwinLab X Cloud Project Persistence & Synchronization Service (Firestore + Local Backup)
 import authService from "./authService";
+import { db, isFirebaseConfigured } from "./firebase";
+import { 
+    collection, 
+    doc, 
+    getDocs, 
+    setDoc, 
+    deleteDoc, 
+    query, 
+    where, 
+    orderBy 
+} from "firebase/firestore";
 
 const CLOUD_PROJECTS_KEY = "twinlab_cloud_vault";
 const LOCAL_PROJECTS_KEY = "twinlab_user_projects";
@@ -39,7 +50,7 @@ const DEFAULT_CLOUD_PROJECTS = [
     }
 ];
 
-function getCloudVault() {
+function getLocalCloudVault() {
     try {
         const data = localStorage.getItem(CLOUD_PROJECTS_KEY);
         if (data) {
@@ -54,34 +65,79 @@ function getCloudVault() {
 }
 
 export const cloudProjectService = {
-    // Fetch all projects stored in user's cloud vault
+    // Fetch all projects stored in user's cloud vault (Firestore or local fallback)
     async getCloudProjects() {
-        // Realistic cloud sync simulation latency (100ms)
-        await new Promise((res) => setTimeout(res, 120));
-        return getCloudVault();
+        const user = authService.getCurrentUser();
+
+        // 1. Try fetching live from Firebase Firestore if configured
+        if (isFirebaseConfigured && db) {
+            try {
+                const projectsRef = collection(db, "projects");
+                let q;
+                if (user && user.id && !user.isGuest) {
+                    q = query(projectsRef, where("ownerId", "==", user.id));
+                } else {
+                    q = query(projectsRef);
+                }
+                const querySnapshot = await Promise.race([
+                    getDocs(q),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error("Firestore timeout")), 2500))
+                ]);
+                const projects = [];
+                querySnapshot.forEach((docSnap) => {
+                    projects.push({ ...docSnap.data(), id: docSnap.id, cloudId: docSnap.id });
+                });
+
+                if (projects.length > 0) {
+                    try {
+                        localStorage.setItem(CLOUD_PROJECTS_KEY, JSON.stringify(projects));
+                    } catch (e) {}
+                    return projects;
+                }
+            } catch (err) {
+                console.warn("⚠️ [TwinLab] Firestore read error, falling back to local vault:", err);
+            }
+        }
+
+        // 2. Fallback to local storage vault
+        await new Promise((res) => setTimeout(res, 80));
+        return getLocalCloudVault();
     },
 
-    // Save or update an existing project to the cloud
+    // Save or update an existing project to Firebase Cloud Firestore
     async saveProjectToCloud(project) {
         if (!project || !project.name) return { success: false, error: "Invalid project data" };
 
         const user = authService.getCurrentUser();
-        const vault = getCloudVault();
+        const docId = project.cloudId || project.id || `proj-${Date.now().toString(36)}`;
 
         const cloudProject = {
             ...project,
-            cloudId: project.cloudId || `cloud-${Date.now().toString(36)}`,
-            ownerId: user.id,
-            ownerEmail: user.email,
+            id: docId,
+            cloudId: docId,
+            ownerId: user.id || "guest-user",
+            ownerEmail: user.email || "guest@twinlab.io",
             cloudSynced: true,
             status: "Cloud Synced",
             lastEdited: "Just now",
             updatedAt: new Date().toISOString()
         };
 
-        const existingIndex = vault.findIndex((p) => p.id === project.id || p.cloudId === cloudProject.cloudId);
-        let updatedVault;
+        // 1. Write to Firestore if configured
+        if (isFirebaseConfigured && db) {
+            try {
+                const projectDocRef = doc(db, "projects", docId);
+                await setDoc(projectDocRef, cloudProject, { merge: true });
+                console.log("🔥 [TwinLab] Successfully synced project to Firestore:", docId);
+            } catch (err) {
+                console.error("❌ [TwinLab] Firestore save error:", err);
+            }
+        }
 
+        // 2. Always maintain local cache for offline resiliency
+        const vault = getLocalCloudVault();
+        const existingIndex = vault.findIndex((p) => p.id === docId || p.cloudId === docId);
+        let updatedVault;
         if (existingIndex >= 0) {
             updatedVault = [...vault];
             updatedVault[existingIndex] = cloudProject;
@@ -98,9 +154,18 @@ export const cloudProjectService = {
         return { success: true, project: cloudProject };
     },
 
-    // Delete a project from cloud
+    // Delete a project from Firestore and local cache
     async deleteFromCloud(projectId) {
-        const vault = getCloudVault();
+        if (isFirebaseConfigured && db) {
+            try {
+                await deleteDoc(doc(db, "projects", projectId));
+                console.log("🔥 [TwinLab] Successfully deleted project from Firestore:", projectId);
+            } catch (err) {
+                console.error("❌ [TwinLab] Firestore delete error:", err);
+            }
+        }
+
+        const vault = getLocalCloudVault();
         const updated = vault.filter((p) => p.id !== projectId && p.cloudId !== projectId);
         try {
             localStorage.setItem(CLOUD_PROJECTS_KEY, JSON.stringify(updated));

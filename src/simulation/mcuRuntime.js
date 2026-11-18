@@ -178,11 +178,15 @@ void loop() {
 }`,
 
     pir: `// HC-SR501 PIR Motion Sensor Alarm
-// OUT -> Pin 2
+// OUT -> Pin 2, LED -> Pin 13, Buzzer -> Pin 8
 #define PIR_PIN 2
+#define LED_PIN 13
+#define BUZZER_PIN 8
 
 void setup() {
   pinMode(PIR_PIN, INPUT);
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(9600);
   Serial.println("PIR Motion Security System Armed");
@@ -191,13 +195,17 @@ void setup() {
 void loop() {
   int motion = digitalRead(PIR_PIN);
   if (motion == HIGH) {
+    digitalWrite(LED_PIN, HIGH);
     digitalWrite(LED_BUILTIN, HIGH);
+    digitalWrite(BUZZER_PIN, HIGH);
     Serial.println("🚨 MOTION DETECTED! Sensor OUT is HIGH");
   } else {
+    digitalWrite(LED_PIN, LOW);
     digitalWrite(LED_BUILTIN, LOW);
+    digitalWrite(BUZZER_PIN, LOW);
     Serial.println("Zone Clear • Standby Scanning");
   }
-  delay(500);
+  delay(150);
 }`,
 
     servo: `// SG90 Micro Servo 0°-180° Sweep
@@ -402,14 +410,19 @@ export class McuExecutionSession {
             pinDef = allPins.find(pt => String(pt.pinNum) === p || pt.name === p || pt.name === `D${p}`);
         } else if (this.boardType === "arduino-mega") {
             const allPins = [
-                ...(ARDUINO_MEGA_PINS.digitalTop || []),
-                ...(ARDUINO_MEGA_PINS.digitalEnd || []),
+                ...(ARDUINO_MEGA_PINS.digitalHigh || []),
+                ...(ARDUINO_MEGA_PINS.digitalLow || []),
+                ...(ARDUINO_MEGA_PINS.communication || []),
+                ...(ARDUINO_MEGA_PINS.dualDigital || []),
                 ...(ARDUINO_MEGA_PINS.analog || []),
                 ...(ARDUINO_MEGA_PINS.power || [])
             ];
             pinDef = allPins.find(pt => String(pt.pinNum) === p || pt.name === p || pt.name === `D${p}`);
         } else if (this.boardType === "arduino-nano") {
-            const allPins = [...(ARDUINO_NANO_PINS.leftCol || []), ...(ARDUINO_NANO_PINS.rightCol || [])];
+            const allPins = [
+                ...(ARDUINO_NANO_PINS.topRow || []),
+                ...(ARDUINO_NANO_PINS.botRow || [])
+            ];
             pinDef = allPins.find(pt => String(pt.pinNum) === p || pt.name === p || pt.name === `D${p}`);
         } else if (this.boardType?.includes("pico") || this.boardType === "raspberry-pi") {
             const allPins = [...(RPI_PICO_PINS.leftCol || []), ...(RPI_PICO_PINS.rightCol || [])];
@@ -417,7 +430,8 @@ export class McuExecutionSession {
         } else {
             // Arduino Uno
             const allPins = [
-                ...(ARDUINO_PINS.digital || []),
+                ...(ARDUINO_PINS.digitalHigh || []),
+                ...(ARDUINO_PINS.digitalLow || []),
                 ...(ARDUINO_PINS.analog || []),
                 ...(ARDUINO_PINS.power || [])
             ];
@@ -620,8 +634,21 @@ export class McuExecutionSession {
         for (const pir of pirs) {
             const pRot = ((pir.rotation || 0) * Math.PI) / 180;
             const pOut = { x: Math.round(pir.x + 16 * Math.cos(pRot)), y: Math.round(pir.y + 16 * Math.sin(pRot)) };
-            if (connectedPoints.some(pt => Math.hypot(pt.x - pOut.x, pt.y - pOut.y) <= 20)) {
-                return (pir.motionActive || pir.isTriggered) ? 1 : 0;
+            if (connectedPoints.some(pt => Math.hypot(pt.x - pOut.x, pt.y - pOut.y) <= 24)) {
+                let isPirActive = Boolean(pir.motionActive || pir.isMotion || pir.isTriggered);
+                if (pir.pirBallX != null && pir.pirBallY != null) {
+                    const rM = pir.rangeM != null ? pir.rangeM : 5;
+                    const pirRangeR = 60 + rM * 35;
+                    const pirAngleRad = (32 * Math.PI) / 180;
+                    const dx = pir.pirBallX - 16;
+                    const dy = -70 - pir.pirBallY;
+                    const distPx = Math.hypot(dx, dy);
+                    const phi = Math.atan2(dx, dy);
+                    if (dy > 0 && Math.abs(phi) <= pirAngleRad && distPx <= pirRangeR) {
+                        isPirActive = true;
+                    }
+                }
+                return isPirActive ? 1 : 0;
             }
         }
 

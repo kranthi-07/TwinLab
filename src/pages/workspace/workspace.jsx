@@ -527,8 +527,28 @@ function Workspace({ onBackToHome }) {
                         flashed = localStorage.getItem(`twinlab_mcu_code_${board.id}`);
                     } catch (_) {}
                 }
-                if (!flashed && (board.type?.includes("pico") || board.type?.includes("raspberry"))) {
-                    flashed = DEFAULT_SKETCHES.pico_py_blink || `# Raspberry Pi Pico MicroPython Blink\nfrom machine import Pin\nimport utime\n\nled = Pin(25, Pin.OUT)\nprint("Raspberry Pi Pico MicroPython Ready!")\n\nwhile True:\n    led.toggle()\n    print("GP25 LED Toggled")\n    utime.sleep(0.5)\n`;
+                if (!flashed || isPureBlankTemplate(flashed)) {
+                    if (board.type?.includes("pico") || board.type?.includes("raspberry")) {
+                        flashed = DEFAULT_SKETCHES.pico_py_blink || `# Raspberry Pi Pico MicroPython Blink\nfrom machine import Pin\nimport utime\n\nled = Pin(25, Pin.OUT)\nprint("Raspberry Pi Pico MicroPython Ready!")\n\nwhile True:\n    led.toggle()\n    print("GP25 LED Toggled")\n    utime.sleep(0.5)\n`;
+                    } else {
+                        const curComps = componentsRef.current || [];
+                        const hasPir = curComps.some(c => c.type === "sensor-pir" || c.type === "pir");
+                        const hasUltrasonic = curComps.some(c => c.type === "sensor-ultrasonic" || c.type === "ultrasonic");
+                        const hasServo = curComps.some(c => c.type === "servo-sg90");
+                        const hasButton = curComps.some(c => c.type === "button" || c.type === "pushbutton");
+
+                        if (hasPir) {
+                            flashed = DEFAULT_SKETCHES.pir;
+                        } else if (hasUltrasonic) {
+                            flashed = DEFAULT_SKETCHES.ultrasonic;
+                        } else if (hasServo) {
+                            flashed = DEFAULT_SKETCHES.servo;
+                        } else if (hasButton) {
+                            flashed = DEFAULT_SKETCHES.button_led;
+                        } else {
+                            flashed = DEFAULT_SKETCHES.blink;
+                        }
+                    }
                 }
 
                 const hasExecutableCode = flashed && !isPureBlankTemplate(flashed);

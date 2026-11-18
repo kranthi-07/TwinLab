@@ -156,13 +156,15 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             const negWx = b.x + negLocalX * cos - negLocalY * sin;
             const negWy = b.y + negLocalX * sin + negLocalY * cos;
 
-            if (Math.hypot(x - posWx, y - posWy) <= 24) {
+            const dPos = Math.hypot(x - posWx, y - posWy);
+            const dNeg = Math.hypot(x - negWx, y - negWy);
+            if (dPos <= 18 && dPos < dNeg) {
                 const posNodeId = `POWER_SOURCE_POS_${b.id}`;
                 const ptKey = `pt_${Math.round(x / 4) * 4}_${Math.round(y / 4) * 4}`;
                 dsu.union(ptKey, posNodeId);
                 return dsu.find(posNodeId);
             }
-            if (Math.hypot(x - negWx, y - negWy) <= 24) {
+            if (dNeg <= 18 && dNeg < dPos) {
                 const gndNodeId = `POWER_SOURCE_GND_${b.id}`;
                 const ptKey = `pt_${Math.round(x / 4) * 4}_${Math.round(y / 4) * 4}`;
                 dsu.union(ptKey, gndNodeId);
@@ -358,7 +360,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         dsu.union(`WIRE_${w.id}_END`, baseNode);
     });
 
-    // Multi-Wire Node Junction Snapping: Any wire endpoints or waypoints meeting at a junction node (<= 16px) connect!
+    // Multi-Wire Node Junction Snapping: Any wire endpoints or waypoints meeting at a junction node (<= 6px) connect!
     for (let i = 0; i < wires.length; i++) {
         const w1 = wires[i];
         if (!w1.points) continue;
@@ -367,7 +369,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             if (!w2.points) continue;
             for (const p1 of w1.points) {
                 for (const p2 of w2.points) {
-                    if (Math.hypot(p1.x - p2.x, p1.y - p2.y) <= 16) {
+                    if (Math.hypot(p1.x - p2.x, p1.y - p2.y) <= 6) {
                         dsu.union(getElectricalNode(p1.x, p1.y), getElectricalNode(p2.x, p2.y));
                     }
                 }
