@@ -882,17 +882,42 @@ function SmallComponent({
 
             {/* TACTILE PUSHBUTTON: 32px x 32px span. 4 Pins */}
             {(type === "button" || type === "pushbutton") && (
-                <div className={`button-tactile-container ${isPressed ? "is-pressed" : ""}`}>
-                    <div className="tactile-case-body">
+                <div 
+                    className={`button-tactile-container ${isPressed ? "is-pressed" : ""}`}
+                    onClick={(e) => {
+                        if (isSimulating) {
+                            e.stopPropagation();
+                            onUpdate && onUpdate({ isPressed: !isPressed });
+                        }
+                    }}
+                >
+                    <div 
+                        className="tactile-case-body"
+                        onClick={(e) => {
+                            if (isSimulating) {
+                                e.stopPropagation();
+                                onUpdate && onUpdate({ isPressed: !isPressed });
+                            }
+                        }}
+                    >
                         <div 
                             className="tactile-round-actuator"
+                            title={isSimulating ? (isPressed ? "Push Button: PRESSED (Click to Release)" : "Push Button: RELEASED (Click to Toggle or Hold to Press)") : "Tactile Push Button"}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (isWireMode) return;
+                                onUpdate && onUpdate({ isPressed: !isPressed });
+                            }}
                             onMouseDown={(e) => {
                                 e.stopPropagation();
                                 if (isWireMode) return;
                                 onUpdate && onUpdate({ isPressed: true });
                                 const handleUp = () => {
                                     window.removeEventListener("mouseup", handleUp);
-                                    onUpdate && onUpdate({ isPressed: false });
+                                    // Give MCU polling loops at least 150ms to detect the press
+                                    setTimeout(() => {
+                                        onUpdate && onUpdate({ isPressed: false });
+                                    }, 150);
                                 };
                                 window.addEventListener("mouseup", handleUp);
                             }}

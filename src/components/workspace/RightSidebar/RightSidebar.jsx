@@ -677,6 +677,43 @@ function RightSidebar({
                                                 </div>
                                             </div>
 
+                                            {/* Pushbutton Interactive State Controller */}
+                                            {(selectedComponent.type === "button" || selectedComponent.type === "pushbutton") && (
+                                                <div className="inspector-stats-box" style={{ background: "rgba(30, 41, 59, 0.7)", border: "1px solid rgba(59, 130, 246, 0.3)" }}>
+                                                    <span className="stats-box-title" style={{ color: "#60a5fa" }}>PUSHBUTTON INTERACTION</span>
+                                                    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+                                                        <button
+                                                            type="button"
+                                                            style={{
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center",
+                                                                gap: 8,
+                                                                padding: "10px 16px",
+                                                                borderRadius: 8,
+                                                                border: selectedComponent.isPressed ? "1px solid #3b82f6" : "1px solid #475569",
+                                                                background: selectedComponent.isPressed ? "linear-gradient(135deg, #1d4ed8, #2563eb)" : "#0f172a",
+                                                                color: selectedComponent.isPressed ? "#ffffff" : "#cbd5e1",
+                                                                fontWeight: 600,
+                                                                fontSize: 13,
+                                                                cursor: "pointer",
+                                                                boxShadow: selectedComponent.isPressed ? "0 0 12px rgba(59, 130, 246, 0.6)" : "none",
+                                                                transition: "all 0.15s ease"
+                                                            }}
+                                                            onClick={() => onUpdateComponent && onUpdateComponent(selectedComponent.id, { isPressed: !selectedComponent.isPressed })}
+                                                            onMouseDown={() => onUpdateComponent && onUpdateComponent(selectedComponent.id, { isPressed: true })}
+                                                            onMouseUp={() => onUpdateComponent && onUpdateComponent(selectedComponent.id, { isPressed: false })}
+                                                        >
+                                                            <i className={selectedComponent.isPressed ? "ri-radio-button-fill" : "ri-radio-button-line"}></i>
+                                                            <span>{selectedComponent.isPressed ? "BUTTON: PRESSED (Closed)" : "BUTTON: RELEASED (Open)"}</span>
+                                                        </button>
+                                                        <span style={{ fontSize: 11, color: "#94a3b8", textAlign: "center" }}>
+                                                            Click to toggle state, or press and hold
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {/* Renaming Input */}
                                             <div className="inspector-field-group">
                                                 <label>Custom Label</label>
