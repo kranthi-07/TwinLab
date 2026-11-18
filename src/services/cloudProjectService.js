@@ -173,6 +173,64 @@ export const cloudProjectService = {
         return { success: true };
     },
 
+    // Transfer local / guest project(s) to a registered Firebase account
+    async migrateGuestProjectsToUser(user, activeProject = null) {
+        if (!user || user.isGuest) return { success: false, error: "Target user is guest" };
+
+        const projectsToMigrate = [];
+
+        if (activeProject && activeProject.name) {
+            projectsToMigrate.push(activeProject);
+        } else {
+            try {
+                const activeStr = localStorage.getItem("twinlab_active_project");
+                if (activeStr) {
+                    const parsed = JSON.parse(activeStr);
+                    if (parsed && parsed.name) projectsToMigrate.push(parsed);
+                }
+            } catch (_) {}
+        }
+
+        try {
+            const listStr = localStorage.getItem("twinlab_user_projects");
+            if (listStr) {
+                const list = JSON.parse(listStr);
+                if (Array.isArray(list)) {
+                    list.forEach(p => {
+                        if (p && p.name && !projectsToMigrate.some(exist => exist.id === p.id)) {
+                            projectsToMigrate.push(p);
+                        }
+                    });
+                }
+            }
+        } catch (_) {}
+
+        let migratedCount = 0;
+        for (const proj of projectsToMigrate) {
+            const docId = proj.cloudId || proj.id || `proj-${Date.now().toString(36)}`;
+            const migratedProject = {
+                ...proj,
+                id: docId,
+                cloudId: docId,
+                ownerId: user.id,
+                ownerEmail: user.email || "engineer@twinlab.io",
+                cloudSynced: true,
+                status: "Cloud Synced",
+                lastEdited: "Just now",
+                updatedAt: new Date().toISOString()
+            };
+
+            await this.saveProjectToCloud(migratedProject);
+            migratedCount++;
+        }
+
+        try {
+            window.dispatchEvent(new CustomEvent("twinlab:projects_updated"));
+        } catch (_) {}
+
+        return { success: true, count: migratedCount };
+    },
+
     // Download project as .twin JSON file
     exportProjectFile(project) {
         try {

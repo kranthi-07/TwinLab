@@ -3,11 +3,12 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import authService, { formatAuthError } from "../../services/authService";
 import { isFirebaseConfigured } from "../../services/firebase";
+import cloudProjectService from "../../services/cloudProjectService";
 import { TwinLabLogo } from "../common/TwinLabLogo";
 import "./LoginModal.css";
 
-export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
-    const [tab, setTab] = useState("signin"); // "signin" | "signup" | "guest"
+export function LoginModal({ isOpen, onClose, onLoginSuccess, guestProject = null, initialTab = "signin" }) {
+    const [tab, setTab] = useState(initialTab || "signin"); // "signin" | "signup" | "guest"
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -17,6 +18,21 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
     const [isLoading, setIsLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
     const [successMsg, setSuccessMsg] = useState("");
+    const [saveGuestProject, setSaveGuestProject] = useState(true);
+
+    const currentUser = authService.getCurrentUser();
+    const isGuest = currentUser?.isGuest;
+    const activeProject = (() => {
+        if (guestProject && guestProject.name) return guestProject;
+        try {
+            const raw = localStorage.getItem("twinlab_active_project");
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && parsed.name) return parsed;
+            }
+        } catch (_) {}
+        return null;
+    })();
 
     // Close on Escape key
     useEffect(() => {
@@ -40,6 +56,16 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
         setSuccessMsg("");
     };
 
+    const handlePostLoginMigration = async (user) => {
+        if (saveGuestProject && isGuest && user && !user.isGuest) {
+            try {
+                await cloudProjectService.migrateGuestProjectsToUser(user, activeProject);
+            } catch (err) {
+                console.warn("Guest project migration warning:", err);
+            }
+        }
+    };
+
     const handleSignIn = async (e) => {
         e && e.preventDefault();
         setErrorMsg("");
@@ -53,6 +79,7 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
         setIsLoading(true);
         try {
             const user = await authService.login(email, password);
+            await handlePostLoginMigration(user);
             setIsLoading(false);
             onLoginSuccess && onLoginSuccess(user);
             onClose && onClose();
@@ -85,6 +112,7 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
         setIsLoading(true);
         try {
             const user = await authService.signup({ name, email, password, role });
+            await handlePostLoginMigration(user);
             setIsLoading(false);
             onLoginSuccess && onLoginSuccess(user);
             onClose && onClose();
@@ -100,6 +128,7 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
         setIsLoading(true);
         try {
             const user = await authService.loginWithGoogle();
+            await handlePostLoginMigration(user);
             setIsLoading(false);
             onLoginSuccess && onLoginSuccess(user);
             onClose && onClose();
@@ -186,6 +215,31 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess }) {
                             Guest Account
                         </button>
                     </div>
+
+                    {/* Guest Project Save Notice */}
+                    {isGuest && activeProject?.name && tab !== "guest" && (
+                        <div className="guest-project-save-banner">
+                            <div className="guest-save-banner-icon">
+                                <i className="ri-folder-shared-line" />
+                            </div>
+                            <div className="guest-save-banner-body">
+                                <span className="guest-save-banner-title">
+                                    Save Guest Project: <strong>"{activeProject.name}"</strong>
+                                </span>
+                                <span className="guest-save-banner-desc">
+                                    Sign in or create an account to transfer this circuit to your permanent cloud vault.
+                                </span>
+                                <label className="guest-save-banner-toggle">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={saveGuestProject} 
+                                        onChange={(e) => setSaveGuestProject(e.target.checked)} 
+                                    />
+                                    <span>Sync guest projects to my new account</span>
+                                </label>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Feedback Messages */}
                     {errorMsg && (

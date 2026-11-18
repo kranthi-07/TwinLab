@@ -221,9 +221,11 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                 } else if (pin.isGpio) {
                     const pinNum = String(pin.pinNum);
                     const pinVal = mcuStates?.[b.id]?.pins?.[pinNum];
-                    if (pinVal === 1) {
+                    const pinMode = mcuStates?.[b.id]?.modes?.[pinNum];
+                    const isInput = pinMode === "INPUT" || pinMode === "INPUT_PULLUP";
+                    if (!isInput && pinVal === 1) {
                         pinId = `POWER_SOURCE_POS_ard_${b.id}_${pinNum}`;
-                    } else if (pinVal === 0) {
+                    } else if (!isInput && pinVal === 0) {
                         pinId = `POWER_SOURCE_GND_ard_${b.id}`;
                     } else {
                         pinId = `ARD_PIN_${b.id}_${pinNum}`;
@@ -274,9 +276,11 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                 } else if (pin.isGpio) {
                     const pinNum = String(pin.pinNum);
                     const pinVal = mcuStates?.[b.id]?.pins?.[pinNum];
-                    if (pinVal === 1) {
+                    const pinMode = mcuStates?.[b.id]?.modes?.[pinNum];
+                    const isInput = pinMode === "INPUT" || pinMode === "INPUT_PULLUP";
+                    if (!isInput && pinVal === 1) {
                         pinId = `POWER_SOURCE_POS_esp_${b.id}_${pinNum}`;
-                    } else if (pinVal === 0) {
+                    } else if (!isInput && pinVal === 0) {
                         pinId = `POWER_SOURCE_GND_esp_${b.id}`;
                     } else {
                         pinId = `ESP_PIN_${b.id}_${pinNum}`;
@@ -323,8 +327,10 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                     pinId = `POWER_SOURCE_POS_pico3V3_${b.id}`;
                 } else if (pin.isGpio) {
                     const pinNum = String(pin.pinNum);
-                    const isPinHigh = mcuStates?.[b.id]?.pins?.[pinNum] === 1 || (pinNum === "25" && mcuStates?.[b.id]?.gp25High);
-                    const isPinLow = mcuStates?.[b.id]?.pins?.[pinNum] === 0;
+                    const pinMode = mcuStates?.[b.id]?.modes?.[pinNum];
+                    const isInput = pinMode === "INPUT" || pinMode === "INPUT_PULLUP";
+                    const isPinHigh = !isInput && (mcuStates?.[b.id]?.pins?.[pinNum] === 1 || (pinNum === "25" && mcuStates?.[b.id]?.gp25High));
+                    const isPinLow = !isInput && (mcuStates?.[b.id]?.pins?.[pinNum] === 0);
                     if (isPinHigh) {
                         pinId = `POWER_SOURCE_POS_pico_${b.id}_${pinNum}`;
                     } else if (isPinLow) {
@@ -548,7 +554,8 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         }
         if (mcuStates?.[b.id]?.pins) {
             for (const pinNum in mcuStates[b.id].pins) {
-                if (mcuStates[b.id].pins[pinNum] === 1 && String(pinNum) !== "13") {
+                const mode = mcuStates[b.id]?.modes?.[pinNum];
+                if (mode !== "INPUT" && mode !== "INPUT_PULLUP" && mcuStates[b.id].pins[pinNum] === 1 && String(pinNum) !== "13") {
                     const pinPos = dsu.find(`POWER_SOURCE_POS_ard_${b.id}_${pinNum}`);
                     posNodes.push(pinPos);
                     powerSources.push({
@@ -605,7 +612,8 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         }
         if (mcuStates?.[b.id]?.pins) {
             for (const pinNum in mcuStates[b.id].pins) {
-                if (mcuStates[b.id].pins[pinNum] === 1 && String(pinNum) !== "2" && String(pinNum) !== "D2") {
+                const mode = mcuStates[b.id]?.modes?.[pinNum];
+                if (mode !== "INPUT" && mode !== "INPUT_PULLUP" && mcuStates[b.id].pins[pinNum] === 1 && String(pinNum) !== "2" && String(pinNum) !== "D2") {
                     const pinPos = dsu.find(`POWER_SOURCE_POS_esp_${b.id}_${pinNum}`);
                     posNodes.push(pinPos);
                     powerSources.push({
@@ -650,7 +658,8 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         });
         if (mcuStates?.[b.id]?.pins) {
             for (const pinNum in mcuStates[b.id].pins) {
-                if (mcuStates[b.id].pins[pinNum] === 1) {
+                const mode = mcuStates[b.id]?.modes?.[pinNum];
+                if (mode !== "INPUT" && mode !== "INPUT_PULLUP" && mcuStates[b.id].pins[pinNum] === 1) {
                     const pinPos = dsu.find(`POWER_SOURCE_POS_pico_${b.id}_${pinNum}`);
                     posNodes.push(pinPos);
                     powerSources.push({
@@ -1432,6 +1441,8 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                             voltage: vSupply
                         });
                     }
+                } else {
+                    gndNodes.push(outNode);
                 }
             });
 
@@ -2603,28 +2614,163 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
     // 7. Solve MCU Boards (Arduino Uno & ESP32 DevKit & Raspberry Pi Pico)
     const resolvedMcuStates = {};
     arduinoBoards.forEach((b) => {
+        const pinInputs = {};
+        const gndNode = dsu.find(`POWER_SOURCE_GND_ard_${b.id}`);
+        const allArdPins = b.type === "arduino-mega" ? [
+            ...(ARDUINO_MEGA_PINS.digitalHigh || []),
+            ...(ARDUINO_MEGA_PINS.digitalLow || []),
+            ...(ARDUINO_MEGA_PINS.communication || []),
+            ...(ARDUINO_MEGA_PINS.power || []),
+            ...(ARDUINO_MEGA_PINS.analog || []),
+            ...(ARDUINO_MEGA_PINS.dualDigital || [])
+        ] : b.type === "arduino-nano" ? [
+            ...(ARDUINO_NANO_PINS.topRow || []),
+            ...(ARDUINO_NANO_PINS.botRow || [])
+        ] : [
+            ...(ARDUINO_PINS.digitalHigh || []),
+            ...(ARDUINO_PINS.digitalLow || []),
+            ...(ARDUINO_PINS.power || []),
+            ...(ARDUINO_PINS.analog || [])
+        ];
+
+        allArdPins.forEach(pin => {
+            if (!pin.isGpio && !pin.isAnalog) return;
+            const pinNum = String(pin.pinNum);
+            const mode = mcuStates?.[b.id]?.modes?.[pinNum];
+            if (mode === "OUTPUT") {
+                const drivenVal = mcuStates?.[b.id]?.pins?.[pinNum];
+                const val = drivenVal != null ? (drivenVal ? 1 : 0) : 0;
+                pinInputs[pinNum] = val;
+                if (pin.name && pin.name !== pinNum) pinInputs[pin.name] = val;
+                return;
+            }
+
+            const pNode = dsu.find(`ARD_PIN_${b.id}_${pinNum}`);
+            const isPos = posNodes.some(pn => dsu.find(pn) === pNode);
+            const pSrc = !isPos ? findActivePowerSourceForLoad(pNode, gndNode) : null;
+            const hasForwardVoltage = isPos || (pSrc && pSrc.polarity === "forward" && pSrc.voltage >= 2.0);
+            const isGnd = gndNodes.some(gn => dsu.find(gn) === pNode) || pNode === gndNode;
+
+            let level = 0;
+            if (hasForwardVoltage) {
+                level = 1;
+            } else if (isGnd) {
+                level = 0;
+            } else if (mode === "INPUT_PULLUP") {
+                level = 1;
+            } else {
+                level = 0;
+            }
+            pinInputs[pinNum] = level;
+            if (pin.name && pin.name !== pinNum) pinInputs[pin.name] = level;
+        });
+
         resolvedMcuStates[b.id] = {
             isPowered: true,
             d13High: mcuStates?.[b.id]?.d13High ?? true,
             pins: mcuStates?.[b.id]?.pins || { 13: 1 },
+            pinInputs,
+            modes: mcuStates?.[b.id]?.modes || {},
             txrxActive: Boolean(mcuStates?.[b.id]?.txrxActive || mcuStates?.[b.id]?.serialActive)
         };
     });
     esp32Boards.forEach((b) => {
+        const pinInputs = {};
+        const gndNode = dsu.find(`POWER_SOURCE_GND_esp_${b.id}`);
+        const allEspPins = [
+            ...(ESP32_PINS.leftCol || []),
+            ...(ESP32_PINS.rightCol || [])
+        ];
+
+        allEspPins.forEach(pin => {
+            if (!pin.isGpio && !pin.isAnalog) return;
+            const pinNum = String(pin.pinNum);
+            const mode = mcuStates?.[b.id]?.modes?.[pinNum];
+            if (mode === "OUTPUT") {
+                const drivenVal = mcuStates?.[b.id]?.pins?.[pinNum];
+                const val = drivenVal != null ? (drivenVal ? 1 : 0) : 0;
+                pinInputs[pinNum] = val;
+                if (pin.name && pin.name !== pinNum) pinInputs[pin.name] = val;
+                return;
+            }
+
+            const pNode = dsu.find(`ESP_PIN_${b.id}_${pinNum}`);
+            const isPos = posNodes.some(pn => dsu.find(pn) === pNode);
+            const pSrc = !isPos ? findActivePowerSourceForLoad(pNode, gndNode) : null;
+            const hasForwardVoltage = isPos || (pSrc && pSrc.polarity === "forward" && pSrc.voltage >= 1.8);
+            const isGnd = gndNodes.some(gn => dsu.find(gn) === pNode) || pNode === gndNode;
+
+            let level = 0;
+            if (hasForwardVoltage) {
+                level = 1;
+            } else if (isGnd) {
+                level = 0;
+            } else if (mode === "INPUT_PULLUP") {
+                level = 1;
+            } else {
+                level = 0;
+            }
+            pinInputs[pinNum] = level;
+            if (pin.name && pin.name !== pinNum) pinInputs[pin.name] = level;
+        });
+
         resolvedMcuStates[b.id] = {
             isPowered: true,
             d2High: mcuStates?.[b.id]?.d2High ?? true,
             pins: mcuStates?.[b.id]?.pins || { 2: 1 },
+            pinInputs,
+            modes: mcuStates?.[b.id]?.modes || {},
             txrxActive: Boolean(mcuStates?.[b.id]?.txrxActive || mcuStates?.[b.id]?.serialActive)
         };
     });
     rpiPicoBoards.forEach((b) => {
+        const pinInputs = {};
+        const gndNode = dsu.find(`POWER_SOURCE_GND_pico_${b.id}`);
+        const allPicoPins = [
+            ...(RPI_PICO_PINS.leftCol || []),
+            ...(RPI_PICO_PINS.rightCol || [])
+        ];
+
+        allPicoPins.forEach(pin => {
+            if (!pin.isGpio && !pin.isAnalog) return;
+            const pinNum = String(pin.pinNum);
+            const mode = mcuStates?.[b.id]?.modes?.[pinNum];
+            if (mode === "OUTPUT") {
+                const drivenVal = mcuStates?.[b.id]?.pins?.[pinNum];
+                const val = drivenVal != null ? (drivenVal ? 1 : 0) : 0;
+                pinInputs[pinNum] = val;
+                if (pin.name && pin.name !== pinNum) pinInputs[pin.name] = val;
+                return;
+            }
+
+            const pNode = dsu.find(`PICO_PIN_${b.id}_${pinNum}`);
+            const isPos = posNodes.some(pn => dsu.find(pn) === pNode);
+            const pSrc = !isPos ? findActivePowerSourceForLoad(pNode, gndNode) : null;
+            const hasForwardVoltage = isPos || (pSrc && pSrc.polarity === "forward" && pSrc.voltage >= 1.8);
+            const isGnd = gndNodes.some(gn => dsu.find(gn) === pNode) || pNode === gndNode;
+
+            let level = 0;
+            if (hasForwardVoltage) {
+                level = 1;
+            } else if (isGnd) {
+                level = 0;
+            } else if (mode === "INPUT_PULLUP") {
+                level = 1;
+            } else {
+                level = 0;
+            }
+            pinInputs[pinNum] = level;
+            if (pin.name && pin.name !== pinNum) pinInputs[pin.name] = level;
+        });
+
         const raw = mcuStates?.[b.id] || {};
         const gp25 = raw.pins?.["25"] === 1 || raw.gp25High;
         resolvedMcuStates[b.id] = {
             isPowered: true,
             gp25High: gp25 ?? true,
             pins: raw.pins || { 25: 1 },
+            pinInputs,
+            modes: mcuStates?.[b.id]?.modes || {},
             txrxActive: Boolean(raw.txrxActive || raw.serialActive)
         };
     });

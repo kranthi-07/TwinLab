@@ -1368,7 +1368,10 @@ function TopFloatingBar({
     canUndo = false,
     canRedo = false,
     onOpenSearch,
-    onCloseInspector
+    onCloseInspector,
+    isGuest = false,
+    onOpenSaveToAccount,
+    userEmail = null
 }) {
     const { isDark, toggleTheme } = useTheme();
     const [isComponentsOpen, setIsComponentsOpen] = useState(false);
@@ -1522,6 +1525,30 @@ function TopFloatingBar({
                             </div>
                         )}
                     </div>
+
+                    {/* Guest Mode: Option to Save Project to Logged In Account */}
+                    {isGuest && (
+                        <button
+                            type="button"
+                            className="topbar-guest-save-pill"
+                            onClick={onOpenSaveToAccount}
+                            title="Working in Guest Mode • Click to save this project to your personal account"
+                        >
+                            <span className="guest-pulse-dot" />
+                            <i className="ri-cloud-upload-line" />
+                            <span className="guest-pill-text">Save to Account</span>
+                        </button>
+                    )}
+
+                    {!isGuest && (
+                        <div 
+                            className="topbar-cloud-synced-pill" 
+                            title={userEmail ? `Project synced to cloud account (${userEmail})` : "Synced with TwinLab Cloud Vault"}
+                        >
+                            <i className="ri-cloud-check-line" />
+                            <span className="cloud-synced-text">Synced</span>
+                        </div>
+                    )}
 
                     <div className="top-divider"></div>
 

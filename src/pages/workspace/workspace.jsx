@@ -14,6 +14,7 @@ import SchematicView from "../../components/workspace/SchematicView/SchematicVie
 import Oscilloscope from "../../components/workspace/Instruments/Oscilloscope";
 import ComponentSearchModal from "../../components/workspace/SearchModal/ComponentSearchModal";
 import WorkspaceLoader from "../../components/workspace/WorkspaceLoader";
+import { LoginModal } from "../../components/auth/LoginModal";
 import { McuExecutionSession, DEFAULT_SKETCHES } from "../../simulation/mcuRuntime";
 import cloudProjectService from "../../services/cloudProjectService";
 import authService from "../../services/authService";
@@ -362,6 +363,14 @@ function Workspace({ onBackToHome }) {
         }
     }, []);
 
+    const [currentUser, setCurrentUser] = useState(() => authService.getCurrentUser());
+    const [isSaveToAccountOpen, setIsSaveToAccountOpen] = useState(false);
+
+    useEffect(() => {
+        const unsub = authService.subscribe(u => setCurrentUser(u));
+        return () => unsub();
+    }, []);
+
     // Available MCU boards on canvas
     const availableMcuBoards = useMemo(() => {
         return components.filter(c => 
@@ -474,12 +483,13 @@ function Workspace({ onBackToHome }) {
         availableMcuBoards.forEach(board => {
             if (!mcuSessionsRef.current[board.id]) {
                 const session = new McuExecutionSession(board.id, board.type, {
-                    onPinStateChange: (bId, pins, d13High, d2High, gp25High) => {
+                    onPinStateChange: (bId, pins, d13High, d2High, gp25High, modes) => {
                         setMcuRuntimeStates(prev => ({
                             ...prev,
                             [bId]: {
                                 ...prev[bId],
                                 pins,
+                                modes: modes || prev[bId]?.modes || {},
                                 d13High,
                                 d2High,
                                 gp25High: pins?.["25"] === 1 || gp25High,
@@ -622,12 +632,13 @@ function Workspace({ onBackToHome }) {
         }
 
         const session = new McuExecutionSession(boardId, boardType, {
-            onPinStateChange: (bId, pins, d13High, d2High, gp25High) => {
+            onPinStateChange: (bId, pins, d13High, d2High, gp25High, modes) => {
                 setMcuRuntimeStates(prev => ({
                     ...prev,
                     [bId]: {
                         ...prev[bId],
                         pins,
+                        modes: modes || prev[bId]?.modes || {},
                         d13High,
                         d2High,
                         gp25High: pins?.["25"] === 1 || gp25High,
@@ -756,13 +767,30 @@ function Workspace({ onBackToHome }) {
         setIsUnsaved(false);
         // Persist to cloud storage service
         cloudProjectService.saveProjectToCloud(projectData).catch(console.error);
-        const currentUser = authService.getCurrentUser();
-        const saveNotice = !currentUser.isGuest 
+        const isGuestUser = Boolean(currentUser?.isGuest);
+        const saveNotice = !isGuestUser 
             ? `Project "${projectData.name}" synced to Cloud ☁️` 
-            : `Project "${projectData.name}" saved locally`;
+            : `Project "${projectData.name}" saved locally • Click "Save to Account" to sync to Cloud ☁️`;
         setToastMessage(saveNotice);
         setTimeout(() => setToastMessage(null), 2500);
-    }, [components, wires, projectMeta]);
+    }, [components, wires, projectMeta, userCode, viewport]);
+
+    const handleSaveToAccountSuccess = useCallback((user) => {
+        setIsSaveToAccountOpen(false);
+        const projectData = {
+            ...projectMeta,
+            components,
+            wires,
+            viewport,
+            firmwareCode: userCode,
+            status: "Cloud Synced",
+            lastEdited: "Just now",
+            updatedAt: new Date().toISOString()
+        };
+        cloudProjectService.saveProjectToCloud(projectData).catch(console.error);
+        setToastMessage(`Project "${projectMeta.name}" saved to your account (${user.email || user.name}) ☁️`);
+        setTimeout(() => setToastMessage(null), 3000);
+    }, [projectMeta, components, wires, viewport, userCode]);
 
     // ==========================================
     // UNDO / REDO & CLIPBOARD STATE
@@ -1758,6 +1786,9 @@ function Workspace({ onBackToHome }) {
                     setSelectedId(null);
                     setSelectedWireId(null);
                 }}
+                isGuest={Boolean(currentUser?.isGuest)}
+                userEmail={currentUser?.email}
+                onOpenSaveToAccount={() => setIsSaveToAccountOpen(true)}
             />
 
             {/* Left Sidebar: Seamlessly fades out & in via CSS transitions */}
@@ -1952,6 +1983,23 @@ function Workspace({ onBackToHome }) {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Save Guest Project to Permanent Account Modal */}
+            <LoginModal 
+                isOpen={isSaveToAccountOpen}
+                onClose={() => setIsSaveToAccountOpen(false)}
+                guestProject={{
+                    ...projectMeta,
+                    components,
+                    wires,
+                    viewport,
+                    firmwareCode: userCode,
+                    status: "Cloud Synced",
+                    lastEdited: "Just now",
+                    updatedAt: new Date().toISOString()
+                }}
+                onLoginSuccess={handleSaveToAccountSuccess}
+            />
         </section>
     );
 }

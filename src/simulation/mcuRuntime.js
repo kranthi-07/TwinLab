@@ -1,7 +1,8 @@
 // Embedded MCU Firmware Execution Engine & C++ Transpiler
 // Supports Arduino Uno R3 (ATmega328P) & ESP32 DevKit V1 (ESP-WROOM-32)
 import { soundManager } from "../utils/audioManager.js";
-import { ARDUINO_PINS, ARDUINO_MEGA_PINS, ARDUINO_NANO_PINS, ESP32_PINS, RPI_PICO_PINS } from "../components/workspace/components/McuBoard.jsx";
+import { ARDUINO_PINS, ARDUINO_MEGA_PINS, ARDUINO_NANO_PINS, ESP32_PINS, RPI_PICO_PINS } from "../components/workspace/components/mcuPins.js";
+import { solveCircuit } from "./circuitSolver.js";
 
 export const DEFAULT_SKETCHES = {
     blank: `// Clean Empty Arduino Sketch\nvoid setup() {\n  // put your setup code here, to run once:\n\n}\n\nvoid loop() {\n  // put your main code here, to run repeatedly:\n\n}`,
@@ -363,6 +364,8 @@ export class McuExecutionSession {
         this.pinModes = {};  // { 19: "INPUT_PULLUP", 18: "OUTPUT", ... }
         this.activeTimeouts = new Set();
         this.simStartTime = Date.now();
+        this.serialBuffer = "";
+        this._serialFlushTimer = null;
     }
 
     getBuiltinLedPin() {
@@ -375,10 +378,15 @@ export class McuExecutionSession {
         this.runningRef.current = false;
         this.activeTimeouts.forEach(t => clearTimeout(t));
         this.activeTimeouts.clear();
+        if (this._serialFlushTimer) {
+            clearTimeout(this._serialFlushTimer);
+            this._serialFlushTimer = null;
+        }
+        this.serialBuffer = "";
         this.pinStates = {};
         this.pinModes = {};
         if (this.callbacks.onPinStateChange) {
-            this.callbacks.onPinStateChange(this.boardId, this.pinStates, false, false, false);
+            this.callbacks.onPinStateChange(this.boardId, this.pinStates, false, false, false, {});
         }
     }
 
@@ -394,6 +402,33 @@ export class McuExecutionSession {
 
         const comps = this.callbacks.getComponents ? this.callbacks.getComponents() : [];
         const wires = this.callbacks.getWires ? this.callbacks.getWires() : [];
+
+        // 1. Run full circuit solver to resolve truth tables, logic IC gates, pullups, and wire connections
+        try {
+            const solverResult = solveCircuit({
+                components: comps,
+                wires: wires,
+                isSimulating: true,
+                mcuStates: {
+                    [this.boardId]: {
+                        pins: { ...this.pinStates },
+                        modes: { ...this.pinModes },
+                        isPowered: true,
+                        d13High: this.pinStates["13"] === 1,
+                        d2High: this.pinStates["2"] === 1,
+                        gp25High: this.pinStates["25"] === 1
+                    }
+                }
+            });
+
+            const boardState = solverResult?.mcuStates?.[this.boardId];
+            if (boardState?.pinInputs && boardState.pinInputs[p] != null) {
+                return boardState.pinInputs[p];
+            }
+        } catch (err) {
+            console.warn("solveCircuit readPinHardwareLevel fallback:", err);
+        }
+
         const board = comps.find(c => c.id === this.boardId);
         if (!board) {
             return (mode === "INPUT_PULLUP") ? 1 : (this.pinStates[p] != null ? this.pinStates[p] : 0);
@@ -1147,7 +1182,7 @@ export class McuExecutionSession {
                 const isGP25 = this.pinStates["25"] === 1;
 
                 if (this.callbacks.onPinStateChange) {
-                    this.callbacks.onPinStateChange(this.boardId, { ...this.pinStates }, isD13, isD2, isGP25);
+                    this.callbacks.onPinStateChange(this.boardId, { ...this.pinStates }, isD13, isD2, isGP25, { ...this.pinModes });
                 }
             },
             __digitalRead: (pin) => {
@@ -1185,6 +1220,16 @@ export class McuExecutionSession {
                 if (/^GP/i.test(p)) p = p.replace(/^GP/i, "");
                 if (/^D/i.test(p)) p = p.replace(/^D/i, "");
                 this.pinModes[p] = mode;
+                if (this.callbacks.onPinStateChange) {
+                    this.callbacks.onPinStateChange(
+                        this.boardId, 
+                        { ...this.pinStates }, 
+                        this.pinStates["13"] === 1, 
+                        this.pinStates["2"] === 1, 
+                        this.pinStates["25"] === 1, 
+                        { ...this.pinModes }
+                    );
+                }
             },
             __serialBegin: (baud) => {
                 const elapsed = ((Date.now() - this.simStartTime) / 1000).toFixed(2);
@@ -1197,23 +1242,51 @@ export class McuExecutionSession {
                 }
             },
             __serialPrint: (msg) => {
-                const elapsed = ((Date.now() - this.simStartTime) / 1000).toFixed(2);
-                if (this.callbacks.onSerialLog) {
-                    this.callbacks.onSerialLog({
-                        time: `${elapsed}s`,
-                        type: "serial",
-                        text: String(msg != null ? msg : "")
+                const text = String(msg != null ? msg : "");
+                this.serialBuffer += text;
+                if (this.serialBuffer.includes("\n")) {
+                    const lines = this.serialBuffer.split("\n");
+                    this.serialBuffer = lines.pop(); // keep trailing incomplete segment
+                    lines.forEach(line => {
+                        const elapsed = ((Date.now() - this.simStartTime) / 1000).toFixed(2);
+                        if (this.callbacks.onSerialLog) {
+                            this.callbacks.onSerialLog({
+                                time: `${elapsed}s`,
+                                type: "serial",
+                                text: line
+                            });
+                        }
                     });
+                } else {
+                    if (this._serialFlushTimer) clearTimeout(this._serialFlushTimer);
+                    this._serialFlushTimer = setTimeout(() => {
+                        if (this.serialBuffer && this.callbacks.onSerialLog) {
+                            const elapsed = ((Date.now() - this.simStartTime) / 1000).toFixed(2);
+                            this.callbacks.onSerialLog({
+                                time: `${elapsed}s`,
+                                type: "serial",
+                                text: this.serialBuffer
+                            });
+                            this.serialBuffer = "";
+                        }
+                    }, 120);
                 }
                 if (this.callbacks.onTxPulse) this.callbacks.onTxPulse();
             },
             __serialPrintln: (msg) => {
+                if (this._serialFlushTimer) {
+                    clearTimeout(this._serialFlushTimer);
+                    this._serialFlushTimer = null;
+                }
+                const text = String(msg != null ? msg : "");
+                const fullLine = this.serialBuffer + text;
+                this.serialBuffer = "";
                 const elapsed = ((Date.now() - this.simStartTime) / 1000).toFixed(2);
                 if (this.callbacks.onSerialLog) {
                     this.callbacks.onSerialLog({
                         time: `${elapsed}s`,
                         type: "serial",
-                        text: String(msg != null ? msg : "")
+                        text: fullLine
                     });
                 }
                 if (this.callbacks.onTxPulse) this.callbacks.onTxPulse();
