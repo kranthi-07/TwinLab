@@ -1115,24 +1115,37 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
         const pinCount = is16 ? 16 : 14;
         const offsets = is16 ? pinOffsets16 : pinOffsets14;
 
+        const pinData = {};
         for (let pinNum = 1; pinNum <= pinCount; pinNum++) {
             const off = offsets[pinNum];
             if (!off) continue;
             const wx = Math.round(c.x + off.lx * cos - off.ly * sin);
             const wy = Math.round(c.y + off.lx * sin + off.ly * cos);
             const pNode = getElectricalNode(wx, wy);
+            pinData[pinNum] = { node: pNode, wx, wy };
             pNodes[pinNum] = pNode;
-
-            // Connect nearby wire endpoints (up to 16px snap)
-            wires.forEach(w => {
-                if (!w.points || w.points.length < 2) return;
-                [w.points[0], w.points[w.points.length - 1]].forEach(p => {
-                    if (Math.hypot(p.x - wx, p.y - wy) <= 16) {
-                        dsu.union(getElectricalNode(p.x, p.y), pNode);
-                    }
-                });
-            });
         }
+
+        // Connect nearby wire endpoints directly to the single closest IC pin (minDist <= 10px, strictly < 16px to prevent adjacent pin bridging)
+        wires.forEach(w => {
+            if (!w.points || w.points.length < 2) return;
+            [w.points[0], w.points[w.points.length - 1]].forEach(p => {
+                let closestPin = null;
+                let minDist = 10;
+                for (let pinNum = 1; pinNum <= pinCount; pinNum++) {
+                    const pd = pinData[pinNum];
+                    if (!pd) continue;
+                    const d = Math.hypot(p.x - pd.wx, p.y - pd.wy);
+                    if (d <= minDist) {
+                        minDist = d;
+                        closestPin = pd;
+                    }
+                }
+                if (closestPin) {
+                    dsu.union(getElectricalNode(p.x, p.y), closestPin.node);
+                }
+            });
+        });
 
         // Internally connect all 4 common Ground pins (Pins 4, 5, 12, 13) for L293D
         if (is16) {
@@ -1448,15 +1461,15 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             let anodeNode = getElectricalNode(c.x, c.y);
             let cathodeNode = getElectricalNode(c.x + dx, c.y + dy);
 
-            // Connect nearby wire endpoints (up to 20px snap directly on terminal leads)
+            // Connect nearby wire endpoints (up to 12px snap directly on terminal leads, strictly < 16px to avoid bridging adjacent pins)
             wires.forEach(w => {
                 if (!w.points || w.points.length < 2) return;
                 [w.points[0], w.points[w.points.length - 1]].forEach(p => {
                     const dAnode = Math.hypot(p.x - c.x, p.y - c.y);
                     const dCathode = Math.hypot(p.x - (c.x + dx), p.y - (c.y + dy));
-                    if (dAnode <= 20 && dAnode < dCathode) {
+                    if (dAnode <= 12 && dAnode < dCathode) {
                         dsu.union(getElectricalNode(p.x, p.y), anodeNode);
-                    } else if (dCathode <= 20 && dCathode < dAnode) {
+                    } else if (dCathode <= 12 && dCathode < dAnode) {
                         dsu.union(getElectricalNode(p.x, p.y), cathodeNode);
                     }
                 });
@@ -1636,8 +1649,10 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             wires.forEach(w => {
                 if (!w.points || w.points.length < 2) return;
                 [w.points[0], w.points[w.points.length - 1]].forEach(p => {
-                    if (Math.hypot(p.x - pPos.x, p.y - pPos.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), posNode);
-                    if (Math.hypot(p.x - pNeg.x, p.y - pNeg.y) <= 20) dsu.union(getElectricalNode(p.x, p.y), negNode);
+                    const dPos = Math.hypot(p.x - pPos.x, p.y - pPos.y);
+                    const dNeg = Math.hypot(p.x - pNeg.x, p.y - pNeg.y);
+                    if (dPos <= 12 && dPos < dNeg) dsu.union(getElectricalNode(p.x, p.y), posNode);
+                    else if (dNeg <= 12 && dNeg < dPos) dsu.union(getElectricalNode(p.x, p.y), negNode);
                 });
             });
 
