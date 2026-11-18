@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect } from "react";
 
 const ThemeContext = createContext();
 
+export const LIGHT_THEMES = ["light", "paper", "solar-light", "cyber-light"];
+
 export function ThemeProvider({ children }) {
     const [theme, setTheme] = useState(() => {
         try {
@@ -11,17 +13,20 @@ export function ThemeProvider({ children }) {
         return "dark"; // Default is premium dark
     });
 
+    const isLight = LIGHT_THEMES.includes(theme);
+
     useEffect(() => {
         try {
             document.documentElement.setAttribute("data-theme", theme);
-            document.documentElement.className = `theme-${theme}`;
-            document.documentElement.style.colorScheme = theme === "light" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme-category", isLight ? "light" : "dark");
+            document.documentElement.className = `theme-${theme} ${isLight ? "theme-category-light" : "theme-category-dark"}`;
+            document.documentElement.style.colorScheme = isLight ? "light" : "dark";
             localStorage.setItem("twinlab_theme", theme);
         } catch (e) {}
-    }, [theme]);
+    }, [theme, isLight]);
 
     const toggleTheme = () => {
-        setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+        setTheme((prev) => (LIGHT_THEMES.includes(prev) ? "dark" : "light"));
     };
 
     return (
@@ -29,7 +34,8 @@ export function ThemeProvider({ children }) {
             theme, 
             setTheme, 
             toggleTheme, 
-            isDark: theme !== "light",
+            isDark: !isLight,
+            isLight,
             isGlass: theme === "glassmorphism"
         }}>
             {children}

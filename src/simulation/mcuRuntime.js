@@ -730,7 +730,9 @@ export class McuExecutionSession {
         const jsLines = [];
         const indentStack = [0];
         const declaredVars = new Set([
-            "Pin", "time", "sleep", "sleep_ms", "sleep_us", "time_pulse_us", "I2cLcd", "machine", "print", "true", "false", "null"
+            "Pin", "I2C", "time", "utime", "sleep", "sleep_ms", "sleep_us", "time_pulse_us", "I2cLcd", 
+            "machine", "random", "len", "bytearray", "ord", "chr", "str", "int", "float", "Exception",
+            "print", "true", "false", "null"
         ]);
 
         for (let line of rawLines) {
@@ -775,7 +777,10 @@ export class McuExecutionSession {
                 continue;
             }
 
-            if (stmt === "while True") {
+            if (stmt.startsWith("raise ")) {
+                const errExpr = stmt.substring(6).trim();
+                stmt = `throw new Exception(${this.transformPyExpr(errExpr.replace(/^Exception\s*\(/, "("))})`;
+            } else if (stmt === "while True") {
                 stmt = "while (__runningRef.current)";
             } else if (stmt.startsWith("while ")) {
                 const cond = stmt.substring(6).trim();
@@ -797,6 +802,14 @@ export class McuExecutionSession {
                     } else {
                         stmt = `for (let ${varName} = (${parts[0]}); ${varName} < (${parts[1]}); ${varName} += (${parts[2] || 1}))`;
                     }
+                }
+            } else if (stmt.startsWith("for ") && stmt.includes(" in ")) {
+                const m = stmt.match(/for\s+([A-Za-z0-9_,\s()]+)\s+in\s+(.+)/);
+                if (m) {
+                    const varName = m[1].trim();
+                    declaredVars.add(varName);
+                    const iterable = this.transformPyExpr(m[2].trim());
+                    stmt = `for (const ${varName} of (${iterable}))`;
                 }
             } else if (stmt.startsWith("def ")) {
                 const fnMatch = stmt.match(/def\s+([A-Za-z0-9_]+)\s*\(([^)]*)\)/);
@@ -840,7 +853,13 @@ export class McuExecutionSession {
     }
 
     transformPyExpr(expr) {
-        let s = expr;
+        // Preserve string literals while replacing operators
+        const strings = [];
+        let s = expr.replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, (match) => {
+            strings.push(match);
+            return `__STR_${strings.length - 1}__`;
+        });
+
         s = s.replace(/\bTrue\b/g, "true");
         s = s.replace(/\bFalse\b/g, "false");
         s = s.replace(/\bNone\b/g, "null");
@@ -848,9 +867,13 @@ export class McuExecutionSession {
         s = s.replace(/\bor\b/g, "||");
         s = s.replace(/\bnot\b/g, "!");
 
-        // Pin instantiation: only convert bare Pin(...) so machine.Pin(...) is not broken
+        // Pin & I2C instantiation
         s = s.replace(/(^|[^.\w])Pin\s*\(/g, "$1new Pin(");
         s = s.replace(/(^|[^.\w])I2cLcd\s*\(/g, "$1new I2cLcd(");
+        s = s.replace(/(^|[^.\w])I2C\s*\(([^)]*)\)/g, (m, prefix, args) => {
+            const cleanArgs = args.replace(/\b(sda|scl|freq|id)\s*=\s*/g, "");
+            return `${prefix}new I2C(${cleanArgs})`;
+        });
 
         // Sleep calls (utime, time, sleep)
         s = s.replace(/\butime\.sleep\s*\(\s*([^)]+)\s*\)/g, "await utime.sleep($1)");
@@ -882,6 +905,9 @@ export class McuExecutionSession {
             const parts = content.replace(/\{([^}]+)\}/g, '" + ($1) + "');
             return `"${parts}"`.replace(/"" \+ /g, "").replace(/ \+ ""/g, "");
         });
+
+        // Restore strings
+        s = s.replace(/__STR_(\d+)__/g, (m, idx) => strings[Number(idx)]);
 
         return s;
     }
@@ -1372,6 +1398,95 @@ export class McuExecutionSession {
         PyI2cLcd.prototype.backlight_on = function() { this.lcd.backlight(); };
         PyI2cLcd.prototype.backlight_off = function() { this.lcd.noBacklight(); };
 
+        function PyI2C(id, sda, scl, freq) {
+            if (!(this instanceof PyI2C)) {
+                return new PyI2C(id, sda, scl, freq);
+            }
+            this.id = id;
+            this.sda = sda?.pin != null ? sda.pin : sda;
+            this.scl = scl?.pin != null ? scl.pin : scl;
+            this.freq = freq;
+            this.lcd = new context.__LiquidCrystal(0x27, 16, 2);
+            this.lcd.begin(16, 2);
+            this._highNibble = null;
+        }
+        PyI2C.prototype.scan = function() {
+            return [0x27];
+        };
+        PyI2C.prototype.writeto = function(addr, buf) {
+            const bytes = Array.from(buf || []);
+            for (const b of bytes) {
+                const en = (b & 0x04) !== 0;
+                const rs = (b & 0x01) !== 0;
+                const nibble = (b & 0xF0);
+                if (en) {
+                    if (this._highNibble === null) {
+                        this._highNibble = nibble;
+                    } else {
+                        const fullByte = this._highNibble | (nibble >> 4);
+                        this._highNibble = null;
+                        if (rs) {
+                            this.lcd.write(fullByte);
+                        } else {
+                            if (fullByte === 0x01) this.lcd.clear();
+                            else if (fullByte === 0x02) this.lcd.home();
+                            else if ((fullByte & 0x80) !== 0) {
+                                const col = (fullByte & 0x7F) % 16;
+                                const row = fullByte >= 0xC0 ? 1 : 0;
+                                this.lcd.setCursor(col, row);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        PyI2C.prototype.readfrom = function(addr, nbytes) {
+            return new Uint8Array(nbytes || 0);
+        };
+        PyI2C.prototype.writeto_mem = function(addr, memaddr, buf) {
+            return this.writeto(addr, buf);
+        };
+        PyI2C.prototype.readfrom_mem = function(addr, memaddr, nbytes) {
+            return new Uint8Array(nbytes || 0);
+        };
+
+        const pyRandom = {
+            randint: (a, b) => Math.floor(Math.random() * (Number(b) - Number(a) + 1)) + Number(a),
+            choice: (arr) => arr[Math.floor(Math.random() * arr.length)],
+            random: () => Math.random(),
+            randrange: (start, stop, step = 1) => {
+                const range = [];
+                for (let i = start; i < stop; i += step) range.push(i);
+                return range[Math.floor(Math.random() * range.length)];
+            }
+        };
+
+        const pyLen = (obj) => {
+            if (obj == null) return 0;
+            if (typeof obj === "string" || Array.isArray(obj) || obj instanceof Uint8Array) return obj.length;
+            if (typeof obj === "object") return Object.keys(obj).length;
+            return 0;
+        };
+
+        const pyBytearray = (arg) => {
+            if (Array.isArray(arg)) return new Uint8Array(arg);
+            if (typeof arg === "number") return new Uint8Array(arg);
+            return new Uint8Array(arg || []);
+        };
+
+        const pyOrd = (c) => (typeof c === "string" ? c.charCodeAt(0) : Number(c));
+        const pyChr = (n) => String.fromCharCode(Number(n));
+        const pyStr = (v) => String(v != null ? v : "");
+        const pyInt = (v, base = 10) => parseInt(v, base) || 0;
+        const pyFloat = (v) => parseFloat(v) || 0.0;
+
+        class PyException extends Error {
+            constructor(message) {
+                super(message);
+                this.name = "Exception";
+            }
+        }
+
         function PyADC(pin) {
             if (!(this instanceof PyADC)) return new PyADC(pin);
             let p = pin?.pin != null ? pin.pin : pin;
@@ -1394,6 +1509,7 @@ export class McuExecutionSession {
         };
 
         context.Pin = PyPin;
+        context.I2C = PyI2C;
         context.time = pyTime;
         context.utime = pyTime;
         context.sleep = pyTime.sleep;
@@ -1403,8 +1519,18 @@ export class McuExecutionSession {
         context.I2cLcd = PyI2cLcd;
         context.ADC = PyADC;
         context.PWM = PyPWM;
+        context.random = pyRandom;
+        context.len = pyLen;
+        context.bytearray = pyBytearray;
+        context.ord = pyOrd;
+        context.chr = pyChr;
+        context.str = pyStr;
+        context.int = pyInt;
+        context.float = pyFloat;
+        context.Exception = PyException;
         context.machine = {
             Pin: PyPin,
+            I2C: PyI2C,
             ADC: PyADC,
             PWM: PyPWM,
             time_pulse_us: pyPulse,
@@ -1478,6 +1604,7 @@ export class McuExecutionSession {
                             __serialPrintln,
                             __runningRef,
                             Pin,
+                            I2C,
                             time,
                             utime,
                             sleep,
@@ -1488,6 +1615,15 @@ export class McuExecutionSession {
                             machine,
                             ADC,
                             PWM,
+                            random,
+                            len,
+                            bytearray,
+                            ord,
+                            chr,
+                            str,
+                            int,
+                            float,
+                            Exception,
                             print
                         } = __context;
 

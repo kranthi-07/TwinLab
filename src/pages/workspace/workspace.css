@@ -403,26 +403,340 @@
    THEME: CYBERPUNK / CYBER NEON
    Deep pitch dark with vibrant high-contrast electric neon accents
 ============================================================ */
-[data-theme="cyberpunk"] .workspace {
+[data-theme="cyberpunk"] .workspace,
+[data-theme="cyberpunk"] .canvas {
     background: radial-gradient(circle at 50% 30%, rgba(6, 182, 212, 0.12), transparent 60%),
                 radial-gradient(circle at 80% 75%, rgba(236, 72, 153, 0.1), transparent 50%),
-                #05070a;
+                #05070a !important;
 }
 
-[data-theme="cyberpunk"] .workspace-grid {
+[data-theme="cyberpunk"] .workspace-grid,
+[data-theme="cyberpunk"] .infinite-dot-grid,
+[data-theme="cyberpunk"] .dot-grid {
     background-image: 
-        radial-gradient(circle, rgba(6, 182, 212, 0.35) 1.2px, transparent 1.2px),
-        radial-gradient(circle, rgba(236, 72, 153, 0.25) 1.6px, transparent 1.6px);
+        radial-gradient(circle, rgba(0, 240, 255, 0.45) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(255, 0, 127, 0.4) 1.6px, transparent 1.6px) !important;
 }
 
 [data-theme="cyberpunk"] .topbar-section,
 [data-theme="cyberpunk"] .context-property-bar,
 [data-theme="cyberpunk"] .left-sidebar,
 [data-theme="cyberpunk"] .right-panel,
-[data-theme="cyberpunk"] .code-editor-dock {
+[data-theme="cyberpunk"] .right-rail,
+[data-theme="cyberpunk"] .code-editor-dock,
+[data-theme="cyberpunk"] .console-drawer,
+[data-theme="cyberpunk"] .workspace-minimap {
     background: rgba(8, 12, 20, 0.95) !important;
     border: 1px solid rgba(6, 182, 212, 0.3) !important;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), 0 0 20px rgba(6, 182, 212, 0.2) !important;
+}
+
+/* ============================================================
+   THEME: TACTICAL MATRIX (EMERALD)
+   Phosphor CRT radar green & mil-spec avionics
+============================================================ */
+[data-theme="emerald"] .workspace,
+[data-theme="emerald"] .canvas {
+    background: radial-gradient(circle at 50% 30%, rgba(16, 185, 129, 0.12), transparent 60%),
+                #030d06 !important;
+}
+
+[data-theme="emerald"] .workspace-grid,
+[data-theme="emerald"] .infinite-dot-grid,
+[data-theme="emerald"] .dot-grid {
+    background-image: 
+        radial-gradient(circle, rgba(16, 185, 129, 0.45) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(52, 211, 153, 0.35) 1.6px, transparent 1.6px) !important;
+}
+
+[data-theme="emerald"] .topbar-section,
+[data-theme="emerald"] .context-property-bar,
+[data-theme="emerald"] .left-sidebar,
+[data-theme="emerald"] .right-panel,
+[data-theme="emerald"] .right-rail,
+[data-theme="emerald"] .code-editor-dock,
+[data-theme="emerald"] .console-drawer,
+[data-theme="emerald"] .workspace-minimap {
+    background: rgba(6, 23, 11, 0.95) !important;
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), 0 0 20px rgba(16, 185, 129, 0.18) !important;
+}
+
+/* ============================================================
+   THEME: OCEANIC ABYSS (DEEP NAVY & BIOLUMINESCENT CYAN)
+============================================================ */
+[data-theme="abyss"] .workspace,
+[data-theme="abyss"] .canvas {
+    background: radial-gradient(circle at 50% 30%, rgba(6, 182, 212, 0.12), transparent 60%),
+                #020914 !important;
+}
+
+[data-theme="abyss"] .workspace-grid,
+[data-theme="abyss"] .infinite-dot-grid,
+[data-theme="abyss"] .dot-grid {
+    background-image: 
+        radial-gradient(circle, rgba(6, 182, 212, 0.4) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(56, 189, 248, 0.35) 1.6px, transparent 1.6px) !important;
+}
+
+[data-theme="abyss"] .topbar-section,
+[data-theme="abyss"] .context-property-bar,
+[data-theme="abyss"] .left-sidebar,
+[data-theme="abyss"] .right-panel,
+[data-theme="abyss"] .right-rail,
+[data-theme="abyss"] .code-editor-dock,
+[data-theme="abyss"] .console-drawer,
+[data-theme="abyss"] .workspace-minimap {
+    background: rgba(4, 20, 43, 0.95) !important;
+    border: 1px solid rgba(6, 182, 212, 0.28) !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), 0 0 20px rgba(6, 182, 212, 0.18) !important;
+}
+
+/* ============================================================
+   THEME: SOLAR INDUSTRIAL (MOLTEN GOLD & GUNMETAL CHARCOAL)
+============================================================ */
+[data-theme="solar"] .workspace,
+[data-theme="solar"] .canvas {
+    background: radial-gradient(circle at 50% 30%, rgba(245, 158, 11, 0.12), transparent 60%),
+                #0d0b09 !important;
+}
+
+[data-theme="solar"] .workspace-grid,
+[data-theme="solar"] .infinite-dot-grid,
+[data-theme="solar"] .dot-grid {
+    background-image: 
+        radial-gradient(circle, rgba(245, 158, 11, 0.4) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(239, 68, 68, 0.35) 1.6px, transparent 1.6px) !important;
+}
+
+[data-theme="solar"] .topbar-section,
+[data-theme="solar"] .context-property-bar,
+[data-theme="solar"] .left-sidebar,
+[data-theme="solar"] .right-panel,
+[data-theme="solar"] .right-rail,
+[data-theme="solar"] .code-editor-dock,
+[data-theme="solar"] .console-drawer,
+[data-theme="solar"] .workspace-minimap {
+    background: rgba(23, 19, 14, 0.95) !important;
+    border: 1px solid rgba(245, 158, 11, 0.3) !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), 0 0 20px rgba(245, 158, 11, 0.18) !important;
+}
+
+/* ============================================================
+   THEME: MONOKAI PRO
+============================================================ */
+[data-theme="monokai"] .workspace,
+[data-theme="monokai"] .canvas {
+    background: #1e1e1e !important;
+}
+
+[data-theme="monokai"] .workspace-grid,
+[data-theme="monokai"] .infinite-dot-grid,
+[data-theme="monokai"] .dot-grid {
+    background-image: 
+        radial-gradient(circle, rgba(255, 216, 102, 0.35) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(169, 220, 118, 0.3) 1.6px, transparent 1.6px) !important;
+}
+
+[data-theme="monokai"] .topbar-section,
+[data-theme="monokai"] .context-property-bar,
+[data-theme="monokai"] .left-sidebar,
+[data-theme="monokai"] .right-panel,
+[data-theme="monokai"] .right-rail,
+[data-theme="monokai"] .code-editor-dock,
+[data-theme="monokai"] .console-drawer,
+[data-theme="monokai"] .workspace-minimap {
+    background: #2d2a2e !important;
+    border: 1px solid rgba(255, 216, 102, 0.25) !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75) !important;
+}
+
+/* ============================================================
+   THEME: DRACULA MIDNIGHT
+============================================================ */
+[data-theme="dracula"] .workspace,
+[data-theme="dracula"] .canvas {
+    background: #1e1f29 !important;
+}
+
+[data-theme="dracula"] .workspace-grid,
+[data-theme="dracula"] .infinite-dot-grid,
+[data-theme="dracula"] .dot-grid {
+    background-image: 
+        radial-gradient(circle, rgba(189, 147, 249, 0.35) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(255, 121, 198, 0.3) 1.6px, transparent 1.6px) !important;
+}
+
+[data-theme="dracula"] .topbar-section,
+[data-theme="dracula"] .context-property-bar,
+[data-theme="dracula"] .left-sidebar,
+[data-theme="dracula"] .right-panel,
+[data-theme="dracula"] .right-rail,
+[data-theme="dracula"] .code-editor-dock,
+[data-theme="dracula"] .console-drawer,
+[data-theme="dracula"] .workspace-minimap {
+    background: #282a36 !important;
+    border: 1px solid rgba(189, 147, 249, 0.28) !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), 0 0 20px rgba(189, 147, 249, 0.18) !important;
+}
+
+/* ============================================================
+   THEME: NORDIC ARCTIC (NORD)
+============================================================ */
+[data-theme="nord"] .workspace,
+[data-theme="nord"] .canvas {
+    background: #242933 !important;
+}
+
+[data-theme="nord"] .workspace-grid,
+[data-theme="nord"] .infinite-dot-grid,
+[data-theme="nord"] .dot-grid {
+    background-image: 
+        radial-gradient(circle, rgba(136, 192, 208, 0.35) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(129, 161, 193, 0.3) 1.6px, transparent 1.6px) !important;
+}
+
+[data-theme="nord"] .topbar-section,
+[data-theme="nord"] .context-property-bar,
+[data-theme="nord"] .left-sidebar,
+[data-theme="nord"] .right-panel,
+[data-theme="nord"] .right-rail,
+[data-theme="nord"] .code-editor-dock,
+[data-theme="nord"] .console-drawer,
+[data-theme="nord"] .workspace-minimap {
+    background: #2e3440 !important;
+    border: 1px solid rgba(136, 192, 208, 0.25) !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), 0 0 20px rgba(136, 192, 208, 0.15) !important;
+}
+
+/* ============================================================
+   LIGHT MODE THEMES (Clean Daylight, Laboratory, Amber Blueprint, Synthwave Day)
+============================================================ */
+
+/* 1. CLEAN DAYLIGHT / NORDIC DAYLIGHT */
+[data-theme="light"] .workspace,
+[data-theme="light"] .canvas {
+    background: #f8fafc !important;
+}
+
+[data-theme="light"] .workspace-grid,
+[data-theme="light"] .infinite-dot-grid,
+[data-theme="light"] .dot-grid {
+    background-image: 
+        radial-gradient(circle, rgba(15, 23, 42, 0.22) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(29, 78, 216, 0.25) 1.6px, transparent 1.6px) !important;
+}
+
+/* 2. LABORATORY CLEAN (PAPER) */
+[data-theme="paper"] .workspace,
+[data-theme="paper"] .canvas {
+    background: #ffffff !important;
+}
+
+[data-theme="paper"] .workspace-grid,
+[data-theme="paper"] .infinite-dot-grid,
+[data-theme="paper"] .dot-grid {
+    background-image: 
+        radial-gradient(circle, rgba(0, 0, 0, 0.22) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(5, 150, 105, 0.28) 1.6px, transparent 1.6px) !important;
+}
+
+/* 3. AMBER BLUEPRINT (SOLAR-LIGHT) */
+[data-theme="solar-light"] .workspace,
+[data-theme="solar-light"] .canvas {
+    background: #fdfbf7 !important;
+}
+
+[data-theme="solar-light"] .workspace-grid,
+[data-theme="solar-light"] .infinite-dot-grid,
+[data-theme="solar-light"] .dot-grid {
+    background-image: 
+        radial-gradient(circle, rgba(68, 64, 60, 0.25) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(180, 83, 9, 0.3) 1.6px, transparent 1.6px) !important;
+}
+
+/* 4. SYNTHWAVE DAY (CYBER-LIGHT) */
+[data-theme="cyber-light"] .workspace,
+[data-theme="cyber-light"] .canvas {
+    background: #f8f7ff !important;
+}
+
+[data-theme="cyber-light"] .workspace-grid,
+[data-theme="cyber-light"] .infinite-dot-grid,
+[data-theme="cyber-light"] .dot-grid {
+    background-image: 
+        radial-gradient(circle, rgba(99, 102, 241, 0.25) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(124, 58, 237, 0.32) 1.6px, transparent 1.6px) !important;
+}
+
+/* ============================================================
+   LIGHT MODE SHARED: WORKSPACE TOPBAR STRICTLY NO BACKGROUND
+============================================================ */
+[data-theme="light"] .top-floating-bar,
+[data-theme="paper"] .top-floating-bar,
+[data-theme="solar-light"] .top-floating-bar,
+[data-theme="cyber-light"] .top-floating-bar,
+[data-theme-category="light"] .top-floating-bar {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+[data-theme="light"] .topbar-section,
+[data-theme="paper"] .topbar-section,
+[data-theme="solar-light"] .topbar-section,
+[data-theme="cyber-light"] .topbar-section,
+[data-theme-category="light"] .topbar-section {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+}
+
+/* Light Mode Workspace Sidebars, Inspector, Console, Docks */
+[data-theme="light"] .left-sidebar,
+[data-theme="paper"] .left-sidebar,
+[data-theme="solar-light"] .left-sidebar,
+[data-theme="cyber-light"] .left-sidebar,
+[data-theme-category="light"] .left-sidebar,
+[data-theme="light"] .right-panel,
+[data-theme="paper"] .right-panel,
+[data-theme="solar-light"] .right-panel,
+[data-theme="cyber-light"] .right-panel,
+[data-theme-category="light"] .right-panel,
+[data-theme="light"] .right-rail,
+[data-theme="paper"] .right-rail,
+[data-theme="solar-light"] .right-rail,
+[data-theme="cyber-light"] .right-rail,
+[data-theme-category="light"] .right-rail,
+[data-theme="light"] .console-drawer,
+[data-theme="paper"] .console-drawer,
+[data-theme="solar-light"] .console-drawer,
+[data-theme="cyber-light"] .console-drawer,
+[data-theme-category="light"] .console-drawer,
+[data-theme="light"] .code-editor-dock,
+[data-theme="paper"] .code-editor-dock,
+[data-theme="solar-light"] .code-editor-dock,
+[data-theme="cyber-light"] .code-editor-dock,
+[data-theme-category="light"] .code-editor-dock,
+[data-theme="light"] .workspace-minimap,
+[data-theme="paper"] .workspace-minimap,
+[data-theme="solar-light"] .workspace-minimap,
+[data-theme="cyber-light"] .workspace-minimap,
+[data-theme-category="light"] .workspace-minimap,
+[data-theme="light"] .context-property-bar,
+[data-theme="paper"] .context-property-bar,
+[data-theme="solar-light"] .context-property-bar,
+[data-theme="cyber-light"] .context-property-bar,
+[data-theme-category="light"] .context-property-bar {
+    background: #ffffff !important;
+    border: 1px solid rgba(15, 23, 42, 0.12) !important;
+    color: #0f172a !important;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08) !important;
 }
 
 /* ============================================================
