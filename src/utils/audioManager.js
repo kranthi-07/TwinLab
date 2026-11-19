@@ -51,7 +51,9 @@ class SoundManager {
                 buzzer.osc.stop();
                 buzzer.osc.disconnect();
                 buzzer.gain.disconnect();
-            } catch {}
+            } catch {
+                /* silent */
+            }
             this.activeBuzzers.delete(id);
         }
     }
@@ -120,7 +122,7 @@ class SoundManager {
     /**
      * Dynamically update motor sound pitch with RPM changes
      */
-    updateMotorSound(id, { rpm = 12500, voltage = 6.0 } = {}) {
+    updateMotorSound(id, { rpm = 12500, voltage: _voltage = 6.0 } = {}) {
         const motor = this.activeMotors.get(id);
         if (!motor || !this.ctx) return;
 
@@ -135,7 +137,9 @@ class SoundManager {
 
             motor.subOsc.frequency.cancelScheduledValues(now);
             motor.subOsc.frequency.exponentialRampToValueAtTime(Math.max(10, targetFreq * 0.5), now + 0.35);
-        } catch {}
+        } catch {
+            /* silent */
+        }
     }
 
     /**
@@ -163,10 +167,14 @@ class SoundManager {
                         motor.subOsc.disconnect();
                         motor.filter.disconnect();
                         motor.gain.disconnect();
-                    } catch {}
+                    } catch {
+                        /* silent */
+                    }
                 }, 800);
             }
-        } catch {}
+        } catch {
+            /* silent */
+        }
 
         this.activeMotors.delete(id);
     }
@@ -206,7 +214,9 @@ class SoundManager {
 
             osc.start(now);
             osc.stop(now + duration);
-        } catch {}
+        } catch {
+            /* silent */
+        }
     }
 
     /**
@@ -242,7 +252,9 @@ class SoundManager {
                 osc.start(now);
                 osc.stop(now + 0.05);
             }
-        } catch {}
+        } catch {
+            /* silent */
+        }
     }
 
     stopAll() {

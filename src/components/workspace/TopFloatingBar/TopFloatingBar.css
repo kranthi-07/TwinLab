@@ -2537,3 +2537,60 @@
     color: #38bdf8;
     box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
 }
+
+/* Workspace Profile Button */
+.workspace-profile-btn {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+    color: var(--text-primary, #ffffff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 15px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.workspace-profile-btn:hover {
+    background: var(--project-accent, #ff8a00);
+    border-color: var(--project-accent, #ff8a00);
+    color: #ffffff;
+    box-shadow: 0 0 12px var(--project-accent-glow, rgba(255, 138, 0, 0.4));
+    transform: scale(1.05);
+}
+
+.workspace-profile-btn.is-pro {
+    border-color: rgba(255, 138, 0, 0.4);
+    color: var(--project-accent, #ff8a00);
+}
+
+.workspace-user-initial {
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--project-accent, #ff8a00);
+    text-transform: uppercase;
+    user-select: none;
+}
+
+.workspace-profile-btn .profile-cloud-badge {
+    position: absolute;
+    bottom: -3px;
+    right: -3px;
+    font-size: 8px;
+    line-height: 1;
+}
+
+[data-theme="light"] .workspace-profile-btn,
+[data-theme="paper"] .workspace-profile-btn,
+[data-theme="solar-light"] .workspace-profile-btn,
+[data-theme="cyber-light"] .workspace-profile-btn,
+[data-theme-category="light"] .workspace-profile-btn {
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.15);
+    color: #0f172a;
+}

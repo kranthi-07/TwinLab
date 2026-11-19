@@ -3,6 +3,8 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../../../context/ThemeContext";
 import { soundManager } from "../../../utils/audioManager";
+import authService from "../../../services/authService";
+import { ProfileModal } from "../../profile/ProfileModal";
 
 const COMPONENT_META = {
     "resistor": { label: "Resistor", icon: "ri-pulse-line" },
@@ -1374,7 +1376,14 @@ function TopFloatingBar({
     userEmail = null
 }) {
     const { isDark, toggleTheme } = useTheme();
+    const [user, setUser] = useState(() => authService.getCurrentUser());
+    const [showProfileModal, setShowProfileModal] = useState(false);
     const [isComponentsOpen, setIsComponentsOpen] = useState(false);
+
+    useEffect(() => {
+        const unsubscribe = authService.subscribe((u) => setUser(u));
+        return () => unsubscribe();
+    }, []);
     const [isZoomOpen, setIsZoomOpen] = useState(false);
     const [internalViewMode, setInternalViewMode] = useState("simulation");
     const effectiveViewMode = viewMode || internalViewMode;
@@ -2115,6 +2124,31 @@ function TopFloatingBar({
                         <span>Code</span>
                         <span className="code-badge">C++</span>
                     </button>
+
+                    <div className="top-divider"></div>
+
+                    {/* User Profile Button */}
+                    <button 
+                        type="button"
+                        className={`workspace-profile-btn ${!user.isGuest ? "is-pro" : ""}`}
+                        onClick={() => {
+                            if (user.isGuest) {
+                                onOpenSaveToAccount ? onOpenSaveToAccount() : setShowProfileModal(true);
+                            } else {
+                                setShowProfileModal(true);
+                            }
+                        }}
+                        title={user.isGuest ? "Guest Engineer - Sign In" : `Profile & Account (${user.name})`}
+                    >
+                        {!user.isGuest ? (
+                            <span className="workspace-user-initial">
+                                {(user.name || user.email || "U").trim().charAt(0).toUpperCase()}
+                            </span>
+                        ) : (
+                            <i className="ri-user-smile-line"></i>
+                        )}
+                        {!user.isGuest && <span className="profile-cloud-badge">☁️</span>}
+                    </button>
                 </div>
             </div>
 
@@ -2606,6 +2640,12 @@ function TopFloatingBar({
                     </motion.div>
                 )}
             </AnimatePresence>
+            {/* User Profile & Data Interface Modal */}
+            <ProfileModal 
+                isOpen={showProfileModal} 
+                onClose={() => setShowProfileModal(false)} 
+                onOpenLogin={onOpenSaveToAccount}
+            />
         </header>
     );
 }

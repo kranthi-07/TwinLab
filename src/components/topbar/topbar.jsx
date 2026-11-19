@@ -5,6 +5,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { TwinLabLogo } from "../common/TwinLabLogo";
 import { ThemeSelector } from "../common/ThemeSelector";
 import { LoginModal } from "../auth/LoginModal";
+import { ProfileModal } from "../profile/ProfileModal";
 import { NotificationsModal, SESSION_UPDATES } from "../common/NotificationsModal";
 import authService from "../../services/authService";
 
@@ -19,6 +20,7 @@ function Topbar({ onOpenWorkspace }) {
     const { isDark, toggleTheme } = useTheme();
     const [user, setUser] = useState(authService.getCurrentUser());
     const [showLoginModal, setShowLoginModal] = useState(false);
+    const [showProfileModal, setShowProfileModal] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showNotifModal, setShowNotifModal] = useState(false);
     const [unreadNotifCount, setUnreadNotifCount] = useState(() => {
@@ -55,8 +57,9 @@ function Topbar({ onOpenWorkspace }) {
         if (user.isGuest) {
             setShowLoginModal(true);
         } else {
-            setShowProfileMenu((prev) => !prev);
+            setShowProfileModal(true);
         }
+        setShowProfileMenu(false);
     };
 
     const handleLogout = () => {
@@ -196,13 +199,19 @@ function Topbar({ onOpenWorkspace }) {
                 <div className="topbar-profile-container">
                     <motion.button 
                         className={`profile-btn ${!user.isGuest ? "logged-in" : ""}`} 
-                        title={user.isGuest ? "Sign In / Guest Mode" : `Logged in as ${user.name}`}
+                        title={user.isGuest ? "Sign In / Guest Mode" : `Profile & Account (${user.name})`}
                         onClick={handleProfileClick}
                         whileHover={{ scale: 1.06 }}
                         whileTap={{ scale: 0.94 }}
                         type="button"
                     >
-                        <i className={user.isGuest ? "ri-user-smile-line" : "ri-user-star-line"}></i>
+                        {!user.isGuest ? (
+                            <span className="profile-btn-initial">
+                                {(user.name || user.email || "U").trim().charAt(0).toUpperCase()}
+                            </span>
+                        ) : (
+                            <i className="ri-user-smile-line"></i>
+                        )}
                         {!user.isGuest && (
                             <span className="profile-cloud-badge" title="Cloud Sync Active">☁️</span>
                         )}
@@ -260,6 +269,14 @@ function Topbar({ onOpenWorkspace }) {
                 isOpen={showLoginModal} 
                 onClose={() => setShowLoginModal(false)}
                 onLoginSuccess={(u) => setUser(u)}
+            />
+
+            {/* User Profile & Data Interface Modal */}
+            <ProfileModal 
+                isOpen={showProfileModal} 
+                onClose={() => setShowProfileModal(false)}
+                onOpenLogin={() => setShowLoginModal(true)}
+                onOpenWorkspace={onOpenWorkspace}
             />
         </header>
     );

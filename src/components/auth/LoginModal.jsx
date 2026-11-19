@@ -81,6 +81,9 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, guestProject = nul
             const user = await authService.login(email, password);
             await handlePostLoginMigration(user);
             setIsLoading(false);
+            window.dispatchEvent(new CustomEvent("twinlab:welcome_user", { 
+                detail: { name: user.name || user.email?.split("@")[0] || "Engineer" } 
+            }));
             onLoginSuccess && onLoginSuccess(user);
             onClose && onClose();
         } catch (err) {
@@ -114,6 +117,9 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, guestProject = nul
             const user = await authService.signup({ name, email, password, role });
             await handlePostLoginMigration(user);
             setIsLoading(false);
+            window.dispatchEvent(new CustomEvent("twinlab:welcome_user", { 
+                detail: { name: user.name || user.email?.split("@")[0] || "Engineer" } 
+            }));
             onLoginSuccess && onLoginSuccess(user);
             onClose && onClose();
         } catch (err) {
@@ -130,6 +136,9 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, guestProject = nul
             const user = await authService.loginWithGoogle();
             await handlePostLoginMigration(user);
             setIsLoading(false);
+            window.dispatchEvent(new CustomEvent("twinlab:welcome_user", { 
+                detail: { name: user.name || user.email?.split("@")[0] || "Engineer" } 
+            }));
             onLoginSuccess && onLoginSuccess(user);
             onClose && onClose();
         } catch (err) {

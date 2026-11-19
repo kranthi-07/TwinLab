@@ -6,7 +6,6 @@ import { ARDUINO_PINS, ARDUINO_MEGA_PINS, ARDUINO_NANO_PINS, ESP32_PINS, RPI_PIC
 import { getComponentTerminalPoints } from "../utils/componentGeometry.js";
 
 // Breadboard geometry constants (matching Breadboard.jsx 1:1)
-const COLUMNS = 30;
 const X_START = 48;
 const GRID_STEP = 16;
 const Y_RAIL_TOP_PLUS = 16;
@@ -2396,9 +2395,12 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                                         break;
                                     }
                                 }
-                                // If direct connection across battery (no LED)
-                                if (vDrop === 0 && ((rN1 === activePosRoot && rN2 === activeGndRoot) || (rN2 === activePosRoot && rN1 === activeGndRoot))) {
-                                    vDrop = vSupply;
+                                // If direct connection across power source (no LED)
+                                if (vDrop === 0) {
+                                    const pSrc = findActivePowerSourceForLoad(rN1, rN2);
+                                    if (pSrc && pSrc.polarity === "forward") {
+                                        vDrop = pSrc.voltage;
+                                    }
                                 }
                                 measuredV = sign * vDrop;
                                 break;
@@ -2414,7 +2416,7 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                             if ((nodeRed === bPos && nodeBlack === bNeg) || (nodeRed === bNeg && nodeBlack === bPos)) {
                                 const sign = (nodeRed === bPos) ? 1 : -1;
                                 const st = buzzerStates[buz.id];
-                                measuredV = sign * ((st && st.isBeeping) ? (st.voltage || vSupply) : 0);
+                                measuredV = sign * ((st && st.isBeeping) ? (st.voltage || 5.0) : 0);
                                 break;
                             }
                         }

@@ -4,11 +4,13 @@ import WorkspaceLayout from "./layouts/WorkspaceLayout";
 import HomepageLayout from "./layouts/HomepageLayout";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import IntroLoadingAnimation from "./components/common/IntroLoadingAnimation";
+import WelcomeOverlay from "./components/common/WelcomeOverlay";
 
 const VIEW_STORAGE_KEY = "twinlab_active_view";
 
 function App() {
     const [showIntro, setShowIntro] = useState(true);
+    const [welcomeUsername, setWelcomeUsername] = useState(null);
 
     // Keep user in workspace on page refresh if they were in workspace!
     const [view, setView] = useState(() => {
@@ -42,8 +44,17 @@ function App() {
     // Global Top-Level Shortcuts: Ctrl+L (Launch Workspace), Ctrl+D (Launch Code Editor)
     useEffect(() => {
         const handleReplayIntro = () => setShowIntro(true);
+        const handleWelcome = (e) => {
+            if (e.detail?.name) {
+                setWelcomeUsername(e.detail.name);
+            }
+        };
         window.addEventListener("twinlab:replay_intro", handleReplayIntro);
-        return () => window.removeEventListener("twinlab:replay_intro", handleReplayIntro);
+        window.addEventListener("twinlab:welcome_user", handleWelcome);
+        return () => {
+            window.removeEventListener("twinlab:replay_intro", handleReplayIntro);
+            window.removeEventListener("twinlab:welcome_user", handleWelcome);
+        };
     }, []);
 
     useEffect(() => {
@@ -79,6 +90,12 @@ function App() {
         <ErrorBoundary>
             {showIntro && (
                 <IntroLoadingAnimation onComplete={() => setShowIntro(false)} />
+            )}
+            {welcomeUsername && (
+                <WelcomeOverlay 
+                    username={welcomeUsername} 
+                    onComplete={() => setWelcomeUsername(null)} 
+                />
             )}
             <AnimatePresence mode="wait">
                 {view === "workspace" ? (

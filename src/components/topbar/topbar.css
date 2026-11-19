@@ -446,8 +446,19 @@
 }
 
 .profile-btn.logged-in {
-    background: linear-gradient(135deg, #38bdf8, #0284c7);
-    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.35);
+    background: linear-gradient(135deg, #ff8a00, #ff5500);
+    box-shadow: 0 4px 12px rgba(255, 138, 0, 0.4);
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+}
+
+.profile-btn-initial {
+    font-size: 15px;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    user-select: none;
+    font-family: inherit;
 }
 
 .profile-btn:hover {

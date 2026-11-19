@@ -85,10 +85,12 @@ export function formatAuthError(err) {
 if (isFirebaseConfigured && auth) {
     onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
+            const existingSavedPassword = currentSession?.savedPassword || null;
             currentSession = {
                 id: firebaseUser.uid,
                 name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Hardware Engineer",
                 email: firebaseUser.email,
+                savedPassword: existingSavedPassword,
                 isGuest: false,
                 role: "Hardware & IoT Developer",
                 avatar: firebaseUser.photoURL || "ri-user-3-line",
@@ -154,6 +156,7 @@ export const authService = {
             id: `guest-${Date.now().toString(36)}`,
             name: "Guest Engineer",
             email: null,
+            savedPassword: null,
             isGuest: true,
             role: "Guest Prototyper",
             avatar: "ri-user-smile-line",
@@ -226,6 +229,7 @@ export const authService = {
                 id: fbUser.uid,
                 name: fbUser.displayName || cleanEmail.split("@")[0],
                 email: fbUser.email,
+                savedPassword: password || null,
                 isGuest: false,
                 role: "Hardware & IoT Developer",
                 avatar: "ri-user-3-line",
@@ -272,6 +276,7 @@ export const authService = {
             id: `usr-${Date.now().toString(36)}`,
             name: derivedName.charAt(0).toUpperCase() + derivedName.slice(1),
             email: cleanEmail,
+            savedPassword: password || null,
             role: "Hardware & IoT Developer",
             avatar: "ri-user-3-line",
             plan: "Local Mode",
@@ -311,6 +316,7 @@ export const authService = {
                 id: fbUser.uid,
                 name: name || cleanEmail.split("@")[0],
                 email: fbUser.email,
+                savedPassword: password || null,
                 isGuest: false,
                 role: role,
                 avatar: "ri-user-heart-line",
@@ -340,6 +346,7 @@ export const authService = {
             id: `usr-${Date.now().toString(36)}`,
             name: name || cleanEmail.split("@")[0],
             email: cleanEmail,
+            savedPassword: password || null,
             role: role,
             avatar: "ri-user-heart-line",
             plan: "Local Mode",
@@ -394,7 +401,54 @@ export const authService = {
         return currentSession;
     },
 
-    // 5. Logout
+    // 5. Update Profile Data
+    async updateProfileData({ name, role, avatar, bio, organization, mcuPreference, codePreference }) {
+        if (!currentSession) return null;
+
+        const updated = {
+            ...currentSession,
+            name: name !== undefined ? name : currentSession.name,
+            role: role !== undefined ? role : currentSession.role,
+            avatar: avatar !== undefined ? avatar : currentSession.avatar,
+            bio: bio !== undefined ? bio : currentSession.bio,
+            organization: organization !== undefined ? organization : currentSession.organization,
+            mcuPreference: mcuPreference !== undefined ? mcuPreference : currentSession.mcuPreference,
+            codePreference: codePreference !== undefined ? codePreference : currentSession.codePreference,
+            updatedAt: new Date().toISOString()
+        };
+        currentSession = updated;
+
+        try {
+            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(currentSession));
+        } catch (e) {}
+
+        if (isFirebaseConfigured && auth && auth.currentUser) {
+            try {
+                if (name) {
+                    await updateProfile(auth.currentUser, { displayName: name });
+                }
+                if (db) {
+                    await setDoc(doc(db, "users", auth.currentUser.uid), {
+                        name: updated.name,
+                        role: updated.role,
+                        avatar: updated.avatar,
+                        bio: updated.bio || "",
+                        organization: updated.organization || "",
+                        mcuPreference: updated.mcuPreference || "ESP32-S3",
+                        codePreference: updated.codePreference || "C++",
+                        updatedAt: updated.updatedAt
+                    }, { merge: true });
+                }
+            } catch (err) {
+                console.warn("Firebase profile update notice:", err);
+            }
+        }
+
+        notifyListeners();
+        return currentSession;
+    },
+
+    // 6. Logout
     async logout() {
         return this.loginAsGuest();
     }

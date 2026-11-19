@@ -540,11 +540,17 @@ function SmallComponent({
             onMouseLeave={() => setHoveredTerminal(null)}
             onMouseDown={(e) => {
                 e.stopPropagation();
+                if (isSimulating && (type === "button" || type === "pushbutton" || type === "slide-switch" || type === "switch-spdt" || type === "switch-spst")) {
+                    return;
+                }
                 onSelect && onSelect(id, e);
                 onMouseDown && onMouseDown(e, id);
             }}
             onClick={(e) => {
                 e.stopPropagation();
+                if (isSimulating && (type === "button" || type === "pushbutton" || type === "slide-switch" || type === "switch-spdt" || type === "switch-spst")) {
+                    return;
+                }
                 onSelect && onSelect(id, e);
             }}
         >
@@ -881,50 +887,65 @@ function SmallComponent({
             })()}
 
             {/* TACTILE PUSHBUTTON: 32px x 32px span. 4 Pins */}
-            {(type === "button" || type === "pushbutton") && (
-                <div 
-                    className={`button-tactile-container ${isPressed ? "is-pressed" : ""}`}
-                    onClick={(e) => {
-                        if (isSimulating) {
-                            e.stopPropagation();
-                            onUpdate && onUpdate({ isPressed: !isPressed });
-                        }
-                    }}
-                >
+            {(type === "button" || type === "pushbutton") && (() => {
+                const pressButton = (e) => {
+                    e && e.stopPropagation && e.stopPropagation();
+                    if (isWireMode) return;
+                    onUpdate && onUpdate({ isPressed: true });
+                    const handleUp = () => {
+                        window.removeEventListener("mouseup", handleUp);
+                        window.removeEventListener("pointerup", handleUp);
+                        window.removeEventListener("touchend", handleUp);
+                        setTimeout(() => {
+                            onUpdate && onUpdate({ isPressed: false });
+                        }, 180);
+                    };
+                    window.addEventListener("mouseup", handleUp);
+                    window.addEventListener("pointerup", handleUp);
+                    window.addEventListener("touchend", handleUp);
+                };
+
+                return (
                     <div 
-                        className="tactile-case-body"
-                        onClick={(e) => {
+                        className={`button-tactile-container ${isPressed ? "is-pressed" : ""}`}
+                        onMouseDown={(e) => {
                             if (isSimulating) {
                                 e.stopPropagation();
-                                onUpdate && onUpdate({ isPressed: !isPressed });
+                                pressButton(e);
                             }
+                        }}
+                        onClick={(e) => {
+                            e.stopPropagation();
                         }}
                     >
                         <div 
-                            className="tactile-round-actuator"
-                            title={isSimulating ? (isPressed ? "Push Button: PRESSED (Click to Release)" : "Push Button: RELEASED (Click to Toggle or Hold to Press)") : "Tactile Push Button"}
+                            className="tactile-case-body"
+                            onMouseDown={(e) => {
+                                if (isSimulating) {
+                                    e.stopPropagation();
+                                    pressButton(e);
+                                }
+                            }}
                             onClick={(e) => {
                                 e.stopPropagation();
-                                if (isWireMode) return;
-                                onUpdate && onUpdate({ isPressed: !isPressed });
-                            }}
-                            onMouseDown={(e) => {
-                                e.stopPropagation();
-                                if (isWireMode) return;
-                                onUpdate && onUpdate({ isPressed: true });
-                                const handleUp = () => {
-                                    window.removeEventListener("mouseup", handleUp);
-                                    // Give MCU polling loops at least 150ms to detect the press
-                                    setTimeout(() => {
-                                        onUpdate && onUpdate({ isPressed: false });
-                                    }, 150);
-                                };
-                                window.addEventListener("mouseup", handleUp);
                             }}
                         >
-                            <div className="actuator-inner-cap"></div>
+                            <div 
+                                className="tactile-round-actuator"
+                                title={isSimulating ? (isPressed ? "Push Button: PRESSED" : "Push Button: Press and Hold to Actuate") : "Tactile Push Button"}
+                                onMouseDown={(e) => {
+                                    if (isSimulating) {
+                                        e.stopPropagation();
+                                        pressButton(e);
+                                    }
+                                }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                }}
+                            >
+                                <div className="actuator-inner-cap"></div>
+                            </div>
                         </div>
-                    </div>
                     <span 
                         className={`terminal-pin pin-tl ${hoveredTerminal === "btn1" ? "targeted" : ""}`}
                         onMouseEnter={() => setHoveredTerminal("btn1")}
@@ -982,7 +1003,8 @@ function SmallComponent({
                         </div>
                     )}
                 </div>
-            )}
+            );
+        })()}
 
             {/* POTENTIOMETER: 32px span. 3 Terminals (0, 16px, 32px at Y=48) */}
             {type === "potentiometer" && (() => {

@@ -725,7 +725,7 @@ export class McuExecutionSession {
         tick();
     }
 
-    transpilePython(pyCode, builtinPin) {
+    transpilePython(pyCode) {
         const rawLines = pyCode.split("\n");
         const jsLines = [];
         const indentStack = [0];
@@ -934,7 +934,7 @@ export class McuExecutionSession {
                     this.activeTimeouts.add(t);
                 });
             },
-            __pulseIn: async (pin, val, timeout) => {
+            __pulseIn: async (_pin, _val, _timeout) => {
                 const comps = this.callbacks.getComponents ? this.callbacks.getComponents() : [];
                 const ultrasonic = comps.find(c => c.type === "sensor-ultrasonic");
                 if (!ultrasonic) return 0;
@@ -1366,7 +1366,13 @@ export class McuExecutionSession {
         PyPin.prototype.low = function() { return this.value(0); };
         PyPin.prototype.toggle = function() { return this.value(this.currentVal === 1 ? 0 : 1); };
         PyPin.prototype.init = function(mode, pull) {
-            if (mode) this.mode = mode;
+            if (mode) {
+                if (mode === "INPUT" || mode === 0 || mode === "IN" || mode === PyPin.IN) {
+                    this.mode = (pull === "PULL_UP" || pull === PyPin.PULL_UP) ? "INPUT_PULLUP" : "INPUT";
+                } else {
+                    this.mode = "OUTPUT";
+                }
+            }
             context.__pinMode(this.pin, this.mode);
         };
 
@@ -1502,7 +1508,7 @@ export class McuExecutionSession {
             let p = pin?.pin != null ? pin.pin : pin;
             this.pin = String(p).replace(/^GP/i, "").trim();
         }
-        PyPWM.prototype.freq = function(hz) { /* PWM frequency */ };
+        PyPWM.prototype.freq = function(hz) { this.frequency = hz; };
         PyPWM.prototype.duty_u16 = function(val) {
             const duty8 = Math.max(0, Math.min(255, Math.round((Number(val) || 0) / 257)));
             context.__analogWrite(this.pin, duty8);
