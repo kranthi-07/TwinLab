@@ -206,108 +206,156 @@ function renderMiniComponent(c, id) {
     const cy = c.y || 0;
     const rot = c.rotation || 0;
 
-    // 1. Breadboards (Full, Half, Mini)
+    // 1. Breadboards (Exact 1:1 Standard 560x288, Mini 352x224, Full 1040x288)
     if (c.type?.startsWith("breadboard")) {
-        const bbW = c.type === "breadboard-full" ? 540 : c.type === "breadboard-mini" ? 180 : 320;
-        const bbH = c.type === "breadboard-mini" ? 95 : 110;
+        const isMini = c.type === "breadboard-mini";
+        const isFull = c.type === "breadboard-full";
+        const bbW = isMini ? 352 : isFull ? 1040 : 560;
+        const bbH = isMini ? 224 : 288;
+        const cols = isMini ? 17 : isFull ? 60 : 30;
+
         return (
             <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
-                {/* Real Cream Beveled Chassis */}
-                <rect width={bbW} height={bbH} rx="6" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.5" />
-                <rect x="3" y="3" width={bbW - 6} height={bbH - 6} rx="4" fill="none" stroke="#e2e8f0" strokeWidth="1" />
-                {/* Power Bus Rails (+ Red / - Blue) */}
-                <line x1="12" y1="12" x2={bbW - 12} y2="12" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round" />
-                <line x1="12" y1="20" x2={bbW - 12} y2="20" stroke="#3b82f6" strokeWidth="1.8" strokeLinecap="round" />
-                <line x1="12" y1={bbH - 20} x2={bbW - 12} y2={bbH - 20} stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round" />
-                <line x1="12" y1={bbH - 12} x2={bbW - 12} y2={bbH - 12} stroke="#3b82f6" strokeWidth="1.8" strokeLinecap="round" />
+                {/* Real Cream/White Solderless Breadboard Body */}
+                <rect width={bbW} height={bbH} rx="8" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="2" />
+                <rect x="4" y="4" width={bbW - 8} height={bbH - 8} rx="6" fill="none" stroke="#e2e8f0" strokeWidth="1.2" />
+
+                {/* Top Power Bus Rails (+ Red / - Blue) */}
+                <line x1="36" y1="16" x2={bbW - 36} y2="16" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
+                <line x1="36" y1="48" x2={bbW - 36} y2="48" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" />
+
                 {/* Center IC DIP Valley Trough */}
-                <rect x="8" y={bbH / 2 - 5} width={bbW - 16} height="10" rx="2" fill="#e2e8f0" stroke="#cbd5e1" strokeWidth="0.8" />
-                {/* Terminal Tie Dots across rows */}
-                {[...Array(Math.floor(bbW / 18))].map((_, i) => (
-                    <g key={i} transform={`translate(${16 + i * 18}, 0)`}>
-                        <circle cx="0" cy="30" r="1.2" fill="#64748b" />
-                        <circle cx="0" cy="36" r="1.2" fill="#64748b" />
-                        <circle cx="0" cy="42" r="1.2" fill="#64748b" />
-                        <circle cx="0" cy={bbH - 42} r="1.2" fill="#64748b" />
-                        <circle cx="0" cy={bbH - 36} r="1.2" fill="#64748b" />
-                        <circle cx="0" cy={bbH - 30} r="1.2" fill="#64748b" />
-                    </g>
-                ))}
-                <text x={bbW / 2} y={bbH / 2 + 2.5} fill="#94a3b8" fontSize="6" fontWeight="bold" textAnchor="middle" letterSpacing="0.1em">BREADBOARD</text>
+                <rect x="16" y={isMini ? 92 : 140} width={bbW - 32} height={isMini ? 10 : 8} rx="2" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="0.8" />
+
+                {/* Bottom Power Bus Rails (- Blue / + Red) */}
+                {!isMini && (
+                    <>
+                        <line x1="36" y1="248" x2={bbW - 36} y2="248" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" />
+                        <line x1="36" y1="280" x2={bbW - 36} y2="280" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
+                    </>
+                )}
+
+                {/* Column Tie-Point Matrix on 16px Grid */}
+                {[...Array(cols)].map((_, i) => {
+                    const colX = 48 + i * 16;
+                    return (
+                        <g key={i}>
+                            {/* Power rail tie points */}
+                            <circle cx={colX} cy="16" r="2.2" fill="#0f172a" />
+                            <circle cx={colX} cy="48" r="2.2" fill="#0f172a" />
+                            {/* Upper rows: a, b, c, d, e */}
+                            <circle cx={colX} cy="80" r="2.2" fill="#0f172a" />
+                            <circle cx={colX} cy="96" r="2.2" fill="#0f172a" />
+                            <circle cx={colX} cy="112" r="2.2" fill="#0f172a" />
+                            <circle cx={colX} cy="128" r="2.2" fill="#0f172a" />
+                            <circle cx={colX} cy="144" r="2.2" fill="#0f172a" />
+                            {/* Lower rows: f, g, h, i, j */}
+                            <circle cx={colX} cy="176" r="2.2" fill="#0f172a" />
+                            <circle cx={colX} cy="192" r="2.2" fill="#0f172a" />
+                            <circle cx={colX} cy="208" r="2.2" fill="#0f172a" />
+                            <circle cx={colX} cy="224" r="2.2" fill="#0f172a" />
+                            <circle cx={colX} cy="240" r="2.2" fill="#0f172a" />
+                            {/* Bottom rails */}
+                            {!isMini && (
+                                <>
+                                    <circle cx={colX} cy="248" r="2.2" fill="#0f172a" />
+                                    <circle cx={colX} cy="280" r="2.2" fill="#0f172a" />
+                                </>
+                            )}
+                        </g>
+                    );
+                })}
+                <text x={bbW / 2} y={isMini ? 99 : 146} fill="#94a3b8" fontSize="8" fontWeight="bold" textAnchor="middle" letterSpacing="0.12em">
+                    TWINLAB SOLDERLESS BREADBOARD
+                </text>
             </g>
         );
     }
 
-    // 2. Arduino Uno / Mega / Nano
+    // 2. Arduino Uno / Mega (Exact 1:1 Scale: 320 x 224)
     if (c.type?.includes("arduino")) {
         const isNano = c.type === "arduino-nano";
         if (isNano) {
             return (
                 <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
-                    <rect width="80" height="36" rx="4" fill="#008784" stroke="#004d40" strokeWidth="1.2" />
-                    <rect x="0" y="8" width="14" height="20" rx="1.5" fill="#cbd5e1" stroke="#64748b" strokeWidth="0.8" />
-                    <rect x="34" y="10" width="16" height="16" rx="2" fill="#09090b" transform="rotate(45 42 18)" />
-                    <rect x="4" y="2" width="72" height="4" fill="#0f172a" />
-                    <rect x="4" y="30" width="72" height="4" fill="#0f172a" />
-                    <circle cx="22" cy="18" r="2" fill="#ef4444" />
-                    <circle cx="68" cy="14" r="1.5" fill="#10b981" />
-                    <text x="56" y="22" fill="#ffffff" fontSize="5" fontWeight="900">NANO</text>
+                    <rect width="160" height="96" rx="6" fill="#008784" stroke="#004d40" strokeWidth="1.8" />
+                    <rect x="0" y="24" width="28" height="48" rx="3" fill="#cbd5e1" stroke="#64748b" strokeWidth="1" />
+                    <rect x="68" y="28" width="32" height="32" rx="4" fill="#09090b" transform="rotate(45 84 44)" />
+                    <rect x="8" y="4" width="144" height="8" fill="#0f172a" />
+                    <rect x="8" y="84" width="144" height="8" fill="#0f172a" />
+                    <circle cx="44" cy="44" r="4" fill="#ef4444" />
+                    <text x="110" y="52" fill="#ffffff" fontSize="10" fontWeight="900">NANO</text>
                 </g>
             );
         }
         return (
             <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
-                {/* Official Teal Arduino PCB */}
-                <rect width="138" height="98" rx="6" fill="#008784" stroke="#004d40" strokeWidth="1.5" />
-                {/* Silver USB-B Jack */}
-                <rect x="0" y="10" width="24" height="22" rx="2" fill="#e2e8f0" stroke="#64748b" strokeWidth="1" />
-                <rect x="4" y="14" width="16" height="14" rx="1" fill="#ffffff" stroke="#94a3b8" strokeWidth="0.8" />
-                {/* Black DC Barrel Jack with Center Pin */}
-                <rect x="0" y="66" width="28" height="22" rx="2" fill="#0f172a" stroke="#334155" strokeWidth="1" />
-                <circle cx="14" cy="77" r="4" fill="#64748b" />
-                <circle cx="14" cy="77" r="1.5" fill="#000000" />
-                {/* ATmega328P DIP-28 Chip & Socket */}
-                <rect x="42" y="40" width="56" height="18" rx="2" fill="#09090b" stroke="#27272a" strokeWidth="1" />
-                <circle cx="45" cy="49" r="1.8" fill="#3f3f46" />
-                <text x="70" y="52" fill="#ffffff" fontSize="6.5" fontWeight="bold" textAnchor="middle">ATmega328P</text>
-                {/* 16.000 MHz Crystal Oscillator */}
-                <ellipse cx="38" cy="24" rx="7" ry="4" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="0.8" />
-                {/* Dual Female Header Strips (Digital top, Power/Analog bottom) */}
-                <rect x="34" y="4" width="98" height="9" rx="1.5" fill="#18181b" stroke="#27272a" strokeWidth="0.8" />
-                <rect x="34" y="85" width="98" height="9" rx="1.5" fill="#18181b" stroke="#27272a" strokeWidth="0.8" />
+                {/* Official Teal Arduino PCB (320 x 224) */}
+                <rect width="320" height="224" rx="12" fill="#008784" stroke="#004d40" strokeWidth="2" />
+                {/* Silver USB-B Port */}
+                <rect x="0" y="20" width="44" height="38" rx="4" fill="#e2e8f0" stroke="#64748b" strokeWidth="1.5" />
+                <rect x="8" y="26" width="30" height="26" rx="2" fill="#ffffff" stroke="#94a3b8" strokeWidth="1" />
+                {/* Black DC Barrel Jack */}
+                <rect x="0" y="130" width="48" height="42" rx="4" fill="#0f172a" stroke="#334155" strokeWidth="1.5" />
+                <circle cx="24" cy="151" r="8" fill="#64748b" />
+                <circle cx="24" cy="151" r="3" fill="#000000" />
+                {/* ATmega328P DIP-28 Main Microcontroller IC */}
+                <rect x="110" y="96" width="130" height="36" rx="4" fill="#09090b" stroke="#27272a" strokeWidth="1.5" />
+                <circle cx="118" cy="114" r="3" fill="#3f3f46" />
+                <text x="175" y="119" fill="#ffffff" fontSize="10" fontWeight="bold" textAnchor="middle">ATmega328P-PU</text>
+                {/* 16.000 MHz Crystal */}
+                <ellipse cx="88" cy="62" rx="14" ry="8" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1.2" />
+                <text x="88" y="65" fill="#475569" fontSize="6.5" fontWeight="bold" textAnchor="middle">16.000</text>
+                {/* Top Digital Pin Header at Y: 16 (Exact 16px pitch) */}
+                <rect x="28" y="8" width="284" height="18" rx="2" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+                {[32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 256, 272, 288, 304].map(px => (
+                    <circle key={px} cx={px} cy="16" r="2.6" fill="#e2e8f0" stroke="#000000" strokeWidth="0.8" />
+                ))}
+                {/* Bottom Power & Analog Pin Header at Y: 208 (Exact 16px pitch) */}
+                <rect x="56" y="198" width="240" height="18" rx="2" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+                {[64, 80, 96, 112, 128, 144, 160, 176, 208, 224, 240, 256, 272, 288].map(px => (
+                    <circle key={px} cx={px} cy="208" r="2.6" fill="#e2e8f0" stroke="#000000" strokeWidth="0.8" />
+                ))}
                 {/* Reset Pushbutton */}
-                <circle cx="28" cy="38" r="4.5" fill="#ef4444" stroke="#991b1b" strokeWidth="0.8" />
-                {/* Status LEDs (PWR Green, Pin 13 Yellow, TX/RX) */}
-                <circle cx="120" cy="20" r="2.8" fill="#10b981" filter="drop-shadow(0 0 3px #10b981)" />
-                <circle cx="120" cy="32" r="2.8" fill="#f59e0b" filter="drop-shadow(0 0 3px #f59e0b)" />
-                <text x="74" y="74" fill="#ffffff" fontSize="8" fontWeight="900" textAnchor="middle" letterSpacing="0.08em">ARDUINO UNO</text>
+                <circle cx="62" cy="78" r="8" fill="#ef4444" stroke="#991b1b" strokeWidth="1.5" />
+                {/* Status LEDs */}
+                <circle cx="260" cy="46" r="4" fill="#10b981" filter="drop-shadow(0 0 5px #10b981)" />
+                <circle cx="260" cy="68" r="4" fill="#f59e0b" filter="drop-shadow(0 0 5px #f59e0b)" />
+                <text x="175" y="160" fill="#ffffff" fontSize="15" fontWeight="900" textAnchor="middle" letterSpacing="0.08em">ARDUINO UNO</text>
             </g>
         );
     }
 
-    // 3. ESP32 DevKit / ESP32-S3
+    // 3. ESP32 DevKit (Exact 1:1 Scale: 128 x 368)
     if (c.type?.includes("esp32")) {
         return (
             <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
-                {/* Matte Black PCB */}
-                <rect width="90" height="130" rx="5" fill="#18181b" stroke="#27272a" strokeWidth="1.5" />
-                {/* Gold PCB Meander Antenna at top */}
-                <path d="M 28 6 L 28 14 L 36 14 L 36 6 L 44 6 L 44 14 L 52 14 L 52 6 L 60 6" fill="none" stroke="#d97706" strokeWidth="1.5" strokeLinecap="round" />
+                {/* Matte Black PCB (128 x 368) */}
+                <rect width="128" height="368" rx="8" fill="#18181b" stroke="#27272a" strokeWidth="2" />
+                {/* Gold PCB Antenna at top */}
+                <path d="M 36 12 L 36 28 L 50 28 L 50 12 L 64 12 L 64 28 L 78 28 L 78 12 L 92 12" fill="none" stroke="#d97706" strokeWidth="2.5" strokeLinecap="round" />
                 {/* Silver RF Metal Shield Can */}
-                <rect x="18" y="20" width="54" height="46" rx="3" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1" />
-                <text x="45" y="42" fill="#334155" fontSize="6.5" fontWeight="900" textAnchor="middle">ESPRESSIF</text>
-                <text x="45" y="52" fill="#475569" fontSize="6" fontWeight="bold" textAnchor="middle">ESP32-S3</text>
+                <rect x="22" y="44" width="84" height="110" rx="6" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1.5" />
+                <text x="64" y="90" fill="#334155" fontSize="11" fontWeight="900" textAnchor="middle">ESPRESSIF</text>
+                <text x="64" y="112" fill="#475569" fontSize="10" fontWeight="bold" textAnchor="middle">ESP32-S3</text>
                 {/* USB-C Receptacle at bottom */}
-                <rect x="34" y="118" width="22" height="12" rx="2" fill="#94a3b8" stroke="#475569" strokeWidth="1" />
-                {/* EN & BOOT gold tactile switches */}
-                <circle cx="22" cy="116" r="3.5" fill="#d97706" />
-                <circle cx="68" cy="116" r="3.5" fill="#d97706" />
-                {/* Dual 19-Pin Black Headers along left and right */}
-                <rect x="4" y="10" width="8" height="110" rx="1" fill="#09090b" stroke="#27272a" strokeWidth="0.8" />
-                <rect x="78" y="10" width="8" height="110" rx="1" fill="#09090b" stroke="#27272a" strokeWidth="0.8" />
-                {/* PWR Red and GPIO Blue LEDs */}
-                <circle cx="24" cy="80" r="2.5" fill="#ef4444" filter="drop-shadow(0 0 3px #ef4444)" />
-                <circle cx="66" cy="80" r="2.5" fill="#3b82f6" filter="drop-shadow(0 0 3px #3b82f6)" />
+                <rect x="44" y="340" width="40" height="24" rx="4" fill="#94a3b8" stroke="#475569" strokeWidth="1.5" />
+                {/* EN & BOOT buttons */}
+                <circle cx="28" cy="334" r="6" fill="#d97706" />
+                <circle cx="100" cy="334" r="6" fill="#d97706" />
+                {/* Left Header Pins at X: 16 (19 pins on 16px pitch from Y: 48 to 336) */}
+                <rect x="8" y="40" width="16" height="304" rx="2" fill="#09090b" />
+                {[...Array(19)].map((_, i) => (
+                    <circle key={`l-${i}`} cx="16" cy={48 + i * 16} r="2.6" fill="#e2e8f0" stroke="#000000" strokeWidth="0.8" />
+                ))}
+                {/* Right Header Pins at X: 112 (19 pins on 16px pitch from Y: 48 to 336) */}
+                <rect x="104" y="40" width="16" height="304" rx="2" fill="#09090b" />
+                {[...Array(19)].map((_, i) => (
+                    <circle key={`r-${i}`} cx="112" cy={48 + i * 16} r="2.6" fill="#e2e8f0" stroke="#000000" strokeWidth="0.8" />
+                ))}
+                {/* Power LEDs */}
+                <circle cx="36" cy="180" r="4" fill="#ef4444" filter="drop-shadow(0 0 5px #ef4444)" />
+                <circle cx="92" cy="180" r="4" fill="#3b82f6" filter="drop-shadow(0 0 5px #3b82f6)" />
             </g>
         );
     }
@@ -642,7 +690,7 @@ function renderMiniComponent(c, id) {
                     </g>
                 ))}
                 <text x={textMidX} y="16" fill="#ffffff" fontSize="5.5" fontWeight="bold" textAnchor="middle" letterSpacing="0.05em">
-                    {c.name?.slice(0, 7) || (is16 ? "L293D" : "74HC08")}
+                    {(c.modelNumber || c.icCode || c.name?.match(/74HC\d+|L293D|555/i)?.[0] || (is16 ? "L293D" : "74HC08")).toUpperCase()}
                 </text>
             </g>
         );
@@ -729,6 +777,42 @@ function renderMiniComponent(c, id) {
     );
 }
 
+function getWireSvgPath(points, mode = "curved") {
+    if (!points || points.length === 0) return "";
+    if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+
+    if (mode === "straight") {
+        return points.reduce((acc, pt, idx) => (idx === 0 ? `M ${pt.x} ${pt.y}` : `${acc} L ${pt.x} ${pt.y}`), "");
+    }
+
+    if (mode === "manhattan") {
+        let d = `M ${points[0].x} ${points[0].y}`;
+        for (let i = 1; i < points.length; i++) {
+            const p0 = points[i - 1];
+            const p1 = points[i];
+            d += ` L ${p1.x} ${p0.y} L ${p1.x} ${p1.y}`;
+        }
+        return d;
+    }
+
+    // Default: "curved" (Realistic natural saggy jumper wire bezier matching WireLayer.jsx)
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+        const p0 = points[i - 1];
+        const p1 = points[i];
+        const dx = p1.x - p0.x;
+        const dy = p1.y - p0.y;
+        const dist = Math.hypot(dx, dy);
+        const sag = Math.min(36, Math.max(10, dist * 0.12));
+        const cx1 = p0.x + dx * 0.25;
+        const cy1 = p0.y + dy * 0.25 + sag;
+        const cx2 = p0.x + dx * 0.75;
+        const cy2 = p0.y + dy * 0.75 + sag;
+        d += ` C ${cx1} ${cy1}, ${cx2} ${cy2}, ${p1.x} ${p1.y}`;
+    }
+    return d;
+}
+
 function ProjectCircuitMiniPreview({ project, onOpen }) {
     const comps = project.components || [];
     const wires = project.wires || [];
@@ -738,34 +822,60 @@ function ProjectCircuitMiniPreview({ project, onOpen }) {
     const getCompBounds = (c) => {
         const x = c.x || 0;
         const y = c.y || 0;
-        let w = 48, h = 48;
+        let minX = x, maxX = x + 48, minY = y, maxY = y + 48;
+
         if (c.type?.startsWith("breadboard")) {
-            w = c.type === "breadboard-full" ? 540 : c.type === "breadboard-mini" ? 180 : 320;
-            h = 105;
+            const w = c.type === "breadboard-full" ? 1040 : c.type === "breadboard-mini" ? 352 : 560;
+            const h = c.type === "breadboard-mini" ? 224 : 288;
+            maxX = x + w;
+            maxY = y + h;
         } else if (c.type?.includes("arduino")) {
-            w = 140; h = 100;
-        } else if (c.type?.includes("esp32")) {
-            w = 90; h = 130;
-        } else if (c.type === "sensor-pir") {
-            w = 105; h = 75;
-        } else if (c.type === "sensor-ultrasonic") {
-            w = 84; h = 48;
-        } else if (c.type === "motor-dc") {
-            w = 80; h = 80;
-        } else if (c.type?.startsWith("lcd")) {
-            w = 140; h = 54;
+            const w = c.type === "arduino-nano" ? 160 : 320;
+            const h = c.type === "arduino-nano" ? 96 : 224;
+            maxX = x + w;
+            maxY = y + h;
+        } else if (c.type?.includes("esp32") || c.type === "rpi-pico" || c.type === "raspberry-pi") {
+            maxX = x + 128;
+            maxY = y + 368;
+        } else if (c.type === "resistor") {
+            minX = x; maxX = x + 64;
+            minY = y - 12; maxY = y + 12;
+        } else if (c.type === "led") {
+            minX = x - 6; maxX = x + 22;
+            minY = y - 38; maxY = y + 6;
+        } else if (c.type === "potentiometer") {
+            minX = x - 8; maxX = x + 40;
+            minY = y - 44; maxY = y + 6;
+        } else if (c.type === "pushbutton" || c.type === "button") {
+            minX = x; maxX = x + 48;
+            minY = y; maxY = y + 32;
+        } else if (c.type?.includes("switch")) {
+            minX = x - 6; maxX = x + 38;
+            minY = y - 24; maxY = y + 6;
         } else if (c.type === "battery-9v") {
-            w = 48; h = 68;
-        } else if (c.type?.startsWith("battery-aa")) {
-            w = 76; h = 52;
+            minX = x; maxX = x + 64;
+            minY = y; maxY = y + 140;
+        } else if (c.type === "buzzer") {
+            minX = x - 20; maxX = x + 36;
+            minY = y - 48; maxY = y + 6;
+        } else if (c.type?.startsWith("lcd")) {
+            minX = x; maxX = x + 280;
+            minY = y; maxY = y + 120;
+        } else if (c.type === "sensor-ultrasonic") {
+            minX = x - 10; maxX = x + 58;
+            minY = y - 58; maxY = y + 6;
+        } else if (c.type === "sensor-pir") {
+            minX = x - 12; maxX = x + 44;
+            minY = y - 66; maxY = y + 6;
+        } else if (c.type?.startsWith("motor")) {
+            minX = x - 14; maxX = x + 62;
+            minY = y - 82; maxY = y + 8;
         } else if (c.type?.startsWith("ic-")) {
-            w = 68; h = 26;
-        } else if (c.type === "multimeter") {
-            w = 80; h = 110;
-        } else if (c.type === "servo-sg90") {
-            w = 64; h = 38;
+            const is16 = c.type === "ic-l293d" || (c.name || "").includes("L293");
+            maxX = x + (is16 ? 128 : 112);
+            maxY = y + 48;
         }
-        return { minX: x, maxX: x + w, minY: y, maxY: y + h };
+        return { minX, maxX, minY, maxY };
     };
 
     // Calculate symmetrical bounding box centered around circuit coordinates
@@ -789,16 +899,16 @@ function ProjectCircuitMiniPreview({ project, onOpen }) {
             });
         }
     } else {
-        minX = 0; maxX = 360; minY = 0; maxY = 180;
+        minX = 0; maxX = 560; minY = 0; maxY = 288;
     }
 
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
-    const rawW = Math.max(260, maxX - minX);
-    const rawH = Math.max(130, maxY - minY);
+    const rawW = Math.max(280, maxX - minX);
+    const rawH = Math.max(140, maxY - minY);
 
     // Maintain a comfortable 2.05:1 aspect ratio centered symmetrically with balanced margins!
-    const padding = 55;
+    const padding = 50;
     const targetAspect = 2.05;
     let finalW = rawW + padding * 2;
     let finalH = rawH + padding * 2;
@@ -847,26 +957,67 @@ function ProjectCircuitMiniPreview({ project, onOpen }) {
                     </defs>
                     <rect x={viewBoxX} y={viewBoxY} width={finalW} height={finalH} fill="url(#miniGrid)" />
 
-                    {/* Wires with Live Current Pulsing */}
+                    {/* 1. Hardware Components Layer */}
+                    {comps.map((c, idx) => renderMiniComponent(c, idx))}
+
+                    {/* 2. Jumper Wires & Real Connection Terminals (Rendered ON TOP for 100% clarity) */}
                     {wires.map((w, idx) => {
                         const pts = w.points || [];
                         if (pts.length < 2) return null;
-                        const d = `M ${pts[0].x} ${pts[0].y} Q ${(pts[0].x + pts[1].x) / 2} ${Math.min(pts[0].y, pts[1].y) - 15} ${pts[1].x} ${pts[1].y}`;
+                        const pathStr = getWireSvgPath(pts, w.routingMode || "curved");
+                        const wireColor = w.color || "#10b981";
+
                         return (
-                            <path
-                                key={w.id || idx}
-                                d={d}
-                                stroke={w.color || "#10b981"}
-                                strokeWidth="2.4"
-                                fill="none"
-                                strokeDasharray="5 3"
-                                className="mini-signal-wire"
-                            />
+                            <g key={w.id || idx} className="mini-wire-group">
+                                {/* Depth Shadow beneath Wire */}
+                                <path
+                                    d={pathStr}
+                                    stroke="#000000"
+                                    strokeWidth="5.5"
+                                    fill="none"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    opacity="0.38"
+                                />
+                                {/* Vibrant Core Jumper Wire */}
+                                <path
+                                    d={pathStr}
+                                    stroke={wireColor}
+                                    strokeWidth="3.4"
+                                    fill="none"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                                {/* High-Tech Flowing Current Dashes */}
+                                <path
+                                    d={pathStr}
+                                    stroke="#ffffff"
+                                    strokeWidth="1.2"
+                                    fill="none"
+                                    strokeDasharray="4 12"
+                                    strokeLinecap="round"
+                                    opacity="0.75"
+                                    className="mini-signal-wire"
+                                />
+                                {/* Solderless Pin Hole / Terminal Connection Dots */}
+                                {pts.map((pt, pIdx) => {
+                                    const isEnd = pIdx === 0 || pIdx === pts.length - 1;
+                                    return (
+                                        <circle
+                                            key={pIdx}
+                                            cx={pt.x}
+                                            cy={pt.y}
+                                            r={isEnd ? 3.8 : 2.5}
+                                            fill={isEnd ? "#ffffff" : wireColor}
+                                            stroke={wireColor}
+                                            strokeWidth={isEnd ? 1.8 : 1}
+                                            filter="drop-shadow(0 1px 3px rgba(0,0,0,0.6))"
+                                        />
+                                    );
+                                })}
+                            </g>
                         );
                     })}
-
-                    {/* Highly-Detailed 90%-100% Real Components */}
-                    {comps.map((c, idx) => renderMiniComponent(c, idx))}
                 </svg>
             </div>
 
@@ -898,15 +1049,26 @@ function Dashboard({ onOpenWorkspace }) {
 
     // Sync with localStorage
     useEffect(() => {
-        try {
-            const saved = localStorage.getItem(PROJECTS_STORAGE_KEY);
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    setProjects(parsed);
+        const handleSync = () => {
+            try {
+                const saved = localStorage.getItem(PROJECTS_STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        setProjects(parsed);
+                    }
                 }
-            }
-        } catch (e) {}
+            } catch (e) {}
+        };
+        handleSync();
+        window.addEventListener("storage", handleSync);
+        window.addEventListener("focus", handleSync);
+        window.addEventListener("twinlab:project_saved", handleSync);
+        return () => {
+            window.removeEventListener("storage", handleSync);
+            window.removeEventListener("focus", handleSync);
+            window.removeEventListener("twinlab:project_saved", handleSync);
+        };
     }, []);
 
     const getNextProjectName = () => {
@@ -923,14 +1085,41 @@ function Dashboard({ onOpenWorkspace }) {
 
     const suggestedName = getNextProjectName();
 
-    const activeProject = projects[0] || {
-        id: "proj-1",
-        name: "Project - 1",
-        chip: "ESP32-S3",
-        accent: "#FF8A00",
-        icon: "ri-cpu-line",
-        components: []
-    };
+    const activeProject = (() => {
+        try {
+            const activeRaw = localStorage.getItem(ACTIVE_STORAGE_KEY);
+            if (activeRaw) {
+                const parsed = JSON.parse(activeRaw);
+                if (parsed && ((parsed.components && parsed.components.length > 0) || (parsed.wires && parsed.wires.length > 0) || parsed.name)) {
+                    return parsed;
+                }
+            }
+            const draftRaw = sessionStorage.getItem(DRAFT_STORAGE_KEY);
+            if (draftRaw) {
+                const draft = JSON.parse(draftRaw);
+                if (draft && ((draft.components && draft.components.length > 0) || (draft.wires && draft.wires.length > 0))) {
+                    return {
+                        id: draft.id || "draft-proj",
+                        name: draft.name || (projects[0]?.name) || "Recent Circuit",
+                        chip: draft.chip || (projects[0]?.chip) || "ESP32-S3",
+                        accent: draft.accent || (projects[0]?.accent) || "#FF8A00",
+                        icon: "ri-cpu-line",
+                        lastEdited: "Just now",
+                        components: draft.components || [],
+                        wires: draft.wires || []
+                    };
+                }
+            }
+        } catch (e) {}
+        return projects[0] || {
+            id: "proj-1",
+            name: "Project - 1",
+            chip: "ESP32-S3",
+            accent: "#FF8A00",
+            icon: "ri-cpu-line",
+            components: []
+        };
+    })();
 
     const handleCreateProject = ({ name, template, color }) => {
         const templateObj = STARTER_TEMPLATES.find(t => t.id === template) || STARTER_TEMPLATES[0];

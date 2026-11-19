@@ -52,7 +52,7 @@
 }
 
 /* ============================================================
-   LIGHT MODE: STRICTLY REMOVE TOPBAR BACKGROUND CONTAINER & SECTIONS
+   LIGHT MODE: SOLID FLOATING ISLANDS FOR INDIVIDUAL TOPBAR SECTIONS
    ============================================================ */
 [data-theme="light"] .top-floating-bar,
 [data-theme="paper"] .top-floating-bar,
@@ -71,59 +71,43 @@
 [data-theme="solar-light"] .topbar-section,
 [data-theme="cyber-light"] .topbar-section,
 [data-theme-category="light"] .topbar-section {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    padding: 0;
+    background: #ffffff !important;
+    border: 1px solid rgba(15, 23, 42, 0.12) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04) !important;
+    padding: 0 12px !important;
 }
 
-/* Light Mode Floating Island Pill Controls - Crisp and Legible */
+/* Light Mode Floating Island Controls - Crisp & Integrated */
 [data-theme="light"] .top-icon-btn,
 [data-theme="paper"] .top-icon-btn,
 [data-theme="solar-light"] .top-icon-btn,
 [data-theme="cyber-light"] .top-icon-btn,
-[data-theme-category="light"] .top-icon-btn,
-[data-theme="light"] .components-pill-btn,
-[data-theme="paper"] .components-pill-btn,
-[data-theme="solar-light"] .components-pill-btn,
-[data-theme="cyber-light"] .components-pill-btn,
-[data-theme-category="light"] .components-pill-btn,
-[data-theme="light"] .sim-controls-pill,
-[data-theme="paper"] .sim-controls-pill,
-[data-theme="solar-light"] .sim-controls-pill,
-[data-theme="cyber-light"] .sim-controls-pill,
-[data-theme-category="light"] .sim-controls-pill,
-[data-theme="light"] .zoom-group,
-[data-theme="paper"] .zoom-group,
-[data-theme="solar-light"] .zoom-group,
-[data-theme="cyber-light"] .zoom-group,
-[data-theme-category="light"] .zoom-group,
-[data-theme="light"] .undo-redo-pill,
-[data-theme="paper"] .undo-redo-pill,
-[data-theme="solar-light"] .undo-redo-pill,
-[data-theme="cyber-light"] .undo-redo-pill,
-[data-theme-category="light"] .undo-redo-pill,
-[data-theme="light"] .search-pill-btn,
-[data-theme="paper"] .search-pill-btn,
-[data-theme="solar-light"] .search-pill-btn,
-[data-theme="cyber-light"] .search-pill-btn,
-[data-theme-category="light"] .search-pill-btn,
-[data-theme="light"] .view-mode-pill-btn,
-[data-theme="paper"] .view-mode-pill-btn,
-[data-theme="solar-light"] .view-mode-pill-btn,
-[data-theme="cyber-light"] .view-mode-pill-btn,
-[data-theme-category="light"] .view-mode-pill-btn,
-[data-theme="light"] .code-pill-btn,
-[data-theme="paper"] .code-pill-btn,
-[data-theme="solar-light"] .code-pill-btn,
-[data-theme="cyber-light"] .code-pill-btn,
-[data-theme-category="light"] .code-pill-btn {
-    background: #ffffff !important;
-    border: 1px solid rgba(15, 23, 42, 0.12) !important;
+[data-theme-category="light"] .top-icon-btn {
+    background: rgba(15, 23, 42, 0.04) !important;
+    border: 1px solid rgba(15, 23, 42, 0.08) !important;
+    color: #334155 !important;
+    box-shadow: none !important;
+}
+
+[data-theme="light"] .top-icon-btn:hover,
+[data-theme="paper"] .top-icon-btn:hover,
+[data-theme="solar-light"] .top-icon-btn:hover,
+[data-theme="cyber-light"] .top-icon-btn:hover,
+[data-theme-category="light"] .top-icon-btn:hover {
+    background: rgba(15, 23, 42, 0.08) !important;
     color: #0f172a !important;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme="light"] .components-toggle-btn,
+[data-theme="paper"] .components-toggle-btn,
+[data-theme="solar-light"] .components-toggle-btn,
+[data-theme="cyber-light"] .components-toggle-btn,
+[data-theme-category="light"] .components-toggle-btn {
+    background: rgba(15, 23, 42, 0.04) !important;
+    border: 1px solid rgba(15, 23, 42, 0.08) !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
 }
 
 [data-theme="light"] .project-name-pill,
@@ -131,12 +115,56 @@
 [data-theme="solar-light"] .project-name-pill,
 [data-theme="cyber-light"] .project-name-pill,
 [data-theme-category="light"] .project-name-pill {
-    background: #ffffff !important;
-    border: 1px solid rgba(15, 23, 42, 0.12) !important;
-    border-radius: 999px !important;
-    padding: 3px 12px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     color: #0f172a !important;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08) !important;
+    padding: 0 6px !important;
+}
+
+[data-theme="light"] .project-name-text {
+    color: #0f172a !important;
+}
+
+[data-theme="light"] .sim-btn {
+    color: #475569 !important;
+}
+
+[data-theme="light"] .sim-btn:hover {
+    background: rgba(15, 23, 42, 0.06) !important;
+    color: #0f172a !important;
+}
+
+[data-theme="light"] .sim-btn.play {
+    color: #059669 !important;
+}
+
+[data-theme="light"] .sim-btn.stop {
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .zoom-level-text {
+    color: #334155 !important;
+}
+
+[data-theme="light"] .zoom-btn {
+    color: #475569 !important;
+}
+
+[data-theme="light"] .zoom-btn:hover {
+    background: rgba(15, 23, 42, 0.06) !important;
+    color: #0f172a !important;
+}
+
+[data-theme="light"] .view-mode-pill-btn {
+    background: rgba(15, 23, 42, 0.04) !important;
+    border: 1px solid rgba(15, 23, 42, 0.08) !important;
+    color: #334155 !important;
+}
+
+[data-theme="light"] .view-mode-pill-btn:hover {
+    background: rgba(15, 23, 42, 0.08) !important;
+    color: #0f172a !important;
 }
 
 .top-divider {
@@ -240,11 +268,31 @@
 }
 
 .topbar-cloud-indicator {
-    font-size: 11px;
+    font-size: 13px;
     color: #38bdf8;
     display: inline-flex;
     align-items: center;
-    opacity: 0.85;
+    justify-content: center;
+    margin-left: 2px;
+    opacity: 0.9;
+    transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.topbar-cloud-indicator.is-synced {
+    color: #10b981;
+}
+
+.topbar-cloud-indicator.is-local {
+    color: #94a3b8;
+    opacity: 0.75;
+}
+
+[data-theme="light"] .topbar-cloud-indicator.is-local {
+    color: #64748b;
+}
+
+[data-theme="light"] .topbar-cloud-indicator.is-synced {
+    color: #059669;
 }
 
 .project-name-pill {
@@ -327,11 +375,31 @@
 }
 
 .topbar-cloud-indicator {
-    font-size: 11px;
+    font-size: 13px;
     color: #38bdf8;
     display: inline-flex;
     align-items: center;
-    opacity: 0.85;
+    justify-content: center;
+    margin-left: 2px;
+    opacity: 0.9;
+    transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.topbar-cloud-indicator.is-synced {
+    color: #10b981;
+}
+
+.topbar-cloud-indicator.is-local {
+    color: #94a3b8;
+    opacity: 0.75;
+}
+
+[data-theme="light"] .topbar-cloud-indicator.is-local {
+    color: #64748b;
+}
+
+[data-theme="light"] .topbar-cloud-indicator.is-synced {
+    color: #059669;
 }
 
 .project-name-pill {

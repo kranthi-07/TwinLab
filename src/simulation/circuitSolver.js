@@ -1226,93 +1226,120 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                 const in1 = isPinHigh(2);
                 const out1 = en12 && in1;
                 gateOutputs[3] = out1 ? 1 : 0;
+                const outNode1 = dsu.find(pNodes[3]);
+                const srcId1 = `l293d_${c.id}_out1`;
                 if (out1) {
-                    const outNode = dsu.find(pNodes[3]);
-                    posNodes.push(outNode);
-                    const srcId = `l293d_${c.id}_out1`;
-                    if (!powerSources.some(ps => ps.id === srcId)) {
-                        powerSources.push({
-                            id: srcId,
-                            sourceType: "ic-l293d",
-                            sourceId: c.id,
-                            name: `L293D Output 1 (${vMotor.toFixed(1)}V)`,
-                            posNode: outNode,
-                            gndNode,
-                            voltage: vMotor
-                        });
+                    if (!posNodes.some(pn => dsu.find(pn) === outNode1)) posNodes.push(outNode1);
+                    const existingIdx = powerSources.findIndex(ps => ps.id === srcId1);
+                    const newPs = {
+                        id: srcId1,
+                        sourceType: "ic-l293d",
+                        sourceId: c.id,
+                        name: `L293D Output 1 (${vMotor.toFixed(1)}V)`,
+                        posNode: outNode1,
+                        gndNode,
+                        voltage: vMotor
+                    };
+                    if (existingIdx >= 0) powerSources[existingIdx] = newPs;
+                    else powerSources.push(newPs);
+                } else {
+                    const psIdx = powerSources.findIndex(ps => ps.id === srcId1);
+                    if (psIdx >= 0) powerSources.splice(psIdx, 1);
+                    const pnIdx = posNodes.findIndex(pn => dsu.find(pn) === outNode1);
+                    if (pnIdx >= 0) posNodes.splice(pnIdx, 1);
+                    if (en12) {
+                        dsu.union(outNode1, gndNode);
                     }
-                } else if (en12) {
-                    // Sinks to ground when enabled and input is LOW
-                    dsu.union(dsu.find(pNodes[3]), gndNode);
                 }
 
                 // Channel 2: In 2 (Pin 7) -> Out 2 (Pin 6)
                 const in2 = isPinHigh(7);
                 const out2 = en12 && in2;
                 gateOutputs[6] = out2 ? 1 : 0;
+                const outNode2 = dsu.find(pNodes[6]);
+                const srcId2 = `l293d_${c.id}_out2`;
                 if (out2) {
-                    const outNode = dsu.find(pNodes[6]);
-                    posNodes.push(outNode);
-                    const srcId = `l293d_${c.id}_out2`;
-                    if (!powerSources.some(ps => ps.id === srcId)) {
-                        powerSources.push({
-                            id: srcId,
-                            sourceType: "ic-l293d",
-                            sourceId: c.id,
-                            name: `L293D Output 2 (${vMotor.toFixed(1)}V)`,
-                            posNode: outNode,
-                            gndNode,
-                            voltage: vMotor
-                        });
+                    if (!posNodes.some(pn => dsu.find(pn) === outNode2)) posNodes.push(outNode2);
+                    const existingIdx = powerSources.findIndex(ps => ps.id === srcId2);
+                    const newPs = {
+                        id: srcId2,
+                        sourceType: "ic-l293d",
+                        sourceId: c.id,
+                        name: `L293D Output 2 (${vMotor.toFixed(1)}V)`,
+                        posNode: outNode2,
+                        gndNode,
+                        voltage: vMotor
+                    };
+                    if (existingIdx >= 0) powerSources[existingIdx] = newPs;
+                    else powerSources.push(newPs);
+                } else {
+                    const psIdx = powerSources.findIndex(ps => ps.id === srcId2);
+                    if (psIdx >= 0) powerSources.splice(psIdx, 1);
+                    const pnIdx = posNodes.findIndex(pn => dsu.find(pn) === outNode2);
+                    if (pnIdx >= 0) posNodes.splice(pnIdx, 1);
+                    if (en12) {
+                        dsu.union(outNode2, gndNode);
                     }
-                } else if (en12) {
-                    dsu.union(dsu.find(pNodes[6]), gndNode);
                 }
 
                 // Channel 3: In 3 (Pin 10) -> Out 3 (Pin 11)
                 const in3 = isPinHigh(10);
                 const out3 = en34 && in3;
                 gateOutputs[11] = out3 ? 1 : 0;
+                const outNode3 = dsu.find(pNodes[11]);
+                const srcId3 = `l293d_${c.id}_out3`;
                 if (out3) {
-                    const outNode = dsu.find(pNodes[11]);
-                    posNodes.push(outNode);
-                    const srcId = `l293d_${c.id}_out3`;
-                    if (!powerSources.some(ps => ps.id === srcId)) {
-                        powerSources.push({
-                            id: srcId,
-                            sourceType: "ic-l293d",
-                            sourceId: c.id,
-                            name: `L293D Output 3 (${vMotor.toFixed(1)}V)`,
-                            posNode: outNode,
-                            gndNode,
-                            voltage: vMotor
-                        });
+                    if (!posNodes.some(pn => dsu.find(pn) === outNode3)) posNodes.push(outNode3);
+                    const existingIdx = powerSources.findIndex(ps => ps.id === srcId3);
+                    const newPs = {
+                        id: srcId3,
+                        sourceType: "ic-l293d",
+                        sourceId: c.id,
+                        name: `L293D Output 3 (${vMotor.toFixed(1)}V)`,
+                        posNode: outNode3,
+                        gndNode,
+                        voltage: vMotor
+                    };
+                    if (existingIdx >= 0) powerSources[existingIdx] = newPs;
+                    else powerSources.push(newPs);
+                } else {
+                    const psIdx = powerSources.findIndex(ps => ps.id === srcId3);
+                    if (psIdx >= 0) powerSources.splice(psIdx, 1);
+                    const pnIdx = posNodes.findIndex(pn => dsu.find(pn) === outNode3);
+                    if (pnIdx >= 0) posNodes.splice(pnIdx, 1);
+                    if (en34) {
+                        dsu.union(outNode3, gndNode);
                     }
-                } else if (en34) {
-                    dsu.union(dsu.find(pNodes[11]), gndNode);
                 }
 
                 // Channel 4: In 4 (Pin 15) -> Out 4 (Pin 14)
                 const in4 = isPinHigh(15);
                 const out4 = en34 && in4;
                 gateOutputs[14] = out4 ? 1 : 0;
+                const outNode4 = dsu.find(pNodes[14]);
+                const srcId4 = `l293d_${c.id}_out4`;
                 if (out4) {
-                    const outNode = dsu.find(pNodes[14]);
-                    posNodes.push(outNode);
-                    const srcId = `l293d_${c.id}_out4`;
-                    if (!powerSources.some(ps => ps.id === srcId)) {
-                        powerSources.push({
-                            id: srcId,
-                            sourceType: "ic-l293d",
-                            sourceId: c.id,
-                            name: `L293D Output 4 (${vMotor.toFixed(1)}V)`,
-                            posNode: outNode,
-                            gndNode,
-                            voltage: vMotor
-                        });
+                    if (!posNodes.some(pn => dsu.find(pn) === outNode4)) posNodes.push(outNode4);
+                    const existingIdx = powerSources.findIndex(ps => ps.id === srcId4);
+                    const newPs = {
+                        id: srcId4,
+                        sourceType: "ic-l293d",
+                        sourceId: c.id,
+                        name: `L293D Output 4 (${vMotor.toFixed(1)}V)`,
+                        posNode: outNode4,
+                        gndNode,
+                        voltage: vMotor
+                    };
+                    if (existingIdx >= 0) powerSources[existingIdx] = newPs;
+                    else powerSources.push(newPs);
+                } else {
+                    const psIdx = powerSources.findIndex(ps => ps.id === srcId4);
+                    if (psIdx >= 0) powerSources.splice(psIdx, 1);
+                    const pnIdx = posNodes.findIndex(pn => dsu.find(pn) === outNode4);
+                    if (pnIdx >= 0) posNodes.splice(pnIdx, 1);
+                    if (en34) {
+                        dsu.union(outNode4, gndNode);
                     }
-                } else if (en34) {
-                    dsu.union(dsu.find(pNodes[14]), gndNode);
                 }
 
                 icStates[c.id] = {
@@ -1411,14 +1438,24 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             }
 
             const gateOutputs = {};
+            const gateInputs = {};
             gates.forEach(g => {
                 const inValues = g.in.map(pinIn => {
                     const inNode = dsu.find(pNodes[pinIn]);
-                    if (inNode === vccRoot) return true;
-                    if (inNode === gndRoot) return false;
-                    if (posNodes.some(pn => dsu.find(pn) === inNode)) return true;
+                    if (inNode === gndRoot || gndNodes.some(gn => dsu.find(gn) === inNode)) {
+                        gateInputs[pinIn] = 0;
+                        return false;
+                    }
+                    if (inNode === vccRoot || posNodes.some(pn => dsu.find(pn) === inNode)) {
+                        gateInputs[pinIn] = 1;
+                        return true;
+                    }
                     const pSrc = findActivePowerSourceForLoad(inNode, gndRoot);
-                    if (pSrc && pSrc.polarity === "forward" && pSrc.voltage >= 2.0) return true;
+                    if (pSrc && pSrc.polarity === "forward" && pSrc.voltage >= 2.0) {
+                        gateInputs[pinIn] = 1;
+                        return true;
+                    }
+                    gateInputs[pinIn] = 0;
                     return false;
                 });
 
@@ -1426,21 +1463,28 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                 gateOutputs[g.out] = outLogic ? 1 : 0;
 
                 const outNode = dsu.find(pNodes[g.out]);
+                const srcId = `ic_gate_${c.id}_pin${g.out}`;
                 if (outLogic) {
-                    posNodes.push(outNode);
-                    const srcId = `ic_gate_${c.id}_pin${g.out}`;
-                    if (!powerSources.some(ps => ps.id === srcId)) {
-                        powerSources.push({
-                            id: srcId,
-                            sourceType: c.type,
-                            sourceId: c.id,
-                            name: `${icCode} Output Pin ${g.out} (${vSupply.toFixed(1)}V)`,
-                            posNode: outNode,
-                            gndNode: gndRoot,
-                            voltage: vSupply
-                        });
+                    if (!posNodes.some(pn => dsu.find(pn) === outNode)) {
+                        posNodes.push(outNode);
                     }
+                    const existingIdx = powerSources.findIndex(ps => ps.id === srcId);
+                    const newPs = {
+                        id: srcId,
+                        sourceType: c.type,
+                        sourceId: c.id,
+                        name: `${icCode} Output Pin ${g.out} (${vSupply.toFixed(1)}V)`,
+                        posNode: outNode,
+                        gndNode: gndRoot,
+                        voltage: vSupply
+                    };
+                    if (existingIdx >= 0) powerSources[existingIdx] = newPs;
+                    else powerSources.push(newPs);
                 } else {
+                    const psIdx = powerSources.findIndex(ps => ps.id === srcId);
+                    if (psIdx >= 0) powerSources.splice(psIdx, 1);
+                    const pnIdx = posNodes.findIndex(pn => dsu.find(pn) === outNode);
+                    if (pnIdx >= 0) posNodes.splice(pnIdx, 1);
                     gndNodes.push(outNode);
                 }
             });
@@ -1450,7 +1494,8 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
                 voltage: vSupply,
                 currentMa: 5,
                 powerSourceId: powerConn.powerSource.id,
-                outputs: gateOutputs
+                outputs: gateOutputs,
+                inputs: gateInputs
             };
         });
     }
@@ -3130,6 +3175,45 @@ export function solveCircuit({ components = [], wires = [], isSimulating = false
             else if (pin.name === "VBUS" || pin.name === "VSYS" || pin.is3V3 || pin.name === "3V3") posPoints.push(pt);
             else if (pin.isGpio && mcuStates?.[b.id]?.pins?.[String(pin.pinNum)] === 1) posPoints.push(pt);
         });
+    });
+
+    // 5. Active DIP Logic ICs & Motor Drivers (Outputs & GND points for electron direction)
+    Object.entries(icStates).forEach(([icId, state]) => {
+        if (state.isPowered) {
+            const comp = components.find(c => c.id === icId);
+            if (comp) {
+                const rotRad = ((comp.rotation || 0) * Math.PI) / 180;
+                const cos = Math.cos(rotRad);
+                const sin = Math.sin(rotRad);
+                const is16 = comp.type === "ic-l293d" || (comp.modelNumber || "").includes("L293") || (comp.name || "").includes("L293");
+                const pinOffsetsMap = is16 ? pinOffsets16 : pinOffsets14;
+
+                // GND point
+                if (is16) {
+                    const gndPins = [{ lx: 48, ly: 32 }, { lx: 64, ly: 32 }, { lx: 64, ly: 0 }, { lx: 48, ly: 0 }];
+                    gndPins.forEach(gp => {
+                        gndPoints.push({ x: Math.round(comp.x + gp.lx * cos - gp.ly * sin), y: Math.round(comp.y + gp.lx * sin + gp.ly * cos) });
+                    });
+                } else {
+                    gndPoints.push({ x: Math.round(comp.x + 96 * cos - 32 * sin), y: Math.round(comp.y + 96 * sin + 32 * cos) });
+                }
+
+                // Output points: if HIGH, flow originates toward load; if LOW, acts as ground sink
+                if (state.outputs) {
+                    Object.entries(state.outputs).forEach(([pNum, val]) => {
+                        const off = pinOffsetsMap[Number(pNum)];
+                        if (off) {
+                            const pt = { x: Math.round(comp.x + off.lx * cos - off.ly * sin), y: Math.round(comp.y + off.lx * sin + off.ly * cos) };
+                            if (val) {
+                                posPoints.push(pt);
+                            } else {
+                                gndPoints.push(pt);
+                            }
+                        }
+                    });
+                }
+            }
+        }
     });
 
     const wireStates = {};

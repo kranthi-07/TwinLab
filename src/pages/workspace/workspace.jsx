@@ -703,14 +703,34 @@ function Workspace({ onBackToHome }) {
         ? (selectedId.length === 1 ? components.find(c => c.id === selectedId[0]) : null)
         : components.find(c => c.id === selectedId);
 
-    // Keep draft updated in session storage so page reloads never lose in-progress work
+    // Keep draft and active project updated in storage so page reloads and dashboard preview always have the 100% exact past project
     useEffect(() => {
         try {
-            sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ components, wires, firmwareCode: userCode }));
+            const projectData = {
+                ...projectMeta,
+                components,
+                wires,
+                firmwareCode: userCode,
+                lastEdited: "Just now",
+                updatedAt: new Date().toISOString()
+            };
+            sessionStorage.setItem(DRAFT_KEY, JSON.stringify(projectData));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(projectData));
+
+            // Also update the project in twinlab_user_projects so dashboard and profile match 100%
+            const listStr = localStorage.getItem("twinlab_user_projects");
+            if (listStr) {
+                let list = JSON.parse(listStr);
+                const idx = list.findIndex(p => p.id === projectData.id);
+                if (idx >= 0) {
+                    list[idx] = { ...list[idx], ...projectData };
+                    localStorage.setItem("twinlab_user_projects", JSON.stringify(list));
+                }
+            }
         } catch (e) {
             // ignore
         }
-    }, [components, wires, userCode]);
+    }, [components, wires, userCode, projectMeta]);
 
     // Save Project handler
     

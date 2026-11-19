@@ -3147,19 +3147,42 @@ function SmallComponent({
                                                 top: "50%",
                                                 left: "50%",
                                                 transform: "translate(-50%, -50%)",
+                                                width: 5,
+                                                height: 5,
+                                                borderRadius: "50%",
+                                                pointerEvents: "none",
+                                                backgroundColor: simState?.outputs?.[p.num] ? "#22c55e" : "#475569",
+                                                boxShadow: simState?.outputs?.[p.num] ? "0 0 7px #22c55e" : "none"
+                                            }}
+                                        />
+                                    )}
+                                    {isPowered && !p.isOut && !p.is5V && !p.isGnd && simState?.inputs?.[p.num] !== undefined && (
+                                        <span 
+                                            className="ic-input-status-dot"
+                                            style={{
+                                                position: "absolute",
+                                                top: "50%",
+                                                left: "50%",
+                                                transform: "translate(-50%, -50%)",
                                                 width: 4,
                                                 height: 4,
                                                 borderRadius: "50%",
                                                 pointerEvents: "none",
-                                                backgroundColor: simState?.outputs?.[p.num] ? "#22c55e" : "#64748b",
-                                                boxShadow: simState?.outputs?.[p.num] ? "0 0 6px #22c55e" : "none"
+                                                backgroundColor: simState?.inputs?.[p.num] ? "#00f0ff" : "#334155",
+                                                boxShadow: simState?.inputs?.[p.num] ? "0 0 5px #00f0ff" : "none"
                                             }}
                                         />
                                     )}
                                 </span>
                                 {hoveredTerminal === `ic_${p.num}` && (
                                     <div className="terminal-hover-tooltip" style={{ left: p.x, top: 0, transform: `translate(-50%, -100%) translateY(-6px) rotate(${-(rotation || 0)}deg)`, zIndex: 60 }}>
-                                        Pin {p.num}: {p.name} ({p.desc}){isPowered && p.isOut ? ` - ${simState?.outputs?.[p.num] ? "HIGH (5V)" : "LOW (0V)"}` : ""}
+                                        Pin {p.num}: {p.name} ({p.desc}){
+                                            isPowered ? (
+                                                p.isOut ? ` — OUT: ${simState?.outputs?.[p.num] ? "HIGH (5V)" : "LOW (0V)"}` :
+                                                (!p.is5V && !p.isGnd && simState?.inputs?.[p.num] !== undefined) ? ` — IN: ${simState?.inputs?.[p.num] ? "HIGH (1)" : "LOW (0)"}` :
+                                                p.is5V ? " — VCC (+5V)" : p.isGnd ? " — GND (0V)" : ""
+                                            ) : ""
+                                        }
                                     </div>
                                 )}
                             </React.Fragment>
@@ -3186,19 +3209,42 @@ function SmallComponent({
                                                 top: "50%",
                                                 left: "50%",
                                                 transform: "translate(-50%, -50%)",
+                                                width: 5,
+                                                height: 5,
+                                                borderRadius: "50%",
+                                                pointerEvents: "none",
+                                                backgroundColor: simState?.outputs?.[p.num] ? "#22c55e" : "#475569",
+                                                boxShadow: simState?.outputs?.[p.num] ? "0 0 7px #22c55e" : "none"
+                                            }}
+                                        />
+                                    )}
+                                    {isPowered && !p.isOut && !p.is5V && !p.isGnd && simState?.inputs?.[p.num] !== undefined && (
+                                        <span 
+                                            className="ic-input-status-dot"
+                                            style={{
+                                                position: "absolute",
+                                                top: "50%",
+                                                left: "50%",
+                                                transform: "translate(-50%, -50%)",
                                                 width: 4,
                                                 height: 4,
                                                 borderRadius: "50%",
                                                 pointerEvents: "none",
-                                                backgroundColor: simState?.outputs?.[p.num] ? "#22c55e" : "#64748b",
-                                                boxShadow: simState?.outputs?.[p.num] ? "0 0 6px #22c55e" : "none"
+                                                backgroundColor: simState?.inputs?.[p.num] ? "#00f0ff" : "#334155",
+                                                boxShadow: simState?.inputs?.[p.num] ? "0 0 5px #00f0ff" : "none"
                                             }}
                                         />
                                     )}
                                 </span>
                                 {hoveredTerminal === `ic_${p.num}` && (
                                     <div className="terminal-hover-tooltip" style={{ left: p.x, top: 32, transform: `translate(-50%, 0) translateY(10px) rotate(${-(rotation || 0)}deg)`, zIndex: 60 }}>
-                                        Pin {p.num}: {p.name} ({p.desc}){isPowered && p.isOut ? ` - ${simState?.outputs?.[p.num] ? "HIGH (5V)" : "LOW (0V)"}` : ""}
+                                        Pin {p.num}: {p.name} ({p.desc}){
+                                            isPowered ? (
+                                                p.isOut ? ` — OUT: ${simState?.outputs?.[p.num] ? "HIGH (5V)" : "LOW (0V)"}` :
+                                                (!p.is5V && !p.isGnd && simState?.inputs?.[p.num] !== undefined) ? ` — IN: ${simState?.inputs?.[p.num] ? "HIGH (1)" : "LOW (0)"}` :
+                                                p.is5V ? " — VCC (+5V)" : p.isGnd ? " — GND (0V)" : ""
+                                            ) : ""
+                                        }
                                     </div>
                                 )}
                             </React.Fragment>

@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../../../context/ThemeContext";
 import { soundManager } from "../../../utils/audioManager";
 import authService from "../../../services/authService";
-import { ProfileModal } from "../../profile/ProfileModal";
 
 const COMPONENT_META = {
     "resistor": { label: "Resistor", icon: "ri-pulse-line" },
@@ -1377,7 +1376,6 @@ function TopFloatingBar({
 }) {
     const { isDark, toggleTheme } = useTheme();
     const [user, setUser] = useState(() => authService.getCurrentUser());
-    const [showProfileModal, setShowProfileModal] = useState(false);
     const [isComponentsOpen, setIsComponentsOpen] = useState(false);
 
     useEffect(() => {
@@ -1528,36 +1526,15 @@ function TopFloatingBar({
                                 >
                                     {projectName || "Project - 1"}
                                 </span>
-                                <span className="topbar-cloud-indicator" title="Synced with TwinLab Cloud Vault">
-                                    <i className="ri-cloud-line" />
+                                <span 
+                                    className={`topbar-cloud-indicator ${isGuest ? "is-local" : "is-synced"}`} 
+                                    title={isGuest ? "Local Project • Working in guest session (saved locally)" : (userEmail ? `Synced to Cloud Vault (${userEmail})` : "Synced with TwinLab Cloud Vault")}
+                                >
+                                    <i className={isGuest ? "ri-hard-drive-2-line" : "ri-cloud-check-line"} />
                                 </span>
                             </div>
                         )}
                     </div>
-
-                    {/* Guest Mode: Option to Save Project to Logged In Account */}
-                    {isGuest && (
-                        <button
-                            type="button"
-                            className="topbar-guest-save-pill"
-                            onClick={onOpenSaveToAccount}
-                            title="Working in Guest Mode • Click to save this project to your personal account"
-                        >
-                            <span className="guest-pulse-dot" />
-                            <i className="ri-cloud-upload-line" />
-                            <span className="guest-pill-text">Save to Account</span>
-                        </button>
-                    )}
-
-                    {!isGuest && (
-                        <div 
-                            className="topbar-cloud-synced-pill" 
-                            title={userEmail ? `Project synced to cloud account (${userEmail})` : "Synced with TwinLab Cloud Vault"}
-                        >
-                            <i className="ri-cloud-check-line" />
-                            <span className="cloud-synced-text">Synced</span>
-                        </div>
-                    )}
 
                     <div className="top-divider"></div>
 
@@ -2124,31 +2101,6 @@ function TopFloatingBar({
                         <span>Code</span>
                         <span className="code-badge">C++</span>
                     </button>
-
-                    <div className="top-divider"></div>
-
-                    {/* User Profile Button */}
-                    <button 
-                        type="button"
-                        className={`workspace-profile-btn ${!user.isGuest ? "is-pro" : ""}`}
-                        onClick={() => {
-                            if (user.isGuest) {
-                                onOpenSaveToAccount ? onOpenSaveToAccount() : setShowProfileModal(true);
-                            } else {
-                                setShowProfileModal(true);
-                            }
-                        }}
-                        title={user.isGuest ? "Guest Engineer - Sign In" : `Profile & Account (${user.name})`}
-                    >
-                        {!user.isGuest ? (
-                            <span className="workspace-user-initial">
-                                {(user.name || user.email || "U").trim().charAt(0).toUpperCase()}
-                            </span>
-                        ) : (
-                            <i className="ri-user-smile-line"></i>
-                        )}
-                        {!user.isGuest && <span className="profile-cloud-badge">☁️</span>}
-                    </button>
                 </div>
             </div>
 
@@ -2640,12 +2592,6 @@ function TopFloatingBar({
                     </motion.div>
                 )}
             </AnimatePresence>
-            {/* User Profile & Data Interface Modal */}
-            <ProfileModal 
-                isOpen={showProfileModal} 
-                onClose={() => setShowProfileModal(false)} 
-                onOpenLogin={onOpenSaveToAccount}
-            />
         </header>
     );
 }
