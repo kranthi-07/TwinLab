@@ -419,8 +419,9 @@ function SmallComponent({
             const coneRangeCm = component?.rangeCm || component?.maxRangeCm || 200;
             const coneLimit = Math.max(50, 32 + Math.min(400, coneRangeCm) * 1.15);
             const inRange = dy > 0 && Math.abs(phi) <= maxHalfAngleRad && distPx <= coneLimit;
-            const dist = Math.max(2, Math.min(400, Math.round(Math.max(0, distPx - 32) / 1.15)));
-            const activeDist = inRange ? dist : 400;
+            const dist = Math.max(2, Math.round(Math.max(0, distPx - 32) / 1.15));
+            // Show live distance continuously even when outside sensor beam cone or range
+            const activeDist = dist;
 
             if (typeof window !== "undefined") {
                 window.__twinlab_ultrasonic_distance = activeDist;
@@ -3284,7 +3285,7 @@ function SmallComponent({
                 const ballDistPx = Math.hypot(ballDx, ballDy);
                 const ballPhi = Math.atan2(ballDx, ballDy);
                 const isBallInRange = ballDy > 0 && Math.abs(ballPhi) <= maxHalfAngleRad && ballDistPx <= maxRangeR;
-                const ballMeasuredDist = Math.max(2, Math.min(400, Math.round(Math.max(0, ballDistPx - 32) / 1.15)));
+                const ballMeasuredDist = Math.max(2, Math.round(Math.max(0, ballDistPx - 32) / 1.15));
 
                 return (
                     <div className={`ultrasonic-container ${isPinging ? "is-pinging" : ""} ${isPowered ? "is-powered" : "is-unpowered"}`}>
@@ -3351,7 +3352,7 @@ function SmallComponent({
                             <text x="24" y="-88" fill="#ffffff" fontSize="9.5" fontWeight="900" textAnchor="middle" letterSpacing="0.05em">HC-SR04</text>
                             <text x="24" y="-76" fill="#e0f2fe" fontSize="5.5" fontWeight="800" textAnchor="middle">TWINLAB X • ULTRASONIC</text>
                             <text x="24" y="-30" fill={isPowered ? (isBallInRange ? "#67e8f9" : "#fbbf24") : "#e2e8f0"} fontSize={isPowered ? "8" : "7"} fontWeight="900" textAnchor="middle">
-                                {isPowered ? (isBallInRange ? `${ballMeasuredDist} cm` : "Out of Range") : `${coneRangeCm} cm Max`}
+                                {isPowered ? `${ballMeasuredDist} cm${!isBallInRange ? " (Out)" : ""}` : `${coneRangeCm} cm Max`}
                             </text>
 
                             {/* Black DuPont Connector Block at Y=-14 to Y=-4 */}
@@ -3494,7 +3495,12 @@ function SmallComponent({
                                                 <tspan fill="#ffffff" fontWeight="800" fontSize="10.5">{ballMeasuredDist} cm</tspan>
                                             </>
                                         ) : (
-                                            <tspan fill="#fb7185" fontWeight="800" fontSize="9.5" letterSpacing="0.04em">OUT OF RANGE (400 cm)</tspan>
+                                            <>
+                                                <tspan fill="#f43f5e" fontWeight="800" fontSize="10.5">{(ballMeasuredDist / 2.54).toFixed(1)} in</tspan>
+                                                <tspan fill="#64748b" fontSize="9.5"> / </tspan>
+                                                <tspan fill="#f43f5e" fontWeight="800" fontSize="10.5">{ballMeasuredDist} cm</tspan>
+                                                <tspan fill="#fda4af" fontSize="8.5" fontWeight="600"> (Out)</tspan>
+                                            </>
                                         )}
                                     </text>
                                 </g>

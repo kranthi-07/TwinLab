@@ -1341,3 +1341,641 @@
 .pico-castellated-edge.left-edge { left: 0; }
 .pico-castellated-edge.right-edge { right: 0; }
 
+/* ============================================================
+   5. ESP8266 NODEMCU V2/V3 (Photo-Accurate High-Fidelity Vector Board)
+============================================================ */
+.esp8266-nodemcu-board {
+    width: 296px;
+    height: 144px;
+}
+
+.nodemcu-pcb-surface {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #0a0b0e;
+    border-radius: 12px;
+    border: 2px solid #1e222b;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.12), 0 8px 24px rgba(0, 0, 0, 0.65);
+    overflow: hidden;
+}
+
+.nodemcu-mount-hole {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #000000;
+    border: 2px solid #cbd5e1;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+.nodemcu-mount-hole.hole-tl { top: 8px; left: 8px; }
+.nodemcu-mount-hole.hole-tr { top: 8px; right: 8px; }
+.nodemcu-mount-hole.hole-bl { bottom: 8px; left: 8px; }
+.nodemcu-mount-hole.hole-br { bottom: 8px; right: 8px; }
+
+/* Gold Meander Wi-Fi Antenna */
+.nodemcu-wifi-antenna {
+    position: absolute;
+    top: 36px;
+    left: 10px;
+    width: 32px;
+    height: 72px;
+    pointer-events: none;
+}
+
+/* Metal Shield Can with Laser Engraving */
+.nodemcu-rf-can {
+    position: absolute;
+    top: 30px;
+    left: 48px;
+    width: 100px;
+    height: 84px;
+    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 50%, #94a3b8 100%);
+    border-radius: 6px;
+    border: 1px solid #64748b;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8), 0 4px 10px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    box-sizing: border-box;
+}
+
+.nodemcu-can-title {
+    font-size: 8px;
+    font-weight: 900;
+    color: #334155;
+    font-family: monospace;
+    letter-spacing: 0.05em;
+}
+
+.nodemcu-can-sub {
+    font-size: 6px;
+    font-weight: 700;
+    color: #475569;
+    font-family: sans-serif;
+    line-height: 1.2;
+    text-align: center;
+}
+
+/* Castellation contacts around the module */
+.nodemcu-castellations {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* Micro-USB Port */
+.nodemcu-usb-port {
+    position: absolute;
+    right: -2px;
+    top: 54px;
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 50%, #94a3b8 100%);
+    border-radius: 4px;
+    border: 1.5px solid #64748b;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nodemcu-usb-slot {
+    width: 22px;
+    height: 14px;
+    background: #0f172a;
+    border-radius: 2px;
+    border: 1px solid #334155;
+}
+
+/* Interactive Pushbuttons RST & FLASH */
+.nodemcu-btn {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #0f172a;
+    border: 1.5px solid #d97706;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    transition: transform 0.1s ease;
+}
+.nodemcu-btn:active {
+    transform: scale(0.92);
+}
+.nodemcu-btn-cap {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #18181b;
+    border: 1px solid #475569;
+}
+.nodemcu-btn-label {
+    position: absolute;
+    font-size: 6px;
+    font-weight: 800;
+    color: #ffffff;
+    font-family: monospace;
+}
+.nodemcu-btn-rst {
+    top: 24px;
+    right: 18px;
+}
+.nodemcu-btn-rst .nodemcu-btn-label {
+    top: -10px;
+}
+.nodemcu-btn-flash {
+    bottom: 24px;
+    right: 18px;
+}
+.nodemcu-btn-flash .nodemcu-btn-label {
+    bottom: -10px;
+}
+
+/* Onboard SMD Components */
+.nodemcu-ic-bridge {
+    position: absolute;
+    top: 56px;
+    right: 68px;
+    width: 24px;
+    height: 24px;
+    background: #09090b;
+    border-radius: 2px;
+    border: 1px solid #27272a;
+}
+.nodemcu-regulator {
+    position: absolute;
+    top: 42px;
+    right: 106px;
+    width: 28px;
+    height: 18px;
+    background: #09090b;
+    border: 1px solid #27272a;
+}
+.nodemcu-regulator-tab {
+    position: absolute;
+    top: -4px;
+    left: 4px;
+    width: 20px;
+    height: 4px;
+    background: #cbd5e1;
+}
+.nodemcu-tantalum-cap {
+    position: absolute;
+    bottom: 40px;
+    right: 106px;
+    width: 22px;
+    height: 14px;
+    background: #f59e0b;
+    border-radius: 2px;
+    border: 1px solid #b45309;
+}
+
+/* Status LEDs */
+.nodemcu-led-d4 {
+    position: absolute;
+    top: 40px;
+    left: 152px;
+    width: 5px;
+    height: 5px;
+    border-radius: 1px;
+    background: #1e293b;
+    border: 0.5px solid #475569;
+}
+.nodemcu-led-d4.lit {
+    background: #0ea5e9;
+    box-shadow: 0 0 8px #0ea5e9;
+}
+.nodemcu-led-pwr {
+    position: absolute;
+    bottom: 40px;
+    right: 68px;
+    width: 5px;
+    height: 5px;
+    border-radius: 1px;
+    background: #1e293b;
+    border: 0.5px solid #475569;
+}
+.nodemcu-led-pwr.lit {
+    background: #ef4444;
+    box-shadow: 0 0 8px #ef4444;
+}
+
+/* ============================================================
+   6. STM32 NUCLEO-64 (Photo-Accurate Vector Hardware)
+============================================================ */
+.stm32-nucleo-board {
+    width: 368px;
+    height: 240px;
+}
+
+.nucleo-pcb-surface {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #f8fafc; /* Crisp White Nucleo PCB */
+    border-radius: 12px;
+    border: 2px solid #cbd5e1;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.9), 0 8px 24px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}
+
+.nucleo-st-logo {
+    position: absolute;
+    top: 24px;
+    left: 28px;
+    width: 32px;
+    height: 24px;
+}
+
+.nucleo-big-logo {
+    position: absolute;
+    bottom: 52px;
+    right: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.nucleo-title {
+    font-size: 14px;
+    font-weight: 900;
+    color: #0284c7;
+    font-family: sans-serif;
+    letter-spacing: 0.05em;
+    line-height: 1;
+}
+
+.nucleo-subtitle {
+    font-size: 11px;
+    font-weight: 800;
+    color: #0369a1;
+    font-family: sans-serif;
+    letter-spacing: 0.08em;
+}
+
+/* Center STM32F401 LQFP64 IC */
+.nucleo-mcu-chip {
+    position: absolute;
+    top: 96px;
+    left: 156px;
+    width: 62px;
+    height: 62px;
+    background: #09090b;
+    border-radius: 3px;
+    border: 1px solid #27272a;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+}
+
+.nucleo-chip-brand {
+    font-size: 6px;
+    font-weight: 900;
+    color: #cbd5e1;
+    font-family: sans-serif;
+}
+
+.nucleo-chip-model {
+    font-size: 6.5px;
+    font-weight: 900;
+    color: #f8fafc;
+    font-family: monospace;
+    letter-spacing: 0.04em;
+}
+
+.nucleo-chip-details {
+    font-size: 4.5px;
+    color: #94a3b8;
+    font-family: monospace;
+}
+
+.nucleo-crystal {
+    position: absolute;
+    top: 68px;
+    left: 168px;
+    width: 38px;
+    height: 20px;
+    background: linear-gradient(135deg, #f8fafc, #cbd5e1);
+    border-radius: 10px;
+    border: 1px solid #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7px;
+    font-weight: 800;
+    color: #334155;
+    font-family: monospace;
+}
+
+/* USB Connector on Left Edge */
+.nucleo-usb-port {
+    position: absolute;
+    left: -2px;
+    top: 68px;
+    width: 32px;
+    height: 42px;
+    background: linear-gradient(90deg, #94a3b8, #e2e8f0);
+    border-radius: 4px;
+    border: 1.5px solid #64748b;
+}
+
+/* Interactive Blue USER Button (PC13) */
+.nucleo-btn-user {
+    position: absolute;
+    top: 72px;
+    right: 120px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #0284c7;
+    border: 2px solid #0369a1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.45);
+    transition: transform 0.1s ease;
+}
+.nucleo-btn-user:active {
+    transform: scale(0.92);
+}
+.nucleo-btn-user-cap {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #0ea5e9;
+    border: 1px solid #38bdf8;
+}
+.nucleo-btn-user-label {
+    position: absolute;
+    top: -12px;
+    font-size: 7px;
+    font-weight: 900;
+    color: #0369a1;
+    font-family: sans-serif;
+}
+
+/* Interactive Black RESET Button */
+.nucleo-btn-reset {
+    position: absolute;
+    bottom: 56px;
+    left: 28px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #0284c7;
+    border: 2px solid #0369a1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    transition: transform 0.1s ease;
+}
+.nucleo-btn-reset:active {
+    transform: scale(0.92);
+}
+.nucleo-btn-reset-cap {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #0ea5e9;
+    border: 1px solid #38bdf8;
+}
+.nucleo-btn-reset-label {
+    position: absolute;
+    bottom: -12px;
+    font-size: 7px;
+    font-weight: 900;
+    color: #0369a1;
+    font-family: sans-serif;
+}
+
+/* LD2 User Green LED */
+.nucleo-led-ld2 {
+    position: absolute;
+    top: 76px;
+    right: 156px;
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    background: #cbd5e1;
+    border: 0.5px solid #64748b;
+}
+.nucleo-led-ld2.lit {
+    background: #22c55e;
+    box-shadow: 0 0 8px #22c55e;
+}
+
+/* LD3 PWR Red LED */
+.nucleo-led-pwr {
+    position: absolute;
+    top: 136px;
+    right: 124px;
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    background: #cbd5e1;
+    border: 0.5px solid #64748b;
+}
+.nucleo-led-pwr.lit {
+    background: #ef4444;
+    box-shadow: 0 0 8px #ef4444;
+}
+
+/* Morpho Black Header Rail Backgrounds */
+.nucleo-morpho-top {
+    position: absolute;
+    top: 10px;
+    left: 72px;
+    width: 290px;
+    height: 22px;
+    background: #0f172a;
+    border-radius: 2px;
+}
+.nucleo-morpho-bot {
+    position: absolute;
+    bottom: 10px;
+    left: 56px;
+    width: 250px;
+    height: 22px;
+    background: #0f172a;
+    border-radius: 2px;
+}
+.nucleo-arduino-right {
+    position: absolute;
+    right: 10px;
+    top: 48px;
+    width: 22px;
+    height: 144px;
+    background: #0f172a;
+    border-radius: 2px;
+}
+
+/* ============================================================
+   7. TEENSY 4.1 (Photo-Accurate Vector Hardware)
+============================================================ */
+.teensy41-board {
+    width: 416px;
+    height: 112px;
+}
+
+.teensy41-pcb-surface {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #15803d; /* Forest Emerald Green PCB */
+    border-radius: 8px;
+    border: 2px solid #166534;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.25), 0 8px 24px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+}
+
+/* USB Port on Left Edge */
+.teensy41-usb-port {
+    position: absolute;
+    left: -2px;
+    top: 38px;
+    width: 28px;
+    height: 36px;
+    background: linear-gradient(90deg, #94a3b8, #cbd5e1);
+    border-radius: 3px;
+    border: 1.5px solid #475569;
+}
+.teensy41-usb-tongue {
+    position: absolute;
+    left: 8px;
+    top: 10px;
+    width: 14px;
+    height: 16px;
+    background: #0f172a;
+    border-radius: 1px;
+}
+
+/* NXP MIMXRT1062 Main Processor Chip */
+.teensy41-nxp-chip {
+    position: absolute;
+    top: 26px;
+    left: 160px;
+    width: 60px;
+    height: 60px;
+    background: #09090b;
+    border-radius: 3px;
+    border: 1px solid #27272a;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+}
+
+.teensy41-chip-logo {
+    font-size: 7px;
+    font-weight: 900;
+    color: #ffffff;
+    font-family: sans-serif;
+}
+
+.teensy41-chip-text {
+    font-size: 5.5px;
+    font-weight: 800;
+    color: #cbd5e1;
+    font-family: monospace;
+    line-height: 1.1;
+    text-align: center;
+}
+
+/* Winbond QSPI Flash Chip */
+.teensy41-flash-chip {
+    position: absolute;
+    bottom: 24px;
+    right: 120px;
+    width: 24px;
+    height: 20px;
+    background: #09090b;
+    border-radius: 2px;
+    border: 1px solid #27272a;
+}
+
+/* Gold Program Pushbutton */
+.teensy41-btn-prog {
+    position: absolute;
+    top: 42px;
+    right: 120px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #ca8a04;
+    border: 1.5px solid #a16207;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    transition: transform 0.1s ease;
+}
+.teensy41-btn-prog:active {
+    transform: scale(0.92);
+}
+.teensy41-btn-prog-cap {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #eab308;
+    border: 1px solid #fde047;
+}
+
+/* Micro-SD Card Slot on Right Edge */
+.teensy41-sd-slot {
+    position: absolute;
+    top: 18px;
+    right: -2px;
+    width: 72px;
+    height: 76px;
+    background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 50%, #64748b 100%);
+    border-radius: 4px 0 0 4px;
+    border: 1.5px solid #475569;
+    box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.7), 0 4px 10px rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.teensy41-sd-notch {
+    position: absolute;
+    right: 8px;
+    width: 48px;
+    height: 52px;
+    background: #0f172a;
+    border-radius: 2px;
+}
+
+/* Pin 13 Orange LED */
+.teensy41-led-13 {
+    position: absolute;
+    top: 36px;
+    left: 228px;
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    background: #1e293b;
+    border: 0.5px solid #475569;
+}
+.teensy41-led-13.lit {
+    background: #f97316;
+    box-shadow: 0 0 8px #f97316;
+}
+
+

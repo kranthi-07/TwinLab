@@ -1,6 +1,6 @@
 import "./RightSidebar.css";
 import { useState, useRef, useEffect } from "react";
-import breadboardImg from "../../../assets/twinlab/breadboard.webp";
+import { ComponentArt } from "../../common/ComponentArt";
 import { Component3DThumbnail } from "../SearchModal/ComponentSearchModal";
 
 // ============================================================
@@ -427,12 +427,8 @@ function ComponentPreviewArtwork({ component }) {
         return <OscilloscopeIllustration />;
     }
 
-    // Generic fallback
-    return (
-        <div className="inspector-generic-icon">
-            <i className="ri-cpu-line"></i>
-        </div>
-    );
+    // High-fidelity vector component artwork
+    return <ComponentArt type={t} color={component.color} className="inspector-svg-artwork" />;
 }
 
 // ============================================================

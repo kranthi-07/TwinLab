@@ -960,6 +960,16 @@ function Canvas({
                     setPlacingPos(null);
                     return;
                 }
+                if (activeWireRef.current) {
+                    activeWireRef.current = null;
+                    setActiveWire(null);
+                    onDeactivateWireMode && onDeactivateWireMode();
+                    return;
+                }
+                if (isFocusMode && onToggleFocusMode) {
+                    onToggleFocusMode(false);
+                    return;
+                }
                 activeWireRef.current = null;
                 setActiveWire(null);
                 onDeactivateWireMode && onDeactivateWireMode();
@@ -1725,7 +1735,14 @@ function Canvas({
                                             placingComponent.type?.startsWith("rpi") || 
                                             placingComponent.type?.includes("pico") || 
                                             placingComponent.type?.startsWith("stm32") || 
-                                            ["arduino-uno", "arduino-mega", "arduino-nano", "esp32", "esp32-devkit", "esp32-s3", "rpi-pico", "raspberry-pi"].includes(placingComponent.type);
+                                            placingComponent.type?.startsWith("teensy") || 
+                                            placingComponent.type?.includes("nucleo") || 
+                                            placingComponent.type?.startsWith("ti-") || 
+                                            placingComponent.type?.startsWith("nxp-") || 
+                                            placingComponent.type?.startsWith("pic") || 
+                                            placingComponent.type?.startsWith("nordic") || 
+                                            placingComponent.type === "attiny85" ||
+                                            ["arduino-uno", "arduino-mega", "arduino-nano", "esp32", "esp32-devkit", "esp32-s3", "rpi-pico", "raspberry-pi", "esp8266-nodemcu", "stm32-nucleo", "teensy-41"].includes(placingComponent.type);
 
                             if (isBoard) {
                                 return (
@@ -1764,6 +1781,24 @@ function Canvas({
                                         rotation={0}
                                         isSelected={true}
                                     />
+                                );
+                            }
+
+                            if (placingComponent.type === "oscilloscope") {
+                                return (
+                                    <div style={{ width: 160, height: 100, background: "#090d16", borderRadius: 8, border: "2px solid #334155", padding: 8, display: "flex", gap: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.6)" }}>
+                                        <div style={{ flex: 1, background: "#02120e", borderRadius: 4, border: "1px solid #043226", position: "relative", overflow: "hidden" }}>
+                                            <svg width="100%" height="100%" viewBox="0 0 80 50">
+                                                <line x1="0" y1="25" x2="80" y2="25" stroke="rgba(16,185,129,0.3)" strokeWidth="0.8" />
+                                                <line x1="40" y1="0" x2="40" y2="50" stroke="rgba(16,185,129,0.3)" strokeWidth="0.8" />
+                                                <path d="M 0 25 Q 20 8, 40 25 T 80 25" fill="none" stroke="#facc15" strokeWidth="1.8" />
+                                            </svg>
+                                        </div>
+                                        <div style={{ width: 36, display: "flex", flexDirection: "column", gap: 8, justifyContent: "center", alignItems: "center" }}>
+                                            <div style={{ width: 16, height: 16, borderRadius: "50%", background: "#1e293b", border: "1.5px solid #475569" }}></div>
+                                            <div style={{ width: 16, height: 16, borderRadius: "50%", background: "#1e293b", border: "1.5px solid #475569" }}></div>
+                                        </div>
+                                    </div>
                                 );
                             }
 

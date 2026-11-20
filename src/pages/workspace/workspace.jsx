@@ -323,7 +323,50 @@ function Workspace({ onBackToHome }) {
         }
     }, []);
     const [isZoomLocked, setIsZoomLocked] = useState(false);
-    const [isFocusMode, setIsFocusMode] = useState(false);
+    const [isFocusMode, setIsFocusMode] = useState(() => {
+        try {
+            return localStorage.getItem("twinlab_focus_mode") === "true";
+        } catch (_) {
+            return false;
+        }
+    });
+
+    // Keep focus mode persisted across page reloads
+    useEffect(() => {
+        try {
+            localStorage.setItem("twinlab_focus_mode", isFocusMode ? "true" : "false");
+        } catch (_) {}
+    }, [isFocusMode]);
+
+    // Global capture-phase ESC listener specifically for Focus Mode so Esc ALWAYS exits Focus Mode reliably
+    useEffect(() => {
+        if (!isFocusMode) return;
+        const handleFocusEsc = (e) => {
+            if (e.key === "Escape") {
+                // Don't intercept if editing text inside an input or textarea
+                if (["INPUT", "TEXTAREA"].includes(e.target?.tagName) || e.target?.isContentEditable) {
+                    return;
+                }
+                // If currently placing a component or drawing wire, cancel that first
+                if (placingComponent) {
+                    setPlacingComponent(null);
+                    return;
+                }
+                if (isWireMode) {
+                    setIsWireMode(false);
+                    return;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+                setIsFocusMode(false);
+                setSelectedId(null);
+                setSelectedWireId(null);
+            }
+        };
+        window.addEventListener("keydown", handleFocusEsc, true);
+        return () => window.removeEventListener("keydown", handleFocusEsc, true);
+    }, [isFocusMode, placingComponent, isWireMode]);
+
     const [isSimulating, setIsSimulating] = useState(false);
     const [viewMode, setViewMode] = useState("simulation"); // "simulation" | "schematic"
     const [isOscilloscopeOpen, setIsOscilloscopeOpen] = useState(false);
@@ -1272,8 +1315,11 @@ function Workspace({ onBackToHome }) {
                 }
             }
 
-            // 10. DESELECT: Escape
+            // 10. DESELECT & EXIT FOCUS MODE: Escape
             if (e.key === "Escape") {
+                if (isFocusMode) {
+                    setIsFocusMode(false);
+                }
                 if (selectedId || selectedWireId) {
                     setSelectedId(null);
                     setSelectedWireId(null);
@@ -1321,6 +1367,7 @@ function Workspace({ onBackToHome }) {
         selectedId, 
         selectedWireId, 
         selectedComponent, 
+        isFocusMode,
         recordSnapshot
     ]);
 
@@ -1735,17 +1782,26 @@ function Workspace({ onBackToHome }) {
                 )}
             </AnimatePresence>
 
-            {/* FOCUS ESC HINT PILL (Fades away smoothly after entering focus mode) */}
+            {/* FOCUS ESC HINT PILL (Centered floating banner) */}
             <AnimatePresence>
                 {isFocusMode && (
                     <motion.div 
                         className="focus-esc-hint-pill"
-                        initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                        animate={{ opacity: [0, 1, 1, 0], y: [-20, 0, 0, -8] }}
-                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                        transition={{ duration: 3.5, times: [0, 0.15, 0.75, 1], ease: "easeInOut" }}
+                        initial={{ opacity: 0, x: "-50%", y: -30, scale: 0.95 }}
+                        animate={{ opacity: 1, x: "-50%", y: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: "-50%", y: -20, scale: 0.95 }}
+                        transition={{ type: "spring", stiffness: 450, damping: 30 }}
                     >
-                        <span>Click <kbd>Esc</kbd> to exit focus mode</span>
+                        <i className="ri-fullscreen-exit-line" style={{ color: "#38bdf8", fontSize: "16px" }}></i>
+                        <span>Press <kbd>Esc</kbd> to exit focus mode</span>
+                        <button 
+                            type="button" 
+                            className="focus-esc-exit-btn"
+                            onClick={() => setIsFocusMode(false)}
+                            title="Exit focus mode (Esc)"
+                        >
+                            Exit
+                        </button>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -1914,6 +1970,7 @@ function Workspace({ onBackToHome }) {
                         isSimulating={isSimulating}
                         mcuStates={mcuRuntimeStates}
                         components={components}
+                        simulationResult={simulationResult}
                     />
                 )}
             </AnimatePresence>

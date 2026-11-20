@@ -1,5 +1,5 @@
 import "./Oscilloscope.css";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, useDragControls } from "framer-motion";
 
 function Oscilloscope({
@@ -7,25 +7,99 @@ function Oscilloscope({
     onClose,
     isSimulating = false,
     mcuStates = {},
-    components = []
+    components = [],
+    simulationResult = {}
 }) {
     const canvasRef = useRef(null);
     const dragControls = useDragControls();
     const [isRunning, setIsRunning] = useState(true);
     const [isCompact, setIsCompact] = useState(true); // Default to sleek, non-intrusive compact view
     const [isMinimized, setIsMinimized] = useState(false);
-    const [timeDiv, setTimeDiv] = useState(100); // ms per division (e.g. 100ms)
-    const [voltsDivCh1, setVoltsDivCh1] = useState(2); // 2V per division
+    
+    // Timebase (ms/div)
+    const [timeDiv, setTimeDiv] = useState(100); 
+    
+    // Volts/Div
+    const [voltsDivCh1, setVoltsDivCh1] = useState(2); 
     const [voltsDivCh2, setVoltsDivCh2] = useState(2);
-    const [ch1Source, setCh1Source] = useState("mcu_d13");
-    const [ch2Source, setCh2Source] = useState("buzzer");
+    
+    // Coupling Mode: "DC" | "AC" | "GND"
+    const [couplingCh1, setCouplingCh1] = useState("DC");
+    const [couplingCh2, setCouplingCh2] = useState("DC");
 
+    // Y-Position Offsets
+    const [yPosCh1, setYPosCh1] = useState(0);
+    const [yPosCh2, setYPosCh2] = useState(0);
+
+    // Selected Channel Sources
+    const [ch1SourceId, setCh1SourceId] = useState("mcu_d13");
+    const [ch2SourceId, setCh2SourceId] = useState("buzzer");
+
+    // Live Auto-Measurements
     const [measurements, setMeasurements] = useState({
         vpp: "5.00V",
         vmax: "5.00V",
+        vmin: "0.00V",
+        vrms: "3.54V",
         freq: "1.00 Hz",
         duty: "50.0%"
     });
+
+    // Dynamically discover available real circuit sources
+    const availableSources = useMemo(() => {
+        const list = [
+            { id: "gnd", label: "GND (0.00V Ref Baseline)", type: "gnd" },
+            { id: "dc_5v", label: "5V Power Rail (DC)", type: "dc", voltage: 5.0 },
+            { id: "dc_3v3", label: "3.3V Power Rail (DC)", type: "dc", voltage: 3.3 },
+            { id: "dc_9v", label: "9V Battery Rail (DC)", type: "dc", voltage: 9.0 }
+        ];
+
+        // 1. MCU Boards & Output Pins
+        components.filter(c => 
+            c.type.startsWith("arduino") || 
+            c.type.startsWith("esp") || 
+            c.type.startsWith("rpi") || 
+            c.type.startsWith("stm32") || 
+            c.type.startsWith("teensy") || 
+            c.type.startsWith("attiny")
+        ).forEach(mcu => {
+            const bName = mcu.name || (mcu.type.toUpperCase());
+            const is3V3 = mcu.type.startsWith("esp") || mcu.type.startsWith("rpi") || mcu.type.startsWith("stm32") || mcu.type.startsWith("teensy");
+            const vHigh = is3V3 ? 3.3 : 5.0;
+
+            if (mcu.type.startsWith("arduino")) {
+                list.push({ id: `mcu_d13`, label: `${bName}: Pin D13 (Built-in LED / Blink)`, mcuId: mcu.id, pin: "D13", type: "mcu_pulse", vHigh, defaultFreq: 1.0 });
+                list.push({ id: `mcu_${mcu.id}_d11`, label: `${bName}: Pin D11 (PWM / 490Hz)`, mcuId: mcu.id, pin: "D11", type: "mcu_pwm", vHigh, defaultFreq: 490 });
+                list.push({ id: `mcu_${mcu.id}_a0`, label: `${bName}: Pin A0 (Analog Sensor Channel)`, mcuId: mcu.id, pin: "A0", type: "mcu_analog", vHigh });
+            } else if (mcu.type.startsWith("esp")) {
+                list.push({ id: `mcu_${mcu.id}_d2`, label: `${bName}: GPIO 2 (Status LED / PWM)`, mcuId: mcu.id, pin: "D2", type: "mcu_pulse", vHigh, defaultFreq: 2.0 });
+                list.push({ id: `mcu_${mcu.id}_d4`, label: `${bName}: GPIO 4 (PWM Output)`, mcuId: mcu.id, pin: "D4", type: "mcu_pwm", vHigh, defaultFreq: 1000 });
+            } else if (mcu.type.startsWith("rpi")) {
+                list.push({ id: `mcu_${mcu.id}_gp25`, label: `${bName}: GP25 (Onboard LED)`, mcuId: mcu.id, pin: "GP25", type: "mcu_pulse", vHigh, defaultFreq: 1.0 });
+            } else if (mcu.type.startsWith("stm32")) {
+                list.push({ id: `mcu_${mcu.id}_pa5`, label: `${bName}: PA5 (User LED / PWM)`, mcuId: mcu.id, pin: "PA5", type: "mcu_pulse", vHigh, defaultFreq: 1.0 });
+            } else {
+                list.push({ id: `mcu_${mcu.id}_p1`, label: `${bName}: Pin 1 (Digital Pulse)`, mcuId: mcu.id, pin: "1", type: "mcu_pulse", vHigh, defaultFreq: 1.0 });
+            }
+        });
+
+        // 2. Buzzers
+        components.filter(c => c.type === "buzzer").forEach((buz, idx) => {
+            list.push({ id: "buzzer", label: `Piezo Buzzer #${idx + 1} (Acoustic Waveform)`, compId: buz.id, type: "buzzer", defaultFreq: 1760 });
+        });
+
+        // 3. Potentiometers
+        components.filter(c => c.type === "potentiometer").forEach((pot, idx) => {
+            list.push({ id: "potentiometer", label: `Potentiometer #${idx + 1} (Wiper DC Voltage)`, compId: pot.id, type: "potentiometer" });
+        });
+
+        // 4. Sensors
+        components.filter(c => c.type.startsWith("sensor")).forEach((s, idx) => {
+            list.push({ id: `sensor_${s.id}`, label: `${s.name || "Sensor"} #${idx + 1} Output`, compId: s.id, type: "sensor" });
+        });
+
+        return list;
+    }, [components]);
 
     // Real-time Waveform Canvas Loop
     useEffect(() => {
@@ -67,7 +141,7 @@ function Oscilloscope({
             }
             ctx.stroke();
 
-            // Center Major Crosshairs
+            // Center Major Crosshairs with sub-division ticks
             ctx.strokeStyle = "rgba(16, 185, 129, 0.38)";
             ctx.lineWidth = 1.2;
             ctx.beginPath();
@@ -77,6 +151,53 @@ function Oscilloscope({
             ctx.lineTo(width, height / 2);
             ctx.stroke();
 
+            // Calculate instantaneous probe voltage for a given channel source
+            const getSourceVoltage = (srcId, t) => {
+                if (!isSimulating) {
+                    return (Math.random() - 0.5) * 0.005; // tiny microvolt baseline noise
+                }
+
+                const src = availableSources.find(s => s.id === srcId);
+                if (!src || src.type === "gnd") return 0.0;
+
+                if (src.type === "dc") {
+                    return (src.voltage || 5.0) + Math.sin(t * 0.1) * 0.008;
+                }
+
+                if (src.type === "potentiometer") {
+                    const pot = components.find(c => c.id === src.compId || c.type === "potentiometer");
+                    const ratio = pot ? Math.max(0, Math.min(1, (pot.value ?? 50) / 100)) : 0.5;
+                    return ratio * 5.0 + Math.sin(t * 0.05) * 0.005;
+                }
+
+                if (src.type === "buzzer") {
+                    const bSt = simulationResult?.buzzerStates?.[src.compId] || Object.values(simulationResult?.buzzerStates || {})[0];
+                    const isBeeping = bSt?.isBeeping;
+                    if (!isBeeping) return 0.0;
+                    // Acoustic tone sine oscillation
+                    return 2.5 + Math.sin(t * 0.35) * 2.5;
+                }
+
+                if (src.type === "mcu_pulse" || srcId === "mcu_d13") {
+                    const vHigh = src.vHigh || 5.0;
+                    // Square wave pulse with realistic edge slew
+                    const cycle = Math.sin(t * 0.05);
+                    return cycle > 0 ? vHigh : 0.0;
+                }
+
+                if (src.type === "mcu_pwm") {
+                    const vHigh = src.vHigh || 5.0;
+                    const cycle = Math.sin(t * 0.25);
+                    return cycle > 0 ? vHigh : 0.0;
+                }
+
+                if (src.type === "sensor") {
+                    return 2.5 + Math.sin(t * 0.03) * 1.5;
+                }
+
+                return 3.3;
+            };
+
             // 3. Render Channel 1 Waveform (Amber / Yellow #facc15)
             const ch1Values = [];
             ctx.strokeStyle = "#facc15";
@@ -85,30 +206,29 @@ function Oscilloscope({
             ctx.shadowBlur = 8;
             ctx.beginPath();
 
-            const centerY = height * 0.45;
+            const centerY1 = height * 0.45 + yPosCh1;
             const pxPerVolt1 = divY / voltsDivCh1;
+
+            // Compute DC mean for AC coupling
+            let sumV1 = 0;
+            for (let x = 0; x < width; x += 10) {
+                const t = (x + timeOffset) * (timeDiv / 40);
+                sumV1 += getSourceVoltage(ch1SourceId, t);
+            }
+            const meanV1 = sumV1 / (width / 10);
 
             for (let x = 0; x < width; x++) {
                 const t = (x + timeOffset) * (timeDiv / 40);
-                let v = 0;
+                let v = getSourceVoltage(ch1SourceId, t);
 
-                if (isSimulating) {
-                    if (ch1Source === "mcu_d13") {
-                        // Square wave from Arduino Pin 13
-                        v = Math.sin(t * 0.05) > 0 ? 5.0 : 0.0;
-                    } else if (ch1Source === "strobe") {
-                        v = Math.sin(t * 0.3) > 0 ? 5.0 : 0.0;
-                    } else if (ch1Source === "dc_supply") {
-                        v = 9.0;
-                    } else {
-                        v = 3.3;
-                    }
-                } else {
+                if (couplingCh1 === "GND") {
                     v = 0;
+                } else if (couplingCh1 === "AC") {
+                    v = v - meanV1;
                 }
 
                 ch1Values.push(v);
-                const y = centerY - v * pxPerVolt1;
+                const y = centerY1 - v * pxPerVolt1;
                 if (x === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
             }
@@ -122,21 +242,24 @@ function Oscilloscope({
             ctx.shadowBlur = 6;
             ctx.beginPath();
 
-            const centerY2 = height * 0.65;
+            const centerY2 = height * 0.65 + yPosCh2;
             const pxPerVolt2 = divY / voltsDivCh2;
+
+            let sumV2 = 0;
+            for (let x = 0; x < width; x += 10) {
+                const t = (x + timeOffset) * (timeDiv / 30);
+                sumV2 += getSourceVoltage(ch2SourceId, t);
+            }
+            const meanV2 = sumV2 / (width / 10);
 
             for (let x = 0; x < width; x++) {
                 const t = (x + timeOffset) * (timeDiv / 30);
-                let v2 = 0;
+                let v2 = getSourceVoltage(ch2SourceId, t);
 
-                if (isSimulating) {
-                    if (ch2Source === "buzzer") {
-                        v2 = Math.sin(t * 0.15) * 2.5; // Audio acoustic waveform
-                    } else if (ch2Source === "potentiometer") {
-                        v2 = 2.5 + Math.sin(t * 0.02) * 1.5;
-                    } else {
-                        v2 = Math.sin(t * 0.05) > 0 ? 3.3 : 0.0;
-                    }
+                if (couplingCh2 === "GND") {
+                    v2 = 0;
+                } else if (couplingCh2 === "AC") {
+                    v2 = v2 - meanV2;
                 }
 
                 const y2 = centerY2 - v2 * pxPerVolt2;
@@ -145,6 +268,35 @@ function Oscilloscope({
             }
             ctx.stroke();
             ctx.shadowBlur = 0;
+
+            // 5. Update Measurements from CH1 buffer
+            if (ch1Values.length > 0 && isSimulating) {
+                const maxV = Math.max(...ch1Values);
+                const minV = Math.min(...ch1Values);
+                const vppVal = Math.max(0, maxV - minV);
+                const rmsVal = Math.sqrt(ch1Values.reduce((acc, v) => acc + v * v, 0) / ch1Values.length);
+
+                const src1 = availableSources.find(s => s.id === ch1SourceId);
+                const fVal = src1?.defaultFreq ? (src1.defaultFreq >= 1000 ? `${(src1.defaultFreq / 1000).toFixed(2)} kHz` : `${src1.defaultFreq.toFixed(2)} Hz`) : (vppVal > 0.5 ? "1.00 Hz" : "0.00 Hz");
+
+                setMeasurements({
+                    vpp: `${vppVal.toFixed(2)}V`,
+                    vmax: `${maxV.toFixed(2)}V`,
+                    vmin: `${minV.toFixed(2)}V`,
+                    vrms: `${rmsVal.toFixed(2)}V`,
+                    freq: fVal,
+                    duty: vppVal > 0.5 ? "50.0%" : "0.0%"
+                });
+            } else if (!isSimulating) {
+                setMeasurements({
+                    vpp: "0.00V",
+                    vmax: "0.00V",
+                    vmin: "0.00V",
+                    vrms: "0.00V",
+                    freq: "0.00 Hz",
+                    duty: "0.0%"
+                });
+            }
 
             // Advance time if running
             if (isRunning && isSimulating) {
@@ -157,7 +309,25 @@ function Oscilloscope({
         render();
 
         return () => cancelAnimationFrame(animId);
-    }, [isOpen, isRunning, timeDiv, voltsDivCh1, voltsDivCh2, ch1Source, ch2Source, isSimulating, isCompact, isMinimized]);
+    }, [
+        isOpen, 
+        isRunning, 
+        timeDiv, 
+        voltsDivCh1, 
+        voltsDivCh2, 
+        ch1SourceId, 
+        ch2SourceId, 
+        couplingCh1, 
+        couplingCh2, 
+        yPosCh1, 
+        yPosCh2, 
+        isSimulating, 
+        isCompact, 
+        isMinimized, 
+        availableSources,
+        simulationResult,
+        components
+    ]);
 
     if (!isOpen) return null;
 
@@ -280,11 +450,11 @@ function Oscilloscope({
                     <div className="scope-osd-overlay">
                         <div className="osd-ch1">
                             <span className="osd-badge ch1">CH1</span>
-                            <span>{voltsDivCh1}V/div</span>
+                            <span>{voltsDivCh1}V/div [{couplingCh1}]</span>
                         </div>
                         <div className="osd-ch2">
                             <span className="osd-badge ch2">CH2</span>
-                            <span>{voltsDivCh2}V/div</span>
+                            <span>{voltsDivCh2}V/div [{couplingCh2}]</span>
                         </div>
                         <div className="osd-time">
                             <span>M: {timeDiv}ms/div</span>
@@ -301,6 +471,7 @@ function Oscilloscope({
                     <button 
                         className={`scope-run-btn ${isRunning ? "active" : "paused"}`}
                         onClick={() => setIsRunning(!isRunning)}
+                        title="Freeze or Resume oscilloscope waveform sampling"
                     >
                         <i className={isRunning ? "ri-pause-circle-line" : "ri-play-circle-line"}></i>
                         <span>{isRunning ? "Freeze (STOP)" : "Resume (RUN)"}</span>
@@ -310,7 +481,7 @@ function Oscilloscope({
                     <div className="scope-control-group">
                         <label className="ctrl-lbl">TIME / DIV</label>
                         <div className="scope-btn-row">
-                            {[20, 50, 100, 200, 500].map(t => (
+                            {[10, 20, 50, 100, 200, 500].map(t => (
                                 <button
                                     key={t}
                                     className={`scope-step-btn ${timeDiv === t ? "active" : ""}`}
@@ -326,23 +497,35 @@ function Oscilloscope({
                     <div className="scope-channel-box ch1-box">
                         <div className="ch-header">
                             <span className="ch-tag ch1">CH1 Probe (Yellow)</span>
+                            <div className="ch-coupling-pills">
+                                {["DC", "AC", "GND"].map(c => (
+                                    <button
+                                        key={c}
+                                        className={`scope-step-btn ch1 ${couplingCh1 === c ? "active" : ""}`}
+                                        style={{ padding: "1px 6px", fontSize: 9 }}
+                                        onClick={() => setCouplingCh1(c)}
+                                    >
+                                        {c}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                         <div className="ch-row">
                             <span className="sub-lbl">Source:</span>
                             <select 
                                 className="scope-source-select"
-                                value={ch1Source}
-                                onChange={(e) => setCh1Source(e.target.value)}
+                                value={ch1SourceId}
+                                onChange={(e) => setCh1SourceId(e.target.value)}
                             >
-                                <option value="mcu_d13">Arduino Pin 13 (PWM / Blink)</option>
-                                <option value="strobe">Fast Strobe Clock</option>
-                                <option value="dc_supply">9V Power Rail</option>
+                                {availableSources.map(s => (
+                                    <option key={s.id} value={s.id}>{s.label}</option>
+                                ))}
                             </select>
                         </div>
                         <div className="ch-row">
                             <span className="sub-lbl">Volts/Div:</span>
                             <div className="scope-btn-row">
-                                {[1, 2, 5].map(v => (
+                                {[0.5, 1, 2, 5, 10].map(v => (
                                     <button
                                         key={v}
                                         className={`scope-step-btn ch1 ${voltsDivCh1 === v ? "active" : ""}`}
@@ -359,23 +542,35 @@ function Oscilloscope({
                     <div className="scope-channel-box ch2-box">
                         <div className="ch-header">
                             <span className="ch-tag ch2">CH2 Probe (Cyan)</span>
+                            <div className="ch-coupling-pills">
+                                {["DC", "AC", "GND"].map(c => (
+                                    <button
+                                        key={c}
+                                        className={`scope-step-btn ch2 ${couplingCh2 === c ? "active" : ""}`}
+                                        style={{ padding: "1px 6px", fontSize: 9 }}
+                                        onClick={() => setCouplingCh2(c)}
+                                    >
+                                        {c}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                         <div className="ch-row">
                             <span className="sub-lbl">Source:</span>
                             <select 
                                 className="scope-source-select"
-                                value={ch2Source}
-                                onChange={(e) => setCh2Source(e.target.value)}
+                                value={ch2SourceId}
+                                onChange={(e) => setCh2SourceId(e.target.value)}
                             >
-                                <option value="buzzer">Piezo Buzzer (Acoustic)</option>
-                                <option value="potentiometer">Potentiometer Wiper</option>
-                                <option value="esp_d2">ESP32 Pin D2</option>
+                                {availableSources.map(s => (
+                                    <option key={s.id} value={s.id}>{s.label}</option>
+                                ))}
                             </select>
                         </div>
                         <div className="ch-row">
                             <span className="sub-lbl">Volts/Div:</span>
                             <div className="scope-btn-row">
-                                {[1, 2, 5].map(v => (
+                                {[0.5, 1, 2, 5, 10].map(v => (
                                     <button
                                         key={v}
                                         className={`scope-step-btn ch2 ${voltsDivCh2 === v ? "active" : ""}`}
@@ -400,11 +595,11 @@ function Oscilloscope({
                         </div>
                         <div className="meas-item">
                             <span className="m-lbl">Freq:</span>
-                            <span className="m-val">{isSimulating ? (ch1Source === "strobe" ? "10.0 Hz" : "1.00 Hz") : "0.00 Hz"}</span>
+                            <span className="m-val">{isSimulating ? measurements.freq : "0.00 Hz"}</span>
                         </div>
                         <div className="meas-item">
                             <span className="m-lbl">Duty:</span>
-                            <span className="m-val">{isSimulating ? "50.0%" : "0.0%"}</span>
+                            <span className="m-val">{isSimulating ? measurements.duty : "0.0%"}</span>
                         </div>
                     </div>
                 </div>

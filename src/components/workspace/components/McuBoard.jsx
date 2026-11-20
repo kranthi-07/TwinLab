@@ -1,8 +1,30 @@
 import "./McuBoard.css";
 import { useState, useRef } from "react";
-import { ARDUINO_PINS, ARDUINO_MEGA_PINS, ARDUINO_NANO_PINS, RPI_PICO_PINS, ESP32_PINS } from "./mcuPins.js";
+import { 
+    ARDUINO_PINS, 
+    ARDUINO_MEGA_PINS, 
+    ARDUINO_NANO_PINS, 
+    RPI_PICO_PINS, 
+    ESP32_PINS,
+    ESP8266_NODEMCU_PINS,
+    STM32_NUCLEO_PINS,
+    TEENSY41_PINS,
+    STM32_BLUEPILL_PINS,
+    ATTINY85_PINS
+} from "./mcuPins.js";
 
-export { ARDUINO_PINS, ARDUINO_MEGA_PINS, ARDUINO_NANO_PINS, RPI_PICO_PINS, ESP32_PINS };
+export { 
+    ARDUINO_PINS, 
+    ARDUINO_MEGA_PINS, 
+    ARDUINO_NANO_PINS, 
+    RPI_PICO_PINS, 
+    ESP32_PINS,
+    ESP8266_NODEMCU_PINS,
+    STM32_NUCLEO_PINS,
+    TEENSY41_PINS,
+    STM32_BLUEPILL_PINS,
+    ATTINY85_PINS
+};
 
 // Exact 16px grid alignment constants
 const GRID_STEP = 16;
@@ -498,28 +520,559 @@ function McuBoard({
     }
 
     // ==========================================
-    // 4b. PHOTO-ACCURATE CUSTOM DEVELOPMENT BOARDS
-    // (ESP8266, Pico 2, STM32 Nucleo, Blue/Black Pill, LPC1768, Tiva C, MSP430, PIC18, nRF52840, Teensy 4.1, ATtiny85)
+    // 4b. ESP8266 NODEMCU (12-E / 30-PIN)
     // ==========================================
-    const BOARD_IMAGE_MAP = {
-        "esp8266-nodemcu": { img: "/images/boards/esp8266-nodemcu.jpg", name: "ESP8266 NodeMCU", w: 200, h: 120 },
-        "rpi-pico-2": { img: "/images/boards/rpi-pico-2.jpg", name: "Raspberry Pi Pico 2", w: 176, h: 80 },
-        "stm32-nucleo": { img: "/images/boards/stm32-nucleo.jpg", name: "STM32 Nucleo", w: 240, h: 160 },
-        "stm32-blue-pill": { img: "/images/boards/stm32-blue-pill.jpg", name: "STM32 Blue Pill", w: 176, h: 80 },
-        "stm32-bluepill": { img: "/images/boards/stm32-blue-pill.jpg", name: "STM32 Blue Pill", w: 176, h: 80 },
-        "stm32-black-pill": { img: "/images/boards/stm32-black-pill.jpg", name: "STM32 Black Pill", w: 176, h: 80 },
-        "nxp-lpc1768": { img: "/images/boards/nxp-lpc1768.jpg", name: "NXP LPC1768", w: 176, h: 80 },
-        "ti-tiva-c": { img: "/images/boards/ti-tiva-c.jpg", name: "TI Tiva C LaunchPad", w: 220, h: 140 },
-        "ti-msp430": { img: "/images/boards/ti-msp430.jpg", name: "TI MSP430 LaunchPad", w: 180, h: 120 },
-        "pic18f4550": { img: "/images/boards/pic18f4550.jpg", name: "PIC18F4550", w: 160, h: 100 },
-        "nordic-nrf52840": { img: "/images/boards/nordic-nrf52840.jpg", name: "Nordic nRF52840", w: 180, h: 90 },
-        "attiny85": { img: "/images/boards/attiny85.jpg", name: "ATtiny85", w: 64, h: 64 },
-        "teensy-41": { img: "/images/boards/teensy-41.jpg", name: "Teensy 4.1", w: 192, h: 72 }
+    if (type === "esp8266-nodemcu" || type === "esp8266") {
+        const isPowered = Boolean(isSimulating || simState?.isPowered);
+        const isD4Lit = Boolean(isPowered && (simState?.d4High || simState?.pins?.["2"] === 1 || simState?.pins?.["D4"] === 1));
+
+        return (
+            <div
+                className={`mcu-board-container esp8266-nodemcu-board ${isSelected ? "selected" : ""}`}
+                style={{
+                    transform: `translate(${x}px, ${y}px) rotate(${rotation}deg)`,
+                    transformOrigin: "0 0",
+                    width: 304,
+                    height: 144
+                }}
+                onMouseDown={(e) => {
+                    if (isWireMode) return;
+                    onSelect && onSelect(id, e);
+                    onMouseDown && onMouseDown(e, id);
+                }}
+            >
+                {/* USB Cable Plug from Right */}
+                <div className={`tinkercad-usb-cable nodemcu-usb-cable ${isPowered ? "connected" : "unplugged"}`}>
+                    <div className="usb-plug-strain-relief"></div>
+                    <div className="usb-plug-metal-shell micro-shell"></div>
+                </div>
+
+                <div className="nodemcu-pcb-surface">
+                    {/* Mounting Holes */}
+                    <div className="nodemcu-mount-hole" style={{ top: 8, left: 8 }}></div>
+                    <div className="nodemcu-mount-hole" style={{ bottom: 8, left: 8 }}></div>
+                    <div className="nodemcu-mount-hole" style={{ top: 8, right: 8 }}></div>
+                    <div className="nodemcu-mount-hole" style={{ bottom: 8, right: 8 }}></div>
+
+                    {/* Gold Serpentine Trace WiFi Antenna */}
+                    <div className="nodemcu-wifi-antenna">
+                        <svg width="40" height="96" viewBox="0 0 40 96">
+                            <path
+                                d="M 5 8 L 32 8 L 32 20 L 8 20 L 8 32 L 32 32 L 32 44 L 8 44 L 8 56 L 32 56 L 32 68 L 8 68 L 8 80 L 32 80 L 32 90 L 5 90"
+                                fill="none"
+                                stroke="#eab308"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            />
+                        </svg>
+                    </div>
+
+                    {/* ESP-12E / ESP8266MOD Silver Metal RF Shield */}
+                    <div className="nodemcu-rf-can">
+                        <div className="nodemcu-rf-header">
+                            <span className="nodemcu-wifi-icon">📶</span>
+                            <span className="nodemcu-wifi-text">Wi-Fi</span>
+                        </div>
+                        <span className="nodemcu-mod-label">ESP8266MOD</span>
+                        <div className="nodemcu-fcc-row">
+                            <span className="nodemcu-fcc-logo">FC</span>
+                            <div className="nodemcu-specs">
+                                <span>ISM 2.4GHz</span>
+                                <span>PA +25dBm</span>
+                                <span>802.11 b/g/n</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Micro-USB Port on Right */}
+                    <div className="nodemcu-usb-port">
+                        <div className="nodemcu-usb-metal">
+                            <div className="nodemcu-usb-slot"></div>
+                        </div>
+                    </div>
+
+                    {/* Tactile Buttons: RST & FLASH */}
+                    <div 
+                        className="nodemcu-btn nodemcu-btn-rst" 
+                        title="RST (Reset)"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                        }}
+                    >
+                        <div className="nodemcu-btn-cap"></div>
+                        <span className="nodemcu-btn-label">RST</span>
+                    </div>
+
+                    <div 
+                        className="nodemcu-btn nodemcu-btn-flash" 
+                        title="FLASH (GPIO 0 Bootloader)"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                        }}
+                    >
+                        <div className="nodemcu-btn-cap"></div>
+                        <span className="nodemcu-btn-label">FLASH</span>
+                    </div>
+
+                    {/* CP2102 USB Bridge IC & Voltage Regulator */}
+                    <div className="nodemcu-ic-bridge" title="USB-UART CP2102 Bridge"></div>
+                    <div className="nodemcu-regulator" title="AMS1117 3.3V LDO Voltage Regulator">
+                        <div className="nodemcu-regulator-tab"></div>
+                    </div>
+                    <div className="nodemcu-tantalum-cap"></div>
+
+                    {/* SMD Status LEDs: D4 (GPIO 2, Blue) and Power (Red) */}
+                    <span 
+                        className={`nodemcu-led-d4 ${isD4Lit ? "lit" : ""}`} 
+                        title="Built-in User LED (GPIO 2 / D4)"
+                    ></span>
+                    <span 
+                        className={`nodemcu-led-pwr ${isPowered ? "lit" : ""}`} 
+                        title="Power 3.3V LED"
+                    ></span>
+                </div>
+
+                {/* Dual 15-Pin Sockets with Pin labels */}
+                <div className="mcu-pin-sockets-layer">
+                    {ESP8266_NODEMCU_PINS.topRow.map((p) => renderPinSocket(p, "nodemcuTop", "bot"))}
+                    {ESP8266_NODEMCU_PINS.botRow.map((p) => renderPinSocket(p, "nodemcuBot", "top"))}
+                </div>
+            </div>
+        );
+    }
+
+    // ==========================================
+    // 4c. STM32 NUCLEO-64 (NUCLEO-F401RE)
+    // ==========================================
+    if (type === "stm32-nucleo" || type === "stm32-f401re") {
+        const isPowered = Boolean(isSimulating || simState?.isPowered);
+        const isLD2Lit = Boolean(isPowered && (simState?.d13High || simState?.pins?.["13"] === 1 || simState?.pins?.["PA5"] === 1));
+
+        return (
+            <div
+                className={`mcu-board-container stm32-nucleo-board ${isSelected ? "selected" : ""}`}
+                style={{
+                    transform: `translate(${x}px, ${y}px) rotate(${rotation}deg)`,
+                    transformOrigin: "0 0",
+                    width: 384,
+                    height: 240
+                }}
+                onMouseDown={(e) => {
+                    if (isWireMode) return;
+                    onSelect && onSelect(id, e);
+                    onMouseDown && onMouseDown(e, id);
+                }}
+            >
+                {/* USB Cable Plug from Left (ST-LINK) */}
+                <div className={`tinkercad-usb-cable nucleo-usb-cable ${isPowered ? "connected" : "unplugged"}`}>
+                    <div className="usb-plug-strain-relief"></div>
+                    <div className="usb-plug-metal-shell mini-shell"></div>
+                </div>
+
+                <div className="nucleo-pcb-surface">
+                    {/* Mounting Holes with Gold Washers */}
+                    <div className="nucleo-mount-hole" style={{ top: 12, left: 12 }}></div>
+                    <div className="nucleo-mount-hole" style={{ bottom: 12, left: 12 }}></div>
+                    <div className="nucleo-mount-hole" style={{ top: 12, right: 12 }}></div>
+                    <div className="nucleo-mount-hole" style={{ bottom: 12, right: 12 }}></div>
+
+                    {/* Morpho Headers Background Rails */}
+                    <div className="nucleo-morpho-top"></div>
+                    <div className="nucleo-morpho-bot"></div>
+                    <div className="nucleo-arduino-right"></div>
+
+                    {/* ST Logo (Top Left) */}
+                    <div className="nucleo-st-logo">
+                        <svg width="34" height="26" viewBox="0 0 34 26">
+                            <path d="M 4 20 L 14 6 L 24 6 L 14 20 Z" fill="#0284c7" />
+                            <path d="M 18 20 L 26 8 L 32 8 L 24 20 Z" fill="#0284c7" />
+                        </svg>
+                    </div>
+
+                    {/* Mini-USB Port on Left (ST-LINK V2-1) */}
+                    <div className="nucleo-usb-port" title="ST-LINK Debug & USB Power Port"></div>
+
+                    {/* Central STM32F401RET6 LQFP64 ARM Cortex-M4 MCU */}
+                    <div className="nucleo-mcu-chip" title="STM32F401RET6 ARM Cortex-M4 @ 84MHz">
+                        <div className="nucleo-chip-brand">ST</div>
+                        <div className="nucleo-chip-model">STM32F401RE</div>
+                        <div className="nucleo-chip-details">VGT6 7B442</div>
+                    </div>
+
+                    {/* 8.000 MHz Metal Can Crystal */}
+                    <div className="nucleo-crystal" title="8.000 MHz Crystal Oscillator">
+                        8.000
+                    </div>
+
+                    {/* Blue USER Button (PC13) */}
+                    <div 
+                        className="nucleo-btn-user" 
+                        title="USER Button (PC13)"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                        }}
+                    >
+                        <div className="nucleo-btn-user-cap"></div>
+                        <span className="nucleo-btn-user-label">USER</span>
+                    </div>
+
+                    {/* Black/Blue RESET Button */}
+                    <div 
+                        className="nucleo-btn-reset" 
+                        title="RESET Button (NRST)"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                        }}
+                    >
+                        <div className="nucleo-btn-reset-cap"></div>
+                        <span className="nucleo-btn-reset-label">RESET</span>
+                    </div>
+
+                    {/* Status LEDs: LD2 (PA5/D13 Green) and LD3 (PWR Red) */}
+                    <span 
+                        className={`nucleo-led-ld2 ${isLD2Lit ? "lit" : ""}`} 
+                        title="User LED LD2 (PA5 / Arduino D13)"
+                    ></span>
+                    <span 
+                        className={`nucleo-led-pwr ${isPowered ? "lit" : ""}`} 
+                        title="PWR 5V LED (LD3)"
+                    ></span>
+
+                    {/* Large ST Nucleo Silkscreen Branding */}
+                    <div className="nucleo-big-logo">
+                        <div className="nucleo-title">NUCLEO</div>
+                        <div className="nucleo-subtitle">F401RE</div>
+                    </div>
+                </div>
+
+                {/* Arduino Uno-compatible Header Sockets */}
+                <div className="mcu-pin-sockets-layer">
+                    {STM32_NUCLEO_PINS.topDigital.map((p) => renderPinSocket(p, "nucleoTop", "bot"))}
+                    {STM32_NUCLEO_PINS.botAnalogPower.map((p) => renderPinSocket(p, "nucleoBot", "top"))}
+                </div>
+            </div>
+        );
+    }
+
+    // ==========================================
+    // 4d. TEENSY 4.1 (ARM CORTEX-M7 @ 600MHz)
+    // ==========================================
+    if (type === "teensy-41" || type === "teensy41") {
+        const isPowered = Boolean(isSimulating || simState?.isPowered);
+        const isPin13Lit = Boolean(isPowered && (simState?.d13High || simState?.pins?.["13"] === 1));
+
+        return (
+            <div
+                className={`mcu-board-container teensy41-board ${isSelected ? "selected" : ""}`}
+                style={{
+                    transform: `translate(${x}px, ${y}px) rotate(${rotation}deg)`,
+                    transformOrigin: "0 0",
+                    width: 416,
+                    height: 112
+                }}
+                onMouseDown={(e) => {
+                    if (isWireMode) return;
+                    onSelect && onSelect(id, e);
+                    onMouseDown && onMouseDown(e, id);
+                }}
+            >
+                {/* Micro-USB Cable Plug from Left */}
+                <div className={`tinkercad-usb-cable teensy-usb-cable ${isPowered ? "connected" : "unplugged"}`}>
+                    <div className="usb-plug-strain-relief"></div>
+                    <div className="usb-plug-metal-shell micro-shell"></div>
+                </div>
+
+                <div className="teensy41-pcb-surface">
+                    {/* Micro-USB Connector on Left */}
+                    <div className="teensy41-usb-port" title="Micro-USB 480 Mbit/sec High Speed">
+                        <div className="teensy41-usb-tongue"></div>
+                    </div>
+
+                    {/* NXP i.MX RT1062 ARM Cortex-M7 @ 600 MHz Processor */}
+                    <div className="teensy41-nxp-chip" title="NXP i.MX RT1062 ARM Cortex-M7 @ 600 MHz">
+                        <div className="teensy41-chip-logo">NXP</div>
+                        <div className="teensy41-chip-text">
+                            MIMXRT1062<br />DVJ6A
+                        </div>
+                    </div>
+
+                    {/* Winbond 8MB QSPI Flash Memory */}
+                    <div className="teensy41-flash-chip" title="8MB QSPI Flash Memory"></div>
+
+                    {/* Gold Tactile Program Button */}
+                    <div 
+                        className="teensy41-btn-prog" 
+                        title="Program Button (HalfKay Bootloader)"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                        }}
+                    >
+                        <div className="teensy41-btn-prog-cap"></div>
+                    </div>
+
+                    {/* Micro-SD Push-Push Socket on Right */}
+                    <div className="teensy41-sd-slot" title="Micro-SD Card Slot (4-bit SDIO)">
+                        <div className="teensy41-sd-notch"></div>
+                    </div>
+
+                    {/* Amber/Orange LED on Pin 13 */}
+                    <span 
+                        className={`teensy41-led-13 ${isPin13Lit ? "lit" : ""}`} 
+                        title="User LED (Pin 13)"
+                    ></span>
+                </div>
+
+                {/* 48-Pin DIP Layout: 24 pins top, 24 pins bottom */}
+                <div className="mcu-pin-sockets-layer">
+                    {TEENSY41_PINS.topRow.map((p) => renderPinSocket(p, "teensyTop", "bot"))}
+                    {TEENSY41_PINS.botRow.map((p) => renderPinSocket(p, "teensyBot", "top"))}
+                </div>
+            </div>
+        );
+    }
+
+    // ==========================================
+    // 4e. RASPBERRY PI PICO 2 (RP2350 ARM/RISC-V)
+    // ==========================================
+    if (type === "rpi-pico-2") {
+        const isPowered = Boolean(isSimulating || simState?.isPowered);
+        const isLedLit = Boolean(isPowered && (simState?.pins?.["25"] === 1 || simState?.gp25High));
+
+        return (
+            <div
+                className={`mcu-board-container rpi-pico-board ${isSelected ? "selected" : ""}`}
+                style={{
+                    transform: `translate(${x}px, ${y}px) rotate(${rotation}deg)`,
+                    transformOrigin: "0 0",
+                    width: 128,
+                    height: 368
+                }}
+                onMouseDown={(e) => {
+                    if (isWireMode) return;
+                    onSelect && onSelect(id, e);
+                    onMouseDown && onMouseDown(e, id);
+                }}
+            >
+                <div className={`tinkercad-usb-cable pico-usb-cable ${isPowered ? "connected" : "unplugged"}`}>
+                    <div className="usb-plug-strain-relief"></div>
+                    <div className="usb-plug-metal-shell micro-shell"></div>
+                </div>
+
+                <div className="pico-pcb-surface">
+                    <div className="pico-usb-port" title="Micro-USB Power & Data Port">
+                        <div className="pico-usb-metal-shell"></div>
+                    </div>
+                    <div className="pico-rp2040-chip" title="RP2350 Microcontroller (Dual ARM Cortex-M33 / Hazard3 RISC-V @ 150MHz)">
+                        <div className="rp2040-die-square"></div>
+                        <span className="rp2040-label">RP2350</span>
+                        <span className="rp2040-sub">24/16</span>
+                    </div>
+                    <div className="pico-flash-chip" title="4MB QSPI Flash (W25Q32JV)">
+                        <span className="flash-label">WINBOND</span>
+                    </div>
+                    <div className="pico-crystal" title="12.000 MHz Crystal">
+                        <span className="crystal-text">12.000</span>
+                    </div>
+                    <div className="pico-bootsel-btn" title="BOOTSEL (USB Bootloader)">
+                        <div className="bootsel-cap"></div>
+                        <span className="bootsel-label">BOOTSEL</span>
+                    </div>
+                    <div className="pico-led-item" title="User LED (GP25)">
+                        <span className={`micro-smd-led led-gp25 ${isLedLit ? "lit" : ""}`}></span>
+                        <span className="smd-label">LED</span>
+                    </div>
+                    <div className="pico-silkscreen-branding">
+                        <div className="pico-raspberry-logo">🍇</div>
+                        <div className="pico-brand-text">
+                            <span className="pico-title">Raspberry Pi</span>
+                            <span className="pico-model">Pico 2</span>
+                        </div>
+                        <span className="pico-tw-badge">TWINLAB X</span>
+                    </div>
+                    <div className="pico-castellated-edge left-edge"></div>
+                    <div className="pico-castellated-edge right-edge"></div>
+                </div>
+
+                <div className="mcu-pin-sockets-layer">
+                    {RPI_PICO_PINS.leftCol.map((p) => renderPinSocket(p, "picoL", "espLeft"))}
+                    {RPI_PICO_PINS.rightCol.map((p) => renderPinSocket(p, "picoR", "espRight"))}
+                </div>
+            </div>
+        );
+    }
+
+    // ==========================================
+    // 4f. STM32 BLUE PILL & BLACK PILL (Cortex-M3/M4)
+    // ==========================================
+    if (type === "stm32-blue-pill" || type === "stm32-bluepill" || type === "stm32-black-pill") {
+        const isBlackPill = type === "stm32-black-pill";
+        const isPowered = Boolean(isSimulating || simState?.isPowered);
+        const isPC13Lit = Boolean(isPowered && (simState?.pins?.["13"] === 1 || simState?.d13High));
+
+        return (
+            <div
+                className={`mcu-board-container custom-mcu-board ${isSelected ? "selected" : ""}`}
+                style={{
+                    transform: `translate(${x}px, ${y}px) rotate(${rotation}deg)`,
+                    transformOrigin: "0 0",
+                    width: 128,
+                    height: 352
+                }}
+                onMouseDown={(e) => {
+                    if (isWireMode) return;
+                    onSelect && onSelect(id, e);
+                    onMouseDown && onMouseDown(e, id);
+                }}
+            >
+                <div 
+                    className="stm32-bluepill-pcb"
+                    style={{
+                        position: "relative",
+                        width: "100%",
+                        height: "100%",
+                        background: isBlackPill ? "#18181b" : "#1d4ed8",
+                        borderRadius: 6,
+                        border: isBlackPill ? "1.5px solid #27272a" : "1.5px solid #1e40af",
+                        boxShadow: "0 6px 16px rgba(0,0,0,0.5)",
+                        overflow: "hidden"
+                    }}
+                >
+                    {/* Micro-USB Port on Top */}
+                    <div style={{ position: "absolute", top: -2, left: 44, width: 40, height: 22, background: "linear-gradient(180deg, #cbd5e1, #94a3b8)", borderRadius: 3, border: "1px solid #64748b" }}></div>
+
+                    {/* Reset Button */}
+                    <div style={{ position: "absolute", top: 32, left: 52, width: 24, height: 24, background: "#1e293b", borderRadius: "50%", border: "1.5px solid #ef4444", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#ef4444" }}></div>
+                    </div>
+
+                    {/* Yellow BOOT0 and BOOT1 Jumpers */}
+                    <div style={{ position: "absolute", top: 66, left: 38, display: "flex", gap: 12 }}>
+                        <div style={{ width: 18, height: 12, background: "#eab308", borderRadius: 2, border: "1px solid #a16207" }}></div>
+                        <div style={{ width: 18, height: 12, background: "#eab308", borderRadius: 2, border: "1px solid #a16207" }}></div>
+                    </div>
+
+                    {/* Center STM32F103 / STM32F401 LQFP-48 Chip */}
+                    <div 
+                        style={{
+                            position: "absolute",
+                            top: 130,
+                            left: 36,
+                            width: 56,
+                            height: 56,
+                            background: "#09090b",
+                            borderRadius: 3,
+                            border: "1px solid #27272a",
+                            transform: "rotate(45deg)",
+                            boxShadow: "0 3px 8px rgba(0,0,0,0.6)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center"
+                        }}
+                    >
+                        <span style={{ transform: "rotate(-45deg)", color: "#cbd5e1", fontSize: 6.5, fontWeight: 900, fontFamily: "monospace", textAlign: "center", lineHeight: 1.1 }}>
+                            {isBlackPill ? "STM32F401\nCCU6" : "STM32F103\nC8T6"}
+                        </span>
+                    </div>
+
+                    {/* 8.000 MHz Crystal Oscillator */}
+                    <div style={{ position: "absolute", top: 210, left: 44, width: 40, height: 16, background: "linear-gradient(135deg, #e2e8f0, #cbd5e1)", borderRadius: 8, border: "1px solid #94a3b8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 6.5, fontWeight: 800, color: "#334155", fontFamily: "monospace" }}>
+                        8.000
+                    </div>
+
+                    {/* LEDs: Red PWR & Green User PC13 */}
+                    <div style={{ position: "absolute", bottom: 44, left: 36, display: "flex", gap: 32 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: 1, background: isPowered ? "#ef4444" : "#475569", boxShadow: isPowered ? "0 0 6px #ef4444" : "none" }}></div>
+                        <div style={{ width: 6, height: 6, borderRadius: 1, background: isPC13Lit ? "#22c55e" : "#475569", boxShadow: isPC13Lit ? "0 0 6px #22c55e" : "none" }}></div>
+                    </div>
+
+                    {/* Silkscreen text */}
+                    <div style={{ position: "absolute", bottom: 12, left: 0, width: "100%", textAlign: "center", color: "#ffffff", fontSize: 8, fontWeight: 900, letterSpacing: "0.06em" }}>
+                        {isBlackPill ? "STM32 BLACK PILL" : "STM32 BLUE PILL"}
+                    </div>
+                </div>
+
+                {/* Dual 20-Pin Pin Sockets */}
+                <div className="mcu-pin-sockets-layer">
+                    {STM32_BLUEPILL_PINS.leftCol.map((p) => renderPinSocket(p, "bpL", "espLeft"))}
+                    {STM32_BLUEPILL_PINS.rightCol.map((p) => renderPinSocket(p, "bpR", "espRight"))}
+                </div>
+            </div>
+        );
+    }
+
+    // ==========================================
+    // 4g. ATTINY85 (DIP-8 Microcontroller)
+    // ==========================================
+    if (type === "attiny85") {
+        const isPowered = Boolean(isSimulating || simState?.isPowered);
+
+        return (
+            <div
+                className={`mcu-board-container custom-mcu-board ${isSelected ? "selected" : ""}`}
+                style={{
+                    transform: `translate(${x}px, ${y}px) rotate(${rotation}deg)`,
+                    transformOrigin: "0 0",
+                    width: 64,
+                    height: 80
+                }}
+                onMouseDown={(e) => {
+                    if (isWireMode) return;
+                    onSelect && onSelect(id, e);
+                    onMouseDown && onMouseDown(e, id);
+                }}
+            >
+                <div 
+                    style={{
+                        position: "relative",
+                        width: "100%",
+                        height: "100%",
+                        background: "#09090b",
+                        borderRadius: 4,
+                        border: "1.5px solid #27272a",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.6)",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center"
+                    }}
+                >
+                    {/* Top Notch */}
+                    <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 14, height: 6, borderRadius: "0 0 7px 7px", background: "#18181b", border: "1px solid #27272a" }}></div>
+                    {/* Pin 1 Dot */}
+                    <div style={{ position: "absolute", top: 12, left: 10, width: 4, height: 4, borderRadius: "50%", background: "#3f3f46" }}></div>
+                    <span style={{ color: "#f8fafc", fontSize: 6.5, fontWeight: 900, fontFamily: "monospace", letterSpacing: "0.02em" }}>ATTINY85</span>
+                    <span style={{ color: "#94a3b8", fontSize: 5, fontFamily: "monospace" }}>20PU 8MHz</span>
+                    <div style={{ position: "absolute", bottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: isPowered ? "#22c55e" : "#ef4444" }}></span>
+                        <span style={{ color: "#64748b", fontSize: 5, fontWeight: 700 }}>8-BIT</span>
+                    </div>
+                </div>
+
+                <div className="mcu-pin-sockets-layer">
+                    {ATTINY85_PINS.leftCol.map((p) => renderPinSocket(p, "atL", "espLeft"))}
+                    {ATTINY85_PINS.rightCol.map((p) => renderPinSocket(p, "atR", "espRight"))}
+                </div>
+            </div>
+        );
+    }
+
+    // ==========================================
+    // 4h. NXP LPC1768, TI TIVA C, TI MSP430, PIC18F4550, NORDIC NRF52840
+    // Vector Hardware Development Boards (Zero image dependencies)
+    // ==========================================
+    const VECTOR_DEV_BOARDS = {
+        "nxp-lpc1768": { name: "NXP LPC1768", chip: "LPC1768", arch: "Cortex-M3 96MHz", w: 176, h: 80, bg: "#1e3a8a", border: "#1d4ed8" },
+        "ti-tiva-c": { name: "TI Tiva C", chip: "TM4C123G", arch: "Cortex-M4F 80MHz", w: 220, h: 120, bg: "#7f1d1d", border: "#991b1b" },
+        "ti-msp430": { name: "TI MSP430", chip: "MSP430G2553", arch: "16-Bit Ultra-Low", w: 180, h: 110, bg: "#7f1d1d", border: "#991b1b" },
+        "pic18f4550": { name: "PIC18F4550", chip: "PIC18F4550", arch: "Microchip USB MCU", w: 160, h: 90, bg: "#0f172a", border: "#334155" },
+        "nordic-nrf52840": { name: "Nordic nRF52840", chip: "nRF52840", arch: "BLE 5.4 / 2.4GHz", w: 180, h: 90, bg: "#0369a1", border: "#0284c7" }
     };
 
-    if (BOARD_IMAGE_MAP[type]) {
-        const boardMeta = BOARD_IMAGE_MAP[type];
+    if (VECTOR_DEV_BOARDS[type]) {
+        const boardMeta = VECTOR_DEV_BOARDS[type];
         const isPowered = Boolean(isSimulating || simState?.isPowered);
+
         return (
             <div
                 className={`mcu-board-container custom-mcu-board ${isSelected ? "selected" : ""}`}
@@ -535,15 +1088,39 @@ function McuBoard({
                     onMouseDown && onMouseDown(e, id);
                 }}
             >
-                <div className="custom-board-surface" style={{ width: "100%", height: "100%", position: "relative", borderRadius: 8, overflow: "hidden", background: "#0f172a", border: "1.5px solid #334155", boxShadow: "0 6px 16px rgba(0,0,0,0.4)" }}>
-                    <img 
-                        src={boardMeta.img} 
-                        alt={boardMeta.name} 
-                        style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }} 
-                    />
-                    <div style={{ position: "absolute", bottom: 4, left: 6, display: "flex", alignItems: "center", gap: 5, background: "rgba(0,0,0,0.75)", padding: "2px 6px", borderRadius: 4 }}>
+                <div 
+                    style={{
+                        position: "relative",
+                        width: "100%",
+                        height: "100%",
+                        background: boardMeta.bg,
+                        borderRadius: 8,
+                        border: `2px solid ${boardMeta.border}`,
+                        boxShadow: "0 6px 16px rgba(0,0,0,0.5)",
+                        overflow: "hidden",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "space-between",
+                        padding: 8
+                    }}
+                >
+                    {/* Metal USB Jack */}
+                    <div style={{ position: "absolute", top: 4, left: 4, width: 24, height: 18, background: "linear-gradient(90deg, #cbd5e1, #94a3b8)", borderRadius: 3, border: "1px solid #64748b" }}></div>
+
+                    {/* Central Processor */}
+                    <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: 52, height: 52, background: "#09090b", borderRadius: 3, border: "1px solid #27272a", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 2 }}>
+                        <span style={{ color: "#f8fafc", fontSize: 6.5, fontWeight: 900, fontFamily: "monospace" }}>{boardMeta.chip}</span>
+                        <span style={{ color: "#94a3b8", fontSize: 5, fontFamily: "monospace", textAlign: "center" }}>{boardMeta.arch}</span>
+                    </div>
+
+                    {/* Top and Bottom Pin Header Tracks */}
+                    <div style={{ position: "absolute", top: 4, left: 34, right: 8, height: 6, background: "#0f172a", borderRadius: 2 }}></div>
+                    <div style={{ position: "absolute", bottom: 4, left: 8, right: 8, height: 6, background: "#0f172a", borderRadius: 2 }}></div>
+
+                    {/* Bottom Info Bar with Power Indicator */}
+                    <div style={{ position: "absolute", bottom: 12, left: 10, display: "flex", alignItems: "center", gap: 5, background: "rgba(0,0,0,0.75)", padding: "2px 6px", borderRadius: 4 }}>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: isPowered ? "#22c55e" : "#ef4444", boxShadow: isPowered ? "0 0 6px #22c55e" : "none" }}></span>
-                        <span style={{ color: "#e2e8f0", fontSize: 9, fontWeight: 700, letterSpacing: "0.03em" }}>{name || boardMeta.name}</span>
+                        <span style={{ color: "#e2e8f0", fontSize: 8, fontWeight: 800, letterSpacing: "0.03em" }}>{name || boardMeta.name}</span>
                     </div>
                 </div>
             </div>

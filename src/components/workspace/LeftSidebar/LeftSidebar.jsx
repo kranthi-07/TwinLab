@@ -710,16 +710,7 @@ function LeftSidebar({ onAddComponent, onCloseInspector }) {
                                 title={`Click or drag to add ${component.name}`}
                             >
                                 <div className="component-preview">
-                                    {component.category !== "boards" && component.image ? (
-                                        <img 
-                                            src={component.image} 
-                                            alt={component.name} 
-                                            className="component-img"
-                                            draggable={false}
-                                        />
-                                    ) : (
-                                        <ComponentCatalogThumbnail component={component} />
-                                    )}
+                                    <ComponentCatalogThumbnail component={component} />
                                     <span className="drag-pill">Drag</span>
                                 </div>
 

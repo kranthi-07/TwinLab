@@ -245,3 +245,200 @@ export const ESP32_PINS = {
         { name: "3V3", x: 192, y: 240, is3V3: true, pinNum: "3.3V" },
     ]
 };
+
+// ESP8266 NodeMCU V2/V3 (30-pin, 15 pins top and 15 pins bottom on 16px pitch)
+export const ESP8266_NODEMCU_PINS = {
+    topRow: [
+        { name: "D0", x: 48, y: 16, pinNum: 16, isGpio: true },
+        { name: "D1", x: 64, y: 16, pinNum: 5, isGpio: true },
+        { name: "D2", x: 80, y: 16, pinNum: 4, isGpio: true },
+        { name: "D3", x: 96, y: 16, pinNum: 0, isGpio: true },
+        { name: "D4", x: 112, y: 16, pinNum: 2, isGpio: true, isD4: true, isLed: true }, // Built-in blue LED
+        { name: "D5", x: 128, y: 16, pinNum: 14, isGpio: true },
+        { name: "D6", x: 144, y: 16, pinNum: 12, isGpio: true },
+        { name: "D7", x: 160, y: 16, pinNum: 13, isGpio: true },
+        { name: "D8", x: 176, y: 16, pinNum: 15, isGpio: true },
+        { name: "RX", x: 192, y: 16, pinNum: 3, isGpio: true },
+        { name: "TX", x: 208, y: 16, pinNum: 1, isGpio: true },
+        { name: "GND", x: 224, y: 16, isGnd: true, pinNum: "GND" },
+        { name: "3V3", x: 240, y: 16, is3V3: true, pinNum: "3.3V" },
+        { name: "GND", x: 256, y: 16, isGnd: true, pinNum: "GND" },
+        { name: "3V3", x: 272, y: 16, is3V3: true, pinNum: "3.3V" },
+    ],
+    botRow: [
+        { name: "A0", x: 48, y: 128, pinNum: "A0", isAnalog: true },
+        { name: "G", x: 64, y: 128, isGnd: true, pinNum: "GND" },
+        { name: "VU", x: 80, y: 128, is5V: true, pinNum: "5V" },
+        { name: "S3", x: 96, y: 128, pinNum: 10, isGpio: true },
+        { name: "S2", x: 112, y: 128, pinNum: 9, isGpio: true },
+        { name: "S1", x: 128, y: 128, pinNum: 8, isGpio: true },
+        { name: "SC", x: 144, y: 128, pinNum: 11, isGpio: true },
+        { name: "SK", x: 160, y: 128, pinNum: 7, isGpio: true },
+        { name: "G", x: 176, y: 128, isGnd: true, pinNum: "GND" },
+        { name: "3V", x: 192, y: 128, is3V3: true, pinNum: "3.3V" },
+        { name: "EN", x: 208, y: 128, pinNum: "EN" },
+        { name: "RST", x: 224, y: 128, pinNum: "RST" },
+        { name: "G", x: 240, y: 128, isGnd: true, pinNum: "GND" },
+        { name: "VIN", x: 256, y: 128, is5V: true, pinNum: "VIN" },
+        { name: "3V", x: 272, y: 128, is3V3: true, pinNum: "3.3V" },
+    ]
+};
+
+// STM32 Nucleo-64 (Nucleo-F401RE / F103RB) Pin Definitions
+export const STM32_NUCLEO_PINS = {
+    topDigital: [
+        { name: "D15", x: 80, y: 16, isGpio: true, pinNum: 15 },
+        { name: "D14", x: 96, y: 16, isGpio: true, pinNum: 14 },
+        { name: "AVDD", x: 112, y: 16, is3V3: true, pinNum: "3.3V" },
+        { name: "GND", x: 128, y: 16, isGnd: true, pinNum: "GND" },
+        { name: "D13", x: 144, y: 16, isGpio: true, isD13: true, isLed: true, pinNum: 13 }, // Green LD2 User LED (PA5)
+        { name: "D12", x: 160, y: 16, isGpio: true, pinNum: 12 },
+        { name: "D11", x: 176, y: 16, isGpio: true, pinNum: 11 },
+        { name: "D10", x: 192, y: 16, isGpio: true, pinNum: 10 },
+        { name: "D9", x: 208, y: 16, isGpio: true, pinNum: 9 },
+        { name: "D8", x: 224, y: 16, isGpio: true, pinNum: 8 },
+        { name: "D7", x: 240, y: 16, isGpio: true, pinNum: 7 },
+        { name: "D6", x: 256, y: 16, isGpio: true, pinNum: 6 },
+        { name: "D5", x: 272, y: 16, isGpio: true, pinNum: 5 },
+        { name: "D4", x: 288, y: 16, isGpio: true, pinNum: 4 },
+        { name: "D3", x: 304, y: 16, isGpio: true, pinNum: 3 },
+        { name: "D2", x: 320, y: 16, isGpio: true, pinNum: 2 },
+        { name: "D1", x: 336, y: 16, isGpio: true, pinNum: 1 },
+        { name: "D0", x: 352, y: 16, isGpio: true, pinNum: 0 },
+    ],
+    botAnalogPower: [
+        { name: "IOREF", x: 64, y: 208, is3V3: true, pinNum: "IOREF" },
+        { name: "RESET", x: 80, y: 208, pinNum: "RESET" },
+        { name: "3V3", x: 96, y: 208, is3V3: true, pinNum: "3.3V" },
+        { name: "5V", x: 112, y: 208, is5V: true, pinNum: "5V" },
+        { name: "GND", x: 128, y: 208, isGnd: true, pinNum: "GND" },
+        { name: "GND", x: 144, y: 208, isGnd: true, pinNum: "GND" },
+        { name: "VIN", x: 160, y: 208, is5V: true, pinNum: "VIN" },
+        { name: "A0", x: 208, y: 208, isAnalog: true, pinNum: "A0" },
+        { name: "A1", x: 224, y: 208, isAnalog: true, pinNum: "A1" },
+        { name: "A2", x: 240, y: 208, isAnalog: true, pinNum: "A2" },
+        { name: "A3", x: 256, y: 208, isAnalog: true, pinNum: "A3" },
+        { name: "A4", x: 272, y: 208, isAnalog: true, pinNum: "A4" },
+        { name: "A5", x: 288, y: 208, isAnalog: true, pinNum: "A5" },
+    ]
+};
+
+// Teensy 4.1 Header Pin Definitions (48 pins: 24 top, 24 bottom on 16px pitch)
+export const TEENSY41_PINS = {
+    topRow: [
+        { name: "5V", x: 16, y: 16, is5V: true, pinNum: "5V" },
+        { name: "GND", x: 32, y: 16, isGnd: true, pinNum: "GND" },
+        { name: "3V3", x: 48, y: 16, is3V3: true, pinNum: "3.3V" },
+        { name: "23", x: 64, y: 16, isGpio: true, isAnalog: true, pinNum: 23 },
+        { name: "22", x: 80, y: 16, isGpio: true, isAnalog: true, pinNum: 22 },
+        { name: "21", x: 96, y: 16, isGpio: true, isAnalog: true, pinNum: 21 },
+        { name: "20", x: 112, y: 16, isGpio: true, isAnalog: true, pinNum: 20 },
+        { name: "19", x: 128, y: 16, isGpio: true, isAnalog: true, pinNum: 19 },
+        { name: "18", x: 144, y: 16, isGpio: true, isAnalog: true, pinNum: 18 },
+        { name: "17", x: 160, y: 16, isGpio: true, isAnalog: true, pinNum: 17 },
+        { name: "16", x: 176, y: 16, isGpio: true, isAnalog: true, pinNum: 16 },
+        { name: "15", x: 192, y: 16, isGpio: true, isAnalog: true, pinNum: 15 },
+        { name: "14", x: 208, y: 16, isGpio: true, isAnalog: true, pinNum: 14 },
+        { name: "13", x: 224, y: 16, isGpio: true, isD13: true, isLed: true, pinNum: 13 }, // Orange LED on Pin 13
+        { name: "GND", x: 240, y: 16, isGnd: true, pinNum: "GND" },
+        { name: "41", x: 256, y: 16, isGpio: true, pinNum: 41 },
+        { name: "40", x: 272, y: 16, isGpio: true, pinNum: 40 },
+        { name: "39", x: 288, y: 16, isGpio: true, pinNum: 39 },
+        { name: "38", x: 304, y: 16, isGpio: true, pinNum: 38 },
+        { name: "37", x: 320, y: 16, isGpio: true, pinNum: 37 },
+        { name: "36", x: 336, y: 16, isGpio: true, pinNum: 36 },
+        { name: "35", x: 352, y: 16, isGpio: true, pinNum: 35 },
+        { name: "34", x: 368, y: 16, isGpio: true, pinNum: 34 },
+        { name: "33", x: 384, y: 16, isGpio: true, pinNum: 33 },
+    ],
+    botRow: [
+        { name: "GND", x: 16, y: 96, isGnd: true, pinNum: "GND" },
+        { name: "0", x: 32, y: 96, isGpio: true, pinNum: 0 },
+        { name: "1", x: 48, y: 96, isGpio: true, pinNum: 1 },
+        { name: "2", x: 64, y: 96, isGpio: true, pinNum: 2 },
+        { name: "3", x: 80, y: 96, isGpio: true, pinNum: 3 },
+        { name: "4", x: 96, y: 96, isGpio: true, pinNum: 4 },
+        { name: "5", x: 112, y: 96, isGpio: true, pinNum: 5 },
+        { name: "6", x: 128, y: 96, isGpio: true, pinNum: 6 },
+        { name: "7", x: 144, y: 96, isGpio: true, pinNum: 7 },
+        { name: "8", x: 160, y: 96, isGpio: true, pinNum: 8 },
+        { name: "9", x: 176, y: 96, isGpio: true, pinNum: 9 },
+        { name: "10", x: 192, y: 96, isGpio: true, pinNum: 10 },
+        { name: "11", x: 208, y: 96, isGpio: true, pinNum: 11 },
+        { name: "12", x: 224, y: 96, isGpio: true, pinNum: 12 },
+        { name: "3V3", x: 240, y: 96, is3V3: true, pinNum: "3.3V" },
+        { name: "24", x: 256, y: 96, isGpio: true, pinNum: 24 },
+        { name: "25", x: 272, y: 96, isGpio: true, pinNum: 25 },
+        { name: "26", x: 288, y: 96, isGpio: true, pinNum: 26 },
+        { name: "27", x: 304, y: 96, isGpio: true, pinNum: 27 },
+        { name: "28", x: 320, y: 96, isGpio: true, pinNum: 28 },
+        { name: "29", x: 336, y: 96, isGpio: true, pinNum: 29 },
+        { name: "30", x: 352, y: 96, isGpio: true, pinNum: 30 },
+        { name: "31", x: 368, y: 96, isGpio: true, pinNum: 31 },
+        { name: "32", x: 384, y: 96, isGpio: true, pinNum: 32 },
+    ]
+};
+
+// STM32 Blue Pill / Black Pill 40-Pin Header Definitions (20 left, 20 right on 16px pitch)
+export const STM32_BLUEPILL_PINS = {
+    leftCol: [
+        { name: "B12", x: 16, y: 16, pinNum: "B12", isGpio: true },
+        { name: "B13", x: 16, y: 32, pinNum: "B13", isGpio: true },
+        { name: "B14", x: 16, y: 48, pinNum: "B14", isGpio: true },
+        { name: "B15", x: 16, y: 64, pinNum: "B15", isGpio: true },
+        { name: "A8", x: 16, y: 80, pinNum: "A8", isGpio: true },
+        { name: "A9", x: 16, y: 96, pinNum: "A9", isGpio: true },
+        { name: "A10", x: 16, y: 112, pinNum: "A10", isGpio: true },
+        { name: "A11", x: 16, y: 128, pinNum: "A11", isGpio: true },
+        { name: "A12", x: 16, y: 144, pinNum: "A12", isGpio: true },
+        { name: "A15", x: 16, y: 160, pinNum: "A15", isGpio: true },
+        { name: "B3", x: 16, y: 176, pinNum: "B3", isGpio: true },
+        { name: "B4", x: 16, y: 192, pinNum: "B4", isGpio: true },
+        { name: "B5", x: 16, y: 208, pinNum: "B5", isGpio: true },
+        { name: "B6", x: 16, y: 224, pinNum: "B6", isGpio: true },
+        { name: "B7", x: 16, y: 240, pinNum: "B7", isGpio: true },
+        { name: "B8", x: 16, y: 256, pinNum: "B8", isGpio: true },
+        { name: "B9", x: 16, y: 272, pinNum: "B9", isGpio: true },
+        { name: "5V", x: 16, y: 288, is5V: true, pinNum: "5V" },
+        { name: "GND", x: 16, y: 304, isGnd: true, pinNum: "GND" },
+        { name: "3V3", x: 16, y: 320, is3V3: true, pinNum: "3.3V" }
+    ],
+    rightCol: [
+        { name: "PC13", x: 112, y: 16, pinNum: 13, isGpio: true, isD13: true, isLed: true }, // Green User LED (PC13)
+        { name: "PC14", x: 112, y: 32, pinNum: 14, isGpio: true },
+        { name: "PC15", x: 112, y: 48, pinNum: 15, isGpio: true },
+        { name: "PA0", x: 112, y: 64, pinNum: 0, isGpio: true, isAnalog: true },
+        { name: "PA1", x: 112, y: 80, pinNum: 1, isGpio: true, isAnalog: true },
+        { name: "PA2", x: 112, y: 96, pinNum: 2, isGpio: true, isAnalog: true },
+        { name: "PA3", x: 112, y: 112, pinNum: 3, isGpio: true, isAnalog: true },
+        { name: "PA4", x: 112, y: 128, pinNum: 4, isGpio: true, isAnalog: true },
+        { name: "PA5", x: 112, y: 144, pinNum: 5, isGpio: true, isAnalog: true },
+        { name: "PA6", x: 112, y: 160, pinNum: 6, isGpio: true, isAnalog: true },
+        { name: "PA7", x: 112, y: 176, pinNum: 7, isGpio: true, isAnalog: true },
+        { name: "PB0", x: 112, y: 192, pinNum: "PB0", isGpio: true },
+        { name: "PB1", x: 112, y: 208, pinNum: "PB1", isGpio: true },
+        { name: "PB10", x: 112, y: 224, pinNum: "PB10", isGpio: true },
+        { name: "PB11", x: 112, y: 240, pinNum: "PB11", isGpio: true },
+        { name: "NRST", x: 112, y: 256, pinNum: "NRST" },
+        { name: "3V3", x: 112, y: 272, is3V3: true, pinNum: "3.3V" },
+        { name: "GND", x: 112, y: 288, isGnd: true, pinNum: "GND" },
+        { name: "GND", x: 112, y: 304, isGnd: true, pinNum: "GND" },
+        { name: "VBAT", x: 112, y: 320, is5V: true, pinNum: "VBAT" }
+    ]
+};
+
+// ATtiny85 8-Pin DIP / Digispark Layout
+export const ATTINY85_PINS = {
+    leftCol: [
+        { name: "PB5", x: 16, y: 16, pinNum: 5, isGpio: true },
+        { name: "PB3", x: 16, y: 32, pinNum: 3, isGpio: true, isAnalog: true },
+        { name: "PB4", x: 16, y: 48, pinNum: 4, isGpio: true, isAnalog: true },
+        { name: "GND", x: 16, y: 64, isGnd: true, pinNum: "GND" }
+    ],
+    rightCol: [
+        { name: "VCC", x: 48, y: 16, is5V: true, pinNum: "5V" },
+        { name: "PB2", x: 48, y: 32, pinNum: 2, isGpio: true, isAnalog: true },
+        { name: "PB1", x: 48, y: 48, pinNum: 1, isGpio: true, isLed: true }, // User LED
+        { name: "PB0", x: 48, y: 64, pinNum: 0, isGpio: true }
+    ]
+};

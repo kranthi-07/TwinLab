@@ -1,7 +1,16 @@
 // Embedded MCU Firmware Execution Engine & C++ Transpiler
 // Supports Arduino Uno R3 (ATmega328P) & ESP32 DevKit V1 (ESP-WROOM-32)
 import { soundManager } from "../utils/audioManager.js";
-import { ARDUINO_PINS, ARDUINO_MEGA_PINS, ARDUINO_NANO_PINS, ESP32_PINS, RPI_PICO_PINS } from "../components/workspace/components/mcuPins.js";
+import { 
+    ARDUINO_PINS, 
+    ARDUINO_MEGA_PINS, 
+    ARDUINO_NANO_PINS, 
+    ESP32_PINS, 
+    RPI_PICO_PINS,
+    ESP8266_NODEMCU_PINS,
+    STM32_NUCLEO_PINS,
+    TEENSY41_PINS
+} from "../components/workspace/components/mcuPins.js";
 import { solveCircuit } from "./circuitSolver.js";
 
 export const DEFAULT_SKETCHES = {
@@ -370,6 +379,9 @@ export class McuExecutionSession {
 
     getBuiltinLedPin() {
         if (this.boardType?.includes("pico") || this.boardType === "raspberry-pi") return 25;
+        if (this.boardType === "esp8266-nodemcu" || this.boardType === "esp8266") return 2;
+        if (this.boardType === "stm32-nucleo" || this.boardType === "stm32-f401re") return 13;
+        if (this.boardType === "teensy-41" || this.boardType === "teensy41") return 13;
         return (this.boardType === "esp32" || this.boardType === "esp32-devkit" || this.boardType === "esp32-s3") ? 2 : 13;
     }
 
@@ -462,6 +474,15 @@ export class McuExecutionSession {
         } else if (this.boardType?.includes("pico") || this.boardType === "raspberry-pi") {
             const allPins = [...(RPI_PICO_PINS.leftCol || []), ...(RPI_PICO_PINS.rightCol || [])];
             pinDef = allPins.find(pt => String(pt.pinNum) === p || pt.name === p || pt.name === `GP${p}`);
+        } else if (this.boardType === "esp8266-nodemcu" || this.boardType === "esp8266") {
+            const allPins = [...(ESP8266_NODEMCU_PINS.topRow || []), ...(ESP8266_NODEMCU_PINS.botRow || [])];
+            pinDef = allPins.find(pt => String(pt.pinNum) === p || pt.name === p || pt.name === `D${p}`);
+        } else if (this.boardType === "stm32-nucleo" || this.boardType === "stm32-f401re") {
+            const allPins = [...(STM32_NUCLEO_PINS.topDigital || []), ...(STM32_NUCLEO_PINS.botAnalogPower || [])];
+            pinDef = allPins.find(pt => String(pt.pinNum) === p || pt.name === p || pt.name === `D${p}`);
+        } else if (this.boardType === "teensy-41" || this.boardType === "teensy41") {
+            const allPins = [...(TEENSY41_PINS.topRow || []), ...(TEENSY41_PINS.botRow || [])];
+            pinDef = allPins.find(pt => String(pt.pinNum) === p || pt.name === p || pt.name === `D${p}`);
         } else {
             // Arduino Uno
             const allPins = [
@@ -943,12 +964,12 @@ export class McuExecutionSession {
                     dist = window.__twinlab_sensor_live[ultrasonic.id].measuredDistanceCm;
                 } else if (typeof window !== "undefined" && window.__twinlab_ultrasonic_distance != null) {
                     dist = window.__twinlab_ultrasonic_distance;
-                } else if (ultrasonic.inRange !== false && ultrasonic.measuredDistanceCm != null) {
+                } else if (ultrasonic.measuredDistanceCm != null) {
                     dist = ultrasonic.measuredDistanceCm;
-                } else if (ultrasonic.inRange === false) {
-                    dist = 400;
+                } else if (ultrasonic.distanceCm != null) {
+                    dist = ultrasonic.distanceCm;
                 } else {
-                    dist = ultrasonic.distanceCm != null ? ultrasonic.distanceCm : 25;
+                    dist = 25;
                 }
                 await new Promise(r => setTimeout(r, 4));
                 return Math.round(dist * 58.2);

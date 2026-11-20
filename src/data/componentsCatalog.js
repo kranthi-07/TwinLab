@@ -1,5 +1,3 @@
-import breadboardImg from "../assets/twinlab/breadboard.webp";
-
 export const COMPONENTS_CATALOG = [
     // ==========================================
     // BOARDS & PROTOTYPING
@@ -9,7 +7,6 @@ export const COMPONENTS_CATALOG = [
         name: "Breadboard (Half-Size)",
         type: "breadboard-half",
         category: "boards",
-        image: breadboardImg,
         icon: "ri-layout-grid-line",
         width: 560,
         height: 288,
@@ -21,7 +18,6 @@ export const COMPONENTS_CATALOG = [
         name: "Breadboard (Full-Size)",
         type: "breadboard-full",
         category: "boards",
-        image: breadboardImg,
         icon: "ri-layout-grid-fill",
         width: 1040,
         height: 288,
@@ -100,8 +96,8 @@ export const COMPONENTS_CATALOG = [
         type: "esp8266-nodemcu",
         category: "boards",
         icon: "ri-wifi-line",
-        width: 200,
-        height: 120,
+        width: 304,
+        height: 144,
         desc: "32-bit Tensilica L106 RISC core with integrated 2.4 GHz Wi-Fi for IoT and remote monitoring",
         tag: "IoT"
     },
@@ -122,8 +118,8 @@ export const COMPONENTS_CATALOG = [
         type: "stm32-nucleo",
         category: "boards",
         icon: "ri-microchip-line",
-        width: 240,
-        height: 160,
+        width: 384,
+        height: 240,
         desc: "STM32F446RE 32-bit Arm Cortex-M4F with DSP, FPU, advanced timers, and Arduino headers",
         tag: "ARM"
     },
@@ -221,8 +217,8 @@ export const COMPONENTS_CATALOG = [
         type: "teensy-41",
         category: "boards",
         icon: "ri-speed-up-line",
-        width: 192,
-        height: 72,
+        width: 416,
+        height: 112,
         desc: "NXP i.MX RT1062 32-bit Arm Cortex-M7 running up to 600MHz with DSP/FPU and extensive I/O",
         tag: "Cortex-M7"
     },

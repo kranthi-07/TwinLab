@@ -1,4 +1,13 @@
-import { ARDUINO_PINS, ARDUINO_MEGA_PINS, ARDUINO_NANO_PINS, ESP32_PINS, RPI_PICO_PINS } from "../components/workspace/components/mcuPins.js";
+import { 
+    ARDUINO_PINS, 
+    ARDUINO_MEGA_PINS, 
+    ARDUINO_NANO_PINS, 
+    ESP32_PINS, 
+    RPI_PICO_PINS,
+    ESP8266_NODEMCU_PINS,
+    STM32_NUCLEO_PINS,
+    TEENSY41_PINS
+} from "../components/workspace/components/mcuPins.js";
 
 /**
  * Returns precise world-space coordinates for all terminals/pins of ANY component.
@@ -164,6 +173,30 @@ export function getComponentTerminalPoints(c) {
             ...(RPI_PICO_PINS?.rightCol || [])
         ];
         allPicoPins.forEach(p => pts.push(toWorld(p.x, p.y, `pico_${p.name}`)));
+    }
+    // 26b. ESP8266 NodeMCU Header Pins
+    else if (c.type === "esp8266-nodemcu" || c.type === "esp8266") {
+        const allNodemcuPins = [
+            ...(ESP8266_NODEMCU_PINS?.topRow || []),
+            ...(ESP8266_NODEMCU_PINS?.botRow || [])
+        ];
+        allNodemcuPins.forEach(p => pts.push(toWorld(p.x, p.y, `nodemcu_${p.name}`)));
+    }
+    // 26c. STM32 Nucleo-64 Header Pins
+    else if (c.type === "stm32-nucleo" || c.type === "stm32-f401re") {
+        const allNucleoPins = [
+            ...(STM32_NUCLEO_PINS?.topDigital || []),
+            ...(STM32_NUCLEO_PINS?.botAnalogPower || [])
+        ];
+        allNucleoPins.forEach(p => pts.push(toWorld(p.x, p.y, `nucleo_${p.name}`)));
+    }
+    // 26d. Teensy 4.1 Header Pins
+    else if (c.type === "teensy-41" || c.type === "teensy41") {
+        const allTeensyPins = [
+            ...(TEENSY41_PINS?.topRow || []),
+            ...(TEENSY41_PINS?.botRow || [])
+        ];
+        allTeensyPins.forEach(p => pts.push(toWorld(p.x, p.y, `teensy_${p.name}`)));
     }
     // 27. Multimeter Probes
     else if (c.type === "multimeter") {

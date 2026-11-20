@@ -360,6 +360,127 @@ function renderMiniComponent(c, id) {
         );
     }
 
+    // 3b. ESP8266 NodeMCU V2/V3 (Exact 1:1 Scale: 304 x 144)
+    if (c.type === "esp8266-nodemcu" || c.type === "esp8266") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <rect width="304" height="144" rx="8" fill="#18181b" stroke="#27272a" strokeWidth="2" />
+                {/* Gold PCB Meandered WiFi Antenna */}
+                <path
+                    d="M 12 24 L 38 24 L 38 38 L 16 38 L 16 52 L 38 52 L 38 66 L 16 66 L 16 80 L 38 80 L 38 94 L 16 94 L 16 108 L 38 108 L 38 120 L 12 120"
+                    fill="none"
+                    stroke="#eab308"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+                {/* ESP-12E Silver RF Shielding Can */}
+                <rect x="52" y="32" width="110" height="80" rx="4" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1.5" />
+                <text x="107" y="62" fill="#334155" fontSize="12" fontWeight="900" textAnchor="middle">Wi-Fi</text>
+                <text x="107" y="80" fill="#475569" fontSize="10" fontWeight="bold" textAnchor="middle">ESP8266MOD</text>
+                <text x="107" y="96" fill="#64748b" fontSize="7" fontWeight="bold" textAnchor="middle">ISM 2.4GHz • PA +25dBm</text>
+                {/* Micro-USB Port on Right */}
+                <rect x="276" y="52" width="28" height="40" rx="3" fill="#94a3b8" stroke="#64748b" strokeWidth="1.5" />
+                {/* RST and FLASH Pushbuttons */}
+                <circle cx="282" cy="30" r="7" fill="#ca8a04" stroke="#78350f" strokeWidth="1" />
+                <text x="282" y="20" fill="#ffffff" fontSize="6" fontWeight="bold" textAnchor="middle">RST</text>
+                <circle cx="282" cy="114" r="7" fill="#ca8a04" stroke="#78350f" strokeWidth="1" />
+                <text x="282" y="130" fill="#ffffff" fontSize="6" fontWeight="bold" textAnchor="middle">FLASH</text>
+                {/* Top and Bottom Pin Header Rows */}
+                {[...Array(15)].map((_, i) => (
+                    <g key={`nodemcu-pin-${i}`}>
+                        <circle cx={48 + i * 16} cy="16" r="3" fill="#e2e8f0" stroke="#ca8a04" strokeWidth="1" />
+                        <circle cx={48 + i * 16} cy="128" r="3" fill="#e2e8f0" stroke="#ca8a04" strokeWidth="1" />
+                    </g>
+                ))}
+                {/* Status LEDs */}
+                <circle cx="150" cy="42" r="3.5" fill="#0284c7" filter="drop-shadow(0 0 4px #0284c7)" />
+                <circle cx="210" cy="100" r="3.5" fill="#ef4444" filter="drop-shadow(0 0 4px #ef4444)" />
+                <text x="200" y="56" fill="#ffffff" fontSize="8" fontWeight="bold">NodeMCU</text>
+            </g>
+        );
+    }
+
+    // 3c. STM32 Nucleo-64 (Exact 1:1 Scale: 384 x 240)
+    if (c.type === "stm32-nucleo" || c.type === "stm32-f401re") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <rect width="384" height="240" rx="12" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="2" />
+                {/* ST Blue Brand Logo */}
+                <path d="M 28 40 L 44 18 L 56 18 L 40 40 Z" fill="#0284c7" />
+                <path d="M 48 40 L 60 22 L 70 22 L 58 40 Z" fill="#0284c7" />
+                {/* ST-LINK Micro-USB Port on Left */}
+                <rect x="0" y="68" width="30" height="40" rx="3" fill="#cbd5e1" stroke="#64748b" strokeWidth="1.5" />
+                {/* Center STM32F401RET6 MCU */}
+                <rect x="156" y="96" width="64" height="64" rx="4" fill="#09090b" stroke="#27272a" strokeWidth="1.5" />
+                <text x="188" y="122" fill="#cbd5e1" fontSize="9" fontWeight="900" textAnchor="middle">ST</text>
+                <text x="188" y="136" fill="#cbd5e1" fontSize="7.5" fontWeight="bold" textAnchor="middle">STM32F401RE</text>
+                <text x="188" y="148" fill="#94a3b8" fontSize="6" textAnchor="middle">ARM CORTEX-M4</text>
+                {/* 8.000 MHz Crystal */}
+                <rect x="168" y="66" width="40" height="18" rx="9" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+                <text x="188" y="78" fill="#334155" fontSize="7" fontWeight="bold" textAnchor="middle">8.000</text>
+                {/* Blue USER Button (PC13) and Black RESET Button */}
+                <circle cx="260" cy="80" r="11" fill="#0284c7" stroke="#0369a1" strokeWidth="1.5" />
+                <text x="260" y="64" fill="#0284c7" fontSize="7" fontWeight="900" textAnchor="middle">USER</text>
+                <circle cx="40" cy="180" r="11" fill="#0284c7" stroke="#0369a1" strokeWidth="1.5" />
+                <text x="40" y="200" fill="#0284c7" fontSize="7" fontWeight="900" textAnchor="middle">RESET</text>
+                {/* Morpho Header Black Rails */}
+                <rect x="72" y="10" width="290" height="18" rx="2" fill="#0f172a" />
+                <rect x="56" y="212" width="250" height="18" rx="2" fill="#0f172a" />
+                {/* Top Digital Pins */}
+                {[80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240, 256, 272, 288, 304, 320, 336, 352].map(px => (
+                    <circle key={`nucleo-top-${px}`} cx={px} cy="19" r="2.8" fill="#e2e8f0" stroke="#ca8a04" strokeWidth="0.8" />
+                ))}
+                {/* Bottom Analog/Power Pins */}
+                {[64, 80, 96, 112, 128, 144, 160, 208, 224, 240, 256, 272, 288].map(px => (
+                    <circle key={`nucleo-bot-${px}`} cx={px} cy="221" r="2.8" fill="#e2e8f0" stroke="#ca8a04" strokeWidth="0.8" />
+                ))}
+                {/* Status LEDs (LD2 Green on PA5/D13, LD3 Red PWR) */}
+                <circle cx="228" cy="80" r="3.5" fill="#22c55e" filter="drop-shadow(0 0 5px #22c55e)" />
+                <circle cx="260" cy="140" r="3.5" fill="#ef4444" filter="drop-shadow(0 0 5px #ef4444)" />
+                {/* Large Nucleo Silkscreen Text */}
+                <text x="320" y="146" fill="#0284c7" fontSize="16" fontWeight="900" textAnchor="middle">NUCLEO</text>
+                <text x="320" y="164" fill="#0369a1" fontSize="12" fontWeight="bold" textAnchor="middle">F401RE</text>
+            </g>
+        );
+    }
+
+    // 3d. Teensy 4.1 (Exact 1:1 Scale: 416 x 112)
+    if (c.type === "teensy-41" || c.type === "teensy41") {
+        return (
+            <g key={c.id || id} transform={`translate(${cx}, ${cy}) rotate(${rot})`}>
+                <rect width="416" height="112" rx="8" fill="#15803d" stroke="#166534" strokeWidth="2" />
+                {/* Micro-USB Receptacle on Left */}
+                <rect x="0" y="38" width="28" height="36" rx="3" fill="#cbd5e1" stroke="#64748b" strokeWidth="1.5" />
+                {/* NXP i.MX RT1062 ARM Cortex-M7 @ 600 MHz Processor */}
+                <rect x="160" y="26" width="60" height="60" rx="3" fill="#09090b" stroke="#27272a" strokeWidth="1.5" />
+                <text x="190" y="52" fill="#ffffff" fontSize="9" fontWeight="900" textAnchor="middle">NXP</text>
+                <text x="190" y="66" fill="#cbd5e1" fontSize="6.5" fontWeight="bold" textAnchor="middle">MIMXRT1062</text>
+                <text x="190" y="76" fill="#94a3b8" fontSize="5.5" textAnchor="middle">600 MHz M7</text>
+                {/* Winbond QSPI Flash Memory */}
+                <rect x="272" y="66" width="24" height="20" rx="2" fill="#09090b" stroke="#27272a" strokeWidth="1" />
+                {/* Gold Program Pushbutton */}
+                <circle cx="284" cy="50" r="10" fill="#ca8a04" stroke="#a16207" strokeWidth="1.5" />
+                <circle cx="284" cy="50" r="6" fill="#eab308" />
+                {/* Micro-SD Push-Push Card Slot on Right */}
+                <rect x="340" y="18" width="76" height="76" rx="4" fill="#94a3b8" stroke="#475569" strokeWidth="1.5" />
+                <rect x="350" y="28" width="56" height="56" rx="2" fill="#0f172a" />
+                {/* 24 Top & 24 Bottom Header Pins */}
+                {[...Array(24)].map((_, i) => (
+                    <g key={`teensy-pin-${i}`}>
+                        <circle cx={16 + i * 16} cy="16" r="3" fill="#ca8a04" stroke="#78350f" strokeWidth="0.8" />
+                        <circle cx={16 + i * 16} cy="16" r="1.6" fill="#0f172a" />
+                        <circle cx={16 + i * 16} cy="96" r="3" fill="#ca8a04" stroke="#78350f" strokeWidth="0.8" />
+                        <circle cx={16 + i * 16} cy="96" r="1.6" fill="#0f172a" />
+                    </g>
+                ))}
+                {/* Orange User LED on Pin 13 */}
+                <circle cx="228" cy="38" r="3" fill="#f97316" filter="drop-shadow(0 0 5px #f97316)" />
+                <text x="110" y="58" fill="#ffffff" fontSize="11" fontWeight="900" letterSpacing="0.05em">Teensy 4.1</text>
+            </g>
+        );
+    }
+
     // 4. PIR Motion Sensor (HC-SR501)
     if (c.type === "sensor-pir") {
         return (
